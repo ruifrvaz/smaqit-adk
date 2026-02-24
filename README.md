@@ -1,6 +1,4 @@
-# smaQit-adk
-
-**Generic Agent Development Kit**
+# smaQit Agent Development Kit
 
 smaQit-adk provides the foundational framework for building AI agent orchestration systems. It's a toolkit of principles, templates, and compilation agents that enable developers to create custom specification-driven development workflows.
 
