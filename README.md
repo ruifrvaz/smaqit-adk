@@ -1,19 +1,19 @@
-# smaqit-adk
+# smaQit-adk
 
 **Generic Agent Development Kit**
 
-smaqit-adk provides the foundational framework for building AI agent orchestration systems. It's a toolkit of principles, templates, and compilation agents that enable developers to create custom specification-driven development workflows.
+smaQit-adk provides the foundational framework for building AI agent orchestration systems. It's a toolkit of principles, templates, and compilation agents that enable developers to create custom specification-driven development workflows.
 
-## What is smaqit-adk?
+## What is smaQit-adk?
 
-smaqit-adk is **not** an application - it's a development kit for building agent-based systems. It provides:
+smaQit-adk is **not** an application - it's a development kit for building agent-based systems. It provides:
 
 - **Framework principles** - Generic concepts for agent orchestration
 - **Agent templates** - Reusable patterns for specification and implementation agents
 - **Level agents** - Meta-agents that compile principles into executable agents (L0, L1, L2)
 - **Compilation system** - Transform abstract principles into concrete agent implementations
 
-## What can you build with smaqit-adk?
+## What can you build with smaQit-adk?
 
 - Custom specification agents for any domain (security, compliance, performance, etc.)
 - Implementation agents tailored to your stack and workflow
@@ -22,7 +22,7 @@ smaqit-adk is **not** an application - it's a development kit for building agent
 
 ## Example: smaQit Product
 
-**[smaQit](https://github.com/ruifrvaz/smaqit)** is a proof-of-concept built with smaqit-adk, demonstrating a five-layer specification system (business, functional, stack, infrastructure, coverage) with development/deployment/validation phases. It shows one way to use the ADK, but you can create entirely different architectures.
+**[smaQit](https://github.com/ruifrvaz/smaqit)** is a proof-of-concept built with smaQit-adk, demonstrating a five-layer specification system (business, functional, stack, infrastructure, coverage) with development/deployment/validation phases. It shows one way to use the ADK, but you can create entirely different architectures.
 
 ## Installation
 
@@ -77,7 +77,7 @@ Agent-L2 will compile your custom agent from generic templates.
 
 ## Level Architecture
 
-smaqit-adk uses a **three-level compilation chain**:
+smaQit-adk uses a **three-level compilation chain**:
 
 ### L0: Principles (Framework Philosophy)
 
@@ -166,7 +166,7 @@ Compile templates into concrete agents:
 
 ## Philosophy
 
-smaqit-adk embodies several key principles:
+smaQit-adk embodies several key principles:
 
 - **Generic by design** - No domain-specific assumptions
 - **Compilation-based** - Principles → Templates → Agents
