@@ -71,9 +71,9 @@ Agents follow the pattern: `smaQit.[LAYER]` for specification agents and `smaQit
 
 | Type | Pattern | Examples |
 |------|---------|----------|
-| Specification | `smaQit.[LAYER]` | `smaQit.business`, `smaQit.functional`, `smaQit.stack` |
-| Implementation | `smaQit.[PHASE]` | `smaQit.development`, `smaQit.deployment`, `smaQit.validation` |
-| Orchestrator | `smaQit.orchestrator` | `smaQit.orchestrator` |
+| Specification | `smaQit.[LAYER]` | `smaqit.business`, `smaqit.functional`, `smaqit.stack` |
+| Implementation | `smaQit.[PHASE]` | `smaqit.development`, `smaqit.deployment`, `smaqit.validation` |
+| Orchestrator | `smaqit.orchestrator` | `smaqit.orchestrator` |
 
 ## Foundation Agent
 
@@ -172,11 +172,11 @@ When users add requirements that could extend existing specifications, agents de
 
 | Agent | Layer | Prompt File | Context (for coherence) | Output |
 |-------|-------|-------------|---------------------------|--------|
-| `smaQit.business` | Business | `smaQit.business.prompt.md` | None | `specs/business/*.md` |
-| `smaQit.functional` | Functional | `smaQit.functional.prompt.md` | Business specs | `specs/functional/*.md` |
-| `smaQit.stack` | Stack | `smaQit.stack.prompt.md` | Business and Functional specs | `specs/stack/*.md` |
-| `smaQit.infrastructure` | Infrastructure | `smaQit.infrastructure.prompt.md` | Phase 1 specs | `specs/infrastructure/*.md` |
-| `smaQit.coverage` | Coverage | `smaQit.coverage.prompt.md` | All layer specs | `specs/coverage/*.md` |
+| `smaqit.business` | Business | `smaqit.business.prompt.md` | None | `specs/business/*.md` |
+| `smaqit.functional` | Functional | `smaqit.functional.prompt.md` | Business specs | `specs/functional/*.md` |
+| `smaqit.stack` | Stack | `smaqit.stack.prompt.md` | Business and Functional specs | `specs/stack/*.md` |
+| `smaqit.infrastructure` | Infrastructure | `smaqit.infrastructure.prompt.md` | Phase 1 specs | `specs/infrastructure/*.md` |
+| `smaqit.coverage` | Coverage | `smaqit.coverage.prompt.md` | All layer specs | `specs/coverage/*.md` |
 
 ## Implementation Agents
 
@@ -288,9 +288,9 @@ Agents MUST NOT proceed with implementation while unresolved conflicts exist.
 
 | Agent | Phase | Input | Output |
 |-------|-------|-------|--------|
-| `smaQit.development` | Develop | Business + Functional + Stack specs | Code |
-| `smaQit.deployment` | Deploy | Code + Infrastructure specs | Running system |
-| `smaQit.validation` | Validate | Deployed system + Coverage specs | Validation report |
+| `smaqit.development` | Develop | Business + Functional + Stack specs | Code |
+| `smaqit.deployment` | Deploy | Code + Infrastructure specs | Running system |
+| `smaqit.validation` | Validate | Deployed system + Coverage specs | Validation report |
 
 ## Orchestrator Agent
 
@@ -349,7 +349,7 @@ Orchestrator agent requires all implementation tools plus the ability to invoke 
 
 | Agent | Purpose | Input | Output |
 |-------|---------|-------|--------|
-| `smaQit.orchestrator` | Coordinate workflow | Orchestrator prompt + all layer/implementation prompts | Orchestration report + workflow status |
+| `smaqit.orchestrator` | Coordinate workflow | Orchestrator prompt + all layer/implementation prompts | Orchestration report + workflow status |
 
 ## Validation
 

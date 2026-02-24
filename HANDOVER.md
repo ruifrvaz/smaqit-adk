@@ -264,4 +264,4 @@ curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit-adk/main/install.sh
 # Install specific version
 curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit-adk/main/install.sh | SMAQIT_ADK_VERSION=adk-v0.1.0 bash
 ```
-- Moved extending-smaQit.md wiki from smaQit to ADK (this is ADK-specific content)
+- Moved extending-smaqit.md wiki from smaQit to ADK (this is ADK-specific content)
