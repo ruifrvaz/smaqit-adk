@@ -20,9 +20,9 @@ smaqit-adk is **not** an application - it's a development kit for building agent
 - Domain-specific agent orchestration frameworks
 - Organization-specific development workflows
 
-## Example: smaqit Product
+## Example: smaQit Product
 
-**[smaqit](https://github.com/ruifrvaz/smaqit)** is a proof-of-concept built with smaqit-adk, demonstrating a five-layer specification system (business, functional, stack, infrastructure, coverage) with development/deployment/validation phases. It shows one way to use the ADK, but you can create entirely different architectures.
+**[smaQit](https://github.com/ruifrvaz/smaqit)** is a proof-of-concept built with smaqit-adk, demonstrating a five-layer specification system (business, functional, stack, infrastructure, coverage) with development/deployment/validation phases. It shows one way to use the ADK, but you can create entirely different architectures.
 
 ## Installation
 

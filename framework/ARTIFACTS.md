@@ -331,7 +331,7 @@ Specs become stale when content changes after implementation. Detection is **use
 
 **State Aggregation:**
 
-The CLI aggregates phase status by scanning spec frontmatter. Run `smaqit status` to view:
+The CLI aggregates phase status by scanning spec frontmatter. Run `smaQit status` to view:
 
 ```
 Develop: 18 implemented, 2 failed
@@ -452,7 +452,7 @@ prompt_version: abc123
 ---
 ```
 
-Agents use atomic writes (temp file + rename) to prevent corruption. The `smaqit status` command reads this file to display project state.
+Agents use atomic writes (temp file + rename) to prevent corruption. The `smaQit status` command reads this file to display project state.
 
 **Validation Report Format:**
 ```markdown

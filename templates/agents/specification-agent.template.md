@@ -1,5 +1,5 @@
 ---
-name: smaqit.[LAYER]
+name: smaQit.[LAYER]
 description: Specification agent for the [LAYER_NAME] layer.
 tools: ['edit', 'search', 'usages', 'fetch', 'todos']
 ---

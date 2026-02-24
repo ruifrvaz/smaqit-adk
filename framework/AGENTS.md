@@ -1,10 +1,10 @@
 # Agents
 
-Agents are LLM-powered actors that operate within the smaqit framework. This document defines the principles, constraints, and behaviors that all agents MUST follow.
+Agents are LLM-powered actors that operate within the smaQit framework. This document defines the principles, constraints, and behaviors that all agents MUST follow.
 
 ## Unified Principles
 
-All smaqit agents—specification and implementation—share these foundational principles:
+All smaQit agents—specification and implementation—share these foundational principles:
 
 ### Prompt Interaction
 
@@ -67,17 +67,17 @@ Agent extensions inherit these foundations and add specialized behaviors. The ba
 
 ## Naming Convention
 
-Agents follow the pattern: `smaqit.[LAYER]` for specification agents and `smaqit.[PHASE]` for implementation agents.
+Agents follow the pattern: `smaQit.[LAYER]` for specification agents and `smaQit.[PHASE]` for implementation agents.
 
 | Type | Pattern | Examples |
 |------|---------|----------|
-| Specification | `smaqit.[LAYER]` | `smaqit.business`, `smaqit.functional`, `smaqit.stack` |
-| Implementation | `smaqit.[PHASE]` | `smaqit.development`, `smaqit.deployment`, `smaqit.validation` |
-| Orchestrator | `smaqit.orchestrator` | `smaqit.orchestrator` |
+| Specification | `smaQit.[LAYER]` | `smaQit.business`, `smaQit.functional`, `smaQit.stack` |
+| Implementation | `smaQit.[PHASE]` | `smaQit.development`, `smaQit.deployment`, `smaQit.validation` |
+| Orchestrator | `smaQit.orchestrator` | `smaQit.orchestrator` |
 
 ## Foundation Agent
 
-The foundation agent represents what all smaqit agents must preserve regardless of their specific purpose. These guidelines apply universally and are materialized through the base agent template.
+The foundation agent represents what all smaQit agents must preserve regardless of their specific purpose. These guidelines apply universally and are materialized through the base agent template.
 
 ### Core Behaviors
 
@@ -172,11 +172,11 @@ When users add requirements that could extend existing specifications, agents de
 
 | Agent | Layer | Prompt File | Context (for coherence) | Output |
 |-------|-------|-------------|---------------------------|--------|
-| `smaqit.business` | Business | `smaqit.business.prompt.md` | None | `specs/business/*.md` |
-| `smaqit.functional` | Functional | `smaqit.functional.prompt.md` | Business specs | `specs/functional/*.md` |
-| `smaqit.stack` | Stack | `smaqit.stack.prompt.md` | Business and Functional specs | `specs/stack/*.md` |
-| `smaqit.infrastructure` | Infrastructure | `smaqit.infrastructure.prompt.md` | Phase 1 specs | `specs/infrastructure/*.md` |
-| `smaqit.coverage` | Coverage | `smaqit.coverage.prompt.md` | All layer specs | `specs/coverage/*.md` |
+| `smaQit.business` | Business | `smaQit.business.prompt.md` | None | `specs/business/*.md` |
+| `smaQit.functional` | Functional | `smaQit.functional.prompt.md` | Business specs | `specs/functional/*.md` |
+| `smaQit.stack` | Stack | `smaQit.stack.prompt.md` | Business and Functional specs | `specs/stack/*.md` |
+| `smaQit.infrastructure` | Infrastructure | `smaQit.infrastructure.prompt.md` | Phase 1 specs | `specs/infrastructure/*.md` |
+| `smaQit.coverage` | Coverage | `smaQit.coverage.prompt.md` | All layer specs | `specs/coverage/*.md` |
 
 ## Implementation Agents
 
@@ -207,7 +207,7 @@ Each implementation agent's Role section MUST include:
 ### Directives
 
 **Implementation agents MUST:**
-- Determine which specs to process using `smaqit plan --phase=[PHASE]` (outputs spec file paths, one per line)
+- Determine which specs to process using `smaQit plan --phase=[PHASE]` (outputs spec file paths, one per line)
 - Process only specs with `status: draft` or `status: failed` by default
 - Support regeneration mode via `--regen` flag to process all specs regardless of status
 - Report completion when no specs require processing and suggest `--regen` flag if appropriate
@@ -288,9 +288,9 @@ Agents MUST NOT proceed with implementation while unresolved conflicts exist.
 
 | Agent | Phase | Input | Output |
 |-------|-------|-------|--------|
-| `smaqit.development` | Develop | Business + Functional + Stack specs | Code |
-| `smaqit.deployment` | Deploy | Code + Infrastructure specs | Running system |
-| `smaqit.validation` | Validate | Deployed system + Coverage specs | Validation report |
+| `smaQit.development` | Develop | Business + Functional + Stack specs | Code |
+| `smaQit.deployment` | Deploy | Code + Infrastructure specs | Running system |
+| `smaQit.validation` | Validate | Deployed system + Coverage specs | Validation report |
 
 ## Orchestrator Agent
 
@@ -349,7 +349,7 @@ Orchestrator agent requires all implementation tools plus the ability to invoke 
 
 | Agent | Purpose | Input | Output |
 |-------|---------|-------|--------|
-| `smaqit.orchestrator` | Coordinate workflow | Orchestrator prompt + all layer/implementation prompts | Orchestration report + workflow status |
+| `smaQit.orchestrator` | Coordinate workflow | Orchestrator prompt + all layer/implementation prompts | Orchestration report + workflow status |
 
 ## Validation
 

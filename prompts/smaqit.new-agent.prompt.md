@@ -13,7 +13,7 @@ Agent-L2 follows this structure and requests user input for each placeholder. Us
 ## Agent Identity
 
 ### Name
-[Agent name without smaqit prefix, e.g., "qa", "helper"]
+[Agent name without smaQit prefix, e.g., "qa", "helper"]
 
 <!-- Agent-L2 requests: "What is the agent name? (lowercase, single word or hyphenated)" -->
 
@@ -34,7 +34,7 @@ Agent-L2 follows this structure and requests user input for each placeholder. Us
 [What does this agent produce or accomplish?]
 
 <!-- Agent-L2 requests: "What is this agent's goal?" -->
-<!-- Example: "Fetch and answer questions about smaqit documentation" -->
+<!-- Example: "Fetch and answer questions about smaQit documentation" -->
 
 ### Context
 [What constraints or scope define this agent?]

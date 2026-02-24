@@ -4,7 +4,7 @@ Templates define the structure that agents MUST follow when producing output. Th
 
 ## Template Types
 
-smaqit uses three types of templates:
+smaQit uses three types of templates:
 
 | Type | Location | Purpose | Produces |
 |------|----------|---------|----------|
@@ -212,9 +212,9 @@ Prompt templates use GitHub Copilot prompt format:
 
 ```markdown
 ---
-name: smaqit.[layer]
+name: smaQit.[layer]
 description: [One-line description]
-agent: smaqit.[layer]
+agent: smaQit.[layer]
 ---
 
 # [Layer] Prompt

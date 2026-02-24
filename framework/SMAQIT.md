@@ -1,4 +1,4 @@
-# smaqit Framework
+# smaQit Framework
 
 Spec-driven agent orchestration where specifications are split into layers and phases. Users input requirements in prompt files, AI specification agents read from these prompt files to write specifications, then implementation agents generate outputs from those specifications.
 
@@ -8,7 +8,7 @@ Spec-driven agent orchestration where specifications are split into layers and p
 
 **Each phase includes specifications and implementation together.**
 
-Phases are the primary workflow units in smaqit. Users can generate all specifications first, but the recommended approach is to complete each phase (specifications + implementation) before moving to the next. This provides faster feedback and validates the system incrementally.
+Phases are the primary workflow units in smaQit. Users can generate all specifications first, but the recommended approach is to complete each phase (specifications + implementation) before moving to the next. This provides faster feedback and validates the system incrementally.
 
 ### Specs Before Code
 
@@ -64,13 +64,13 @@ Unpredictable structure breaks downstream consumers. Templates define the exact 
 
 What agents share philosophically belongs in foundational templates. What makes agents distinct belongs in role-specific templates. When templates capture principles explicitly, generation becomes principled rather than ad-hoc. This enables agent extensibility while preserving framework coherence.
 
-The **smaqit-adk** product provides framework extension capabilities through Level agents (L0/L1/L2), enabling organizations to create custom agents, modify compilation rules, and extend smaqit principles while maintaining framework integrity.
+The **smaqit-adk** product provides framework extension capabilities through Level agents (L0/L1/L2), enabling organizations to create custom agents, modify compilation rules, and extend smaQit principles while maintaining framework integrity.
 
 ### Accept Mutability, Validate Behavior
 
 **Embrace non-determinism in artifacts, enforce determinism in outcomes.**
 
-LLMs rarely generate identical output twice. Rather than fighting this inherent variability, smaqit accepts it:
+LLMs rarely generate identical output twice. Rather than fighting this inherent variability, smaQit accepts it:
 
 - **Mutable artifacts**: Code, configurations, and documents may vary between runs
 - **Immutable behavior**: Specifications define expected outcomes, not implementation details

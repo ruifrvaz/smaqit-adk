@@ -1,13 +1,13 @@
-# Extending smaqit via smaqit-adk
+# Extending smaQit via smaqit-adk
 
-This guide covers how to extend the smaqit framework by creating new agents, modifying principles, and contributing framework improvements using **smaqit-adk**.
+This guide covers how to extend the smaQit framework by creating new agents, modifying principles, and contributing framework improvements using **smaqit-adk**.
 
 ## Overview
 
 **smaqit-adk** (Agent Development Kit) is the framework development toolkit that contains:
 
 - **Level agents** (L0, L1, L2) for principle documentation, template compilation, and agent compilation
-- **Framework files** (5 files in `framework/`) defining smaqit architecture
+- **Framework files** (5 files in `framework/`) defining smaQit architecture
 - **Templates** (3 agent templates in `templates/agents/`) with compilation rules
 - **new-agent prompt** for creating custom agents
 
@@ -19,9 +19,9 @@ Use **smaqit-adk** when:
 - Modifying framework principles or compilation rules
 - Building organization-specific agent extensions
 - Debugging or improving agent templates
-- Scaffolding a new project with smaqit agent infrastructure
+- Scaffolding a new project with smaQit agent infrastructure
 
-Use **smaqit** (product) when building applications with existing pre-compiled agents.
+Use **smaQit** (product) when building applications with existing pre-compiled agents.
 
 ## Installation
 

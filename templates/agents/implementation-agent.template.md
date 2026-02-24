@@ -1,5 +1,5 @@
 ---
-name: smaqit.[PHASE]
+name: smaQit.[PHASE]
 description: Implementation agent for the [PHASE_NAME] phase.
 tools: ['edit', 'search', 'runCommands', 'problems', 'changes', 'testFailure', 'todos', 'runTests']
 ---
