@@ -1,0 +1,72 @@
+name: ADK Integration Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-adk:
+    name: Test ADK Structure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build ADK
+        working-directory: installer
+        run: make build
+
+      - name: Test installation
+        working-directory: installer
+        run: |
+          mkdir -p test-project
+          cd test-project
+          ../dist/smaqit-adk-dev init
+          
+      - name: Validate ADK structure
+        working-directory: installer/test-project
+        run: |
+          # Framework files (5)
+          test -f .smaqit/framework/SMAQIT.md || exit 1
+          test -f .smaqit/framework/AGENTS.md || exit 1
+          test -f .smaqit/framework/TEMPLATES.md || exit 1
+          test -f .smaqit/framework/ARTIFACTS.md || exit 1
+          test -f .smaqit/framework/PROMPTS.md || exit 1
+          
+          # Agent templates (3)
+          test -f .smaqit/templates/agents/base-agent.template.md || exit 1
+          test -f .smaqit/templates/agents/specification-agent.template.md || exit 1
+          test -f .smaqit/templates/agents/implementation-agent.template.md || exit 1
+          
+          # Compilation rules (3)
+          test -f .smaqit/templates/agents/compiled/base.rules.md || exit 1
+          test -f .smaqit/templates/agents/compiled/specification.rules.md || exit 1
+          test -f .smaqit/templates/agents/compiled/implementation.rules.md || exit 1
+          
+          # Level agents (3)
+          test -f .github/agents/smaqit.L0.agent.md || exit 1
+          test -f .github/agents/smaqit.L1.agent.md || exit 1
+          test -f .github/agents/smaqit.L2.agent.md || exit 1
+          
+          # Prompts (1)
+          test -f .github/prompts/smaqit.new-agent.prompt.md || exit 1
+          
+          echo "✓ All 15 ADK files validated"
+
+      - name: Verify no product-specific files
+        working-directory: installer/test-project
+        run: |
+          # Should NOT exist (product-specific)
+          test ! -f .smaqit/framework/LAYERS.md || (echo "Error: LAYERS.md should not be in ADK" && exit 1)
+          test ! -f .smaqit/framework/PHASES.md || (echo "Error: PHASES.md should not be in ADK" && exit 1)
+          test ! -d .smaqit/templates/specs || (echo "Error: specs templates should not be in ADK" && exit 1)
+          test ! -f .smaqit/templates/agents/compiled/business.rules.md || (echo "Error: business.rules.md should not be in ADK" && exit 1)
+          
+          echo "✓ No product-specific contamination detected"

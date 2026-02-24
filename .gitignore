@@ -1,0 +1,29 @@
+# Ignore build artifacts
+installer/dist/
+installer/framework/
+installer/templates/
+installer/agents/
+installer/prompts/
+
+# Ignore test projects
+installer/test-project/
+test/
+
+# Go build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
