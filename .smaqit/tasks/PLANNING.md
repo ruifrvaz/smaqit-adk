@@ -4,6 +4,9 @@
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
+| 004 | Distill AGENTS-old into AGENTS.md | Not Started | Prerequisite for 005; 9 ADK-level principles to extract; delete AGENTS-old.md after |
+| 005 | Redesign Framework Files | Not Started | SMAQIT.md, ARTIFACTS.md, TEMPLATES.md contain smaQit product content; replace with ADK-scoped principles |
+| 006 | Create smaqit.new-principle Skill | Not Started | Gather → definition file → invoke L0; assess if L0 needs updating to read definition file |
 
 ## Completed
 
