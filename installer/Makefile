@@ -19,8 +19,8 @@ prepare:
 	@cp ../templates/agents/compiled/*.rules.md templates/agents/compiled/
 	@mkdir -p agents
 	@cp ../agents/*.agent.md agents/
-	@mkdir -p prompts
-	@cp ../prompts/*.prompt.md prompts/
+	@mkdir -p skills/smaqit.new-agent
+	@cp ../.github/skills/smaqit.new-agent/SKILL.md skills/smaqit.new-agent/
 
 # Default target: build for current platform
 .PHONY: build
@@ -55,7 +55,7 @@ version:
 clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf $(DIST_DIR)
-	@rm -rf framework templates agents prompts
+	@rm -rf framework templates agents skills
 	@echo "✓ Clean complete"
 
 # Test installation
@@ -69,6 +69,7 @@ test: build
 	@test -d test-project/.smaqit/framework || (echo "✗ Missing .smaqit/framework" && exit 1)
 	@test -d test-project/.smaqit/templates/agents || (echo "✗ Missing .smaqit/templates/agents" && exit 1)
 	@test -d test-project/.github/agents || (echo "✗ Missing .github/agents" && exit 1)
+	@test -d test-project/.github/skills/smaqit.new-agent || (echo "✗ Missing .github/skills/smaqit.new-agent" && exit 1)
 	@echo "✓ Structure validation passed"
 	@rm -rf test-project
 	@echo "✓ Test complete"

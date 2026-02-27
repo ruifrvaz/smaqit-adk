@@ -4,6 +4,7 @@ installer/framework/
 installer/templates/
 installer/agents/
 installer/prompts/
+installer/skills/
 
 # Ignore test projects
 installer/test-project/

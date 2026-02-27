@@ -53,25 +53,17 @@ This creates:
     └── agents/         # 3 generic templates + 3 compilation rules
 .github/
 ├── agents/             # 3 Level agents (L0, L1, L2)
-└── prompts/            # new-agent prompt template
+└── skills/
+    └── smaqit.new-agent/  # new-agent skill
 ```
 
-2. **Define your custom agent requirements:**
+2. **Invoke Agent-L2 to create a custom agent:**
 
-Edit `.github/prompts/smaqit.new-agent.prompt.md` with:
-- Agent purpose and scope
-- Input requirements
-- Output artifacts
-- Validation criteria
-
-3. **Compile your agent:**
-
-Open GitHub Copilot chat:
+Open GitHub Copilot chat and type:
 ```
 /smaqit.L2
 ```
-
-Agent-L2 will compile your custom agent from generic templates.
+Agent-L2 will activate the `smaqit.new-agent` skill and guide you interactively to compile your custom agent.
 
 ## Level Architecture
 
@@ -135,7 +127,7 @@ Compile templates into concrete agents:
 - `AGENTS.md` - Agent concepts
 - `TEMPLATES.md` - Template structure
 - `ARTIFACTS.md` - Artifact patterns
-- `PROMPTS.md` - Prompt architecture
+- `SKILLS.md` - Skill architecture
 
 ### Agent Templates (3)
 

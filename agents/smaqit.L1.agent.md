@@ -129,7 +129,7 @@ Level 1 agent operates exclusively on Level 1 template files.
 **MUST NOT:**
 - Modify L0 framework files (principle territory)
 - Modify L2 agents (implementation territory)
-- Modify documentation files (`docs/wiki/`, `docs/tasks/`, `docs/history/`)
+- Modify documentation files (`docs/wiki/`, `.smaqit/tasks/`, `.smaqit/history/`)
 - Execute compilation to L2
 
 **Boundary Enforcement:**
@@ -192,10 +192,10 @@ Never mix positive and negative directives using "NOT" prefix within MUST sectio
 ---
 
 **L0 Principle:**
-"Prompt-Driven Input: Each agent receives requirements from its own prompt file. Context from other agents informs coherence, not requirements."
+"Skill-Driven Input: Each agent gathers requirements interactively using skills. Skills provide gathering instructions; user input lives in context, not in skill files."
 
 **L1 Compiled Directives:**
-- MUST read from `.github/prompts/[agent].prompt.md` as sole source of requirements
+- MUST read from `[user-defined input path]` as sole source of requirements (path determined by downstream product)
 - MUST NOT derive requirements from peer agent outputs
 - SHOULD reference peer outputs for coherence and traceability only
 
@@ -213,14 +213,14 @@ Never mix positive and negative directives using "NOT" prefix within MUST sectio
 
 **Pure directive (L1 - correct):**
 
-✅ "MUST read from `.github/prompts/[agent].prompt.md`"
+✅ "MUST read from `[user-defined input path]`"
 ✅ "MUST NOT include specific technologies (JWT, React, PostgreSQL)"
 ✅ "SHOULD use generic placeholders: [CONCEPT], [DOMAIN], [PREFIX]"
 
 **L0 contamination (reject):**
 
-❌ "Prompt-Driven Input means each agent receives requirements from its prompt file"
-→ "This is L0 philosophy. The compiled directive is: 'MUST read from .github/prompts/[agent].prompt.md as sole source'"
+❌ "Skill-Driven Input means each agent gathers requirements using a skill"
+→ "This is L0 philosophy. The compiled directive is: 'MUST read from [user-defined input path] as sole source of requirements'"
 
 ❌ "The principle of Single Source of Truth prevents duplication"
 → "This is L0 narrative. The compiled directive is: 'MUST NOT duplicate information from existing specs'"
@@ -228,7 +228,7 @@ Never mix positive and negative directives using "NOT" prefix within MUST sectio
 **L2 contamination (reject):**
 
 ❌ "MUST read from `.github/prompts/smaqit.business.prompt.md`"
-→ "This is L2 (concrete). Use placeholder: '[agent].prompt.md'"
+→ "This is L2 (concrete). Use placeholder: '[user-defined input path]'"
 
 ❌ "Use BUS-LOGIN-001 format for business requirements"
 → "This is L2 (specific example). Use placeholder: '[PREFIX]-[CONCEPT]-[NNN]'"
@@ -247,7 +247,7 @@ Never mix positive and negative directives using "NOT" prefix within MUST sectio
 
 | Context | Placeholder | Example Usage |
 |---------|-------------|---------------|
-| Agent identifier | `[AGENT]` | `[AGENT].prompt.md` |
+| Agent identifier | `[AGENT]` | `[AGENT].agent.md` |
 | Agent title | `[AGENT_NAME]` | `[AGENT_NAME] Agent` |
 | Domain/category | `[DOMAIN]` | `[DOMAIN] specification` |
 | Concept | `[CONCEPT]` | `[PREFIX]-[CONCEPT]-001` |

@@ -18,8 +18,8 @@ var agentTemplateFiles embed.FS
 //go:embed agents/*.md
 var adkAgentFiles embed.FS
 
-//go:embed prompts/*.md
-var promptFiles embed.FS
+//go:embed skills/smaqit.new-agent/SKILL.md
+var skillFiles embed.FS
 
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
 var Version = "0.1.0"
@@ -76,7 +76,7 @@ fmt.Println("  smaqit-adk help       Show this help message")
 fmt.Println()
 fmt.Println("  smaqit-adk uninstall  Remove smaqit-adk from project")
 fmt.Println("                        Removes .smaqit/framework/, .smaqit/templates/,")
-fmt.Println("                        .github/agents/, .github/prompts/")
+fmt.Println("                        .github/agents/, .github/skills/")
 fmt.Println()
 fmt.Println("  smaqit-adk version    Show smaqit-adk version")
 fmt.Println()
@@ -88,8 +88,7 @@ fmt.Println()
 fmt.Println("Getting Started:")
 fmt.Println("  1. Run 'smaqit-adk init' in your project directory")
 fmt.Println("  2. Open GitHub Copilot chat in VS Code")
-fmt.Println("  3. Fill .github/prompts/smaqit.new-agent.prompt.md with agent requirements")
-fmt.Println("  4. Type '/smaqit.L2' to compile your custom agent")
+fmt.Println("  3. Type '/smaqit.L2' to compile your custom agent (the new-agent skill guides you interactively)")
 fmt.Println()
 fmt.Println("Documentation: https://github.com/ruifrvaz/smaqit-adk")
 }
@@ -118,18 +117,17 @@ fmt.Printf("Initializing smaqit-adk in %s...\n", targetDir)
 
 // Create directory structure
 dirs := []string{
-".smaqit/framework",
-".smaqit/templates/agents/compiled",
-".github/agents",
-".github/prompts",
-}
-
-for _, dir := range dirs {
-if err := os.MkdirAll(dir, 0755); err != nil {
-fmt.Printf("Error creating directory %s: %v\n", dir, err)
-os.Exit(1)
-}
-}
+	".smaqit/framework",
+	".smaqit/templates/agents/compiled",
+	".github/agents",
+	".github/skills/smaqit.new-agent",
+	}
+	for _, dir := range dirs {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			fmt.Printf("Error creating directory %s: %v\n", dir, err)
+			os.Exit(1)
+		}
+	}
 
 // Copy framework files
 if err := copyEmbeddedDir(frameworkFiles, "framework", ".smaqit/framework"); err != nil {
@@ -149,9 +147,9 @@ fmt.Printf("Error copying ADK agents: %v\n", err)
 os.Exit(1)
 }
 
-// Copy prompts
-if err := copyEmbeddedDir(promptFiles, "prompts", ".github/prompts"); err != nil {
-fmt.Printf("Error copying prompts: %v\n", err)
+// Copy skills
+	if err := copyEmbeddedDir(skillFiles, "skills", ".github/skills"); err != nil {
+		fmt.Printf("Error copying skills: %v\n", err)
 os.Exit(1)
 }
 
@@ -159,12 +157,11 @@ fmt.Println("✓ Created .smaqit/ directory structure")
 fmt.Println("✓ Copied framework files (5 generic principle files)")
 fmt.Println("✓ Copied agent templates (3 generic templates + 3 compilation rules)")
 fmt.Println("✓ Copied Level agents (L0, L1, L2)")
-fmt.Println("✓ Copied prompts (new-agent template)")
-fmt.Printf("✓ Initialized smaqit-adk %s\n\n", Version)
-fmt.Println("Next steps:")
-fmt.Println("  1. Open GitHub Copilot chat in VS Code")
-fmt.Println("  2. Fill .github/prompts/smaqit.new-agent.prompt.md with agent requirements")
-fmt.Println("  3. Type '/smaqit.L2' to compile your custom agent")
+fmt.Println("✓ Copied skills (new-agent skill)")
+	fmt.Printf("✓ Initialized smaqit-adk %s\n\n", Version)
+	fmt.Println("Next steps:")
+	fmt.Println("  1. Open GitHub Copilot chat in VS Code")
+	fmt.Println("  2. Type '/smaqit.L2' to compile your custom agent (the new-agent skill guides you interactively)")
 }
 
 // copyEmbeddedDir copies files from an embedded FS to a target directory
@@ -215,7 +212,7 @@ fmt.Println("This will remove:")
 fmt.Println("  • .smaqit/framework/")
 fmt.Println("  • .smaqit/templates/agents/")
 fmt.Println("  • .github/agents/")
-fmt.Println("  • .github/prompts/")
+fmt.Println("  • .github/skills/")
 fmt.Print("\nContinue? [y/N]: ")
 
 var response string
@@ -232,20 +229,19 @@ errors := 0
 
 // Remove ADK-specific directories
 adkDirs := []string{
-".smaqit/framework",
-".smaqit/templates/agents",
-filepath.Join(".github", "agents"),
-filepath.Join(".github", "prompts"),
-}
-
-for _, dir := range adkDirs {
-if err := os.RemoveAll(dir); err != nil && !os.IsNotExist(err) {
-fmt.Printf("Error removing %s: %v\n", dir, err)
-errors++
-} else if err == nil {
-fmt.Printf("✓ Removed %s\n", dir)
-}
-}
+		".smaqit/framework",
+		".smaqit/templates/agents",
+		filepath.Join(".github", "agents"),
+		filepath.Join(".github", "skills"),
+	}
+	for _, dir := range adkDirs {
+		if err := os.RemoveAll(dir); err != nil {
+			fmt.Printf("Error removing %s: %v\n", dir, err)
+			errors++
+		} else if err == nil {
+			fmt.Printf("✓ Removed %s\n", dir)
+		}
+	}
 
 // Check if .smaqit/templates is empty and remove parent directories if so
 templatesDir := ".smaqit/templates"

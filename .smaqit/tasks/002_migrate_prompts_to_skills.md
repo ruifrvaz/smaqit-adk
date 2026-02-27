@@ -1,7 +1,8 @@
 # Migrate Prompts to Skills
 
-**Status:** Not Started  
-**Created:** 2026-02-27
+**Status:** Completed  
+**Created:** 2026-02-27  
+**Completed:** 2026-02-27
 
 ## Description
 

@@ -44,7 +44,7 @@ After `smaqit-adk init`, you'll have:
 │   ├── AGENTS.md                # Agent behaviors
 │   ├── ARTIFACTS.md             # Artifact rules
 │   ├── TEMPLATES.md             # Template structure rules
-│   └── PROMPTS.md               # Prompt architecture
+│   └── SKILLS.md                # Skill architecture
 └── templates/
     └── agents/                   # 3 generic agent templates
         ├── base-agent.template.md
@@ -59,8 +59,9 @@ After `smaqit-adk init`, you'll have:
 │   ├── smaqit.L0.agent.md       # Principle documentation
 │   ├── smaqit.L1.agent.md       # Template compilation
 │   └── smaqit.L2.agent.md       # Agent compilation
-└── prompts/
-    └── smaqit.new-agent.prompt.md  # Agent creation workflow
+└── skills/
+    └── smaqit.new-agent/         # Agent creation skill
+        └── SKILL.md
 ```
 
 ## Level Agent Architecture
@@ -113,7 +114,7 @@ smaqit-adk uses a **three-level compilation chain**:
 **Compilation mechanism (3-way merge):**
 1. Generic agent template (`base-agent.template.md`, `specification-agent.template.md`, or `implementation-agent.template.md`)
 2. Corresponding compilation rules (`base.rules.md`, `specification.rules.md`, or `implementation.rules.md`)
-3. Agent creation prompt (`.github/prompts/smaqit.new-agent.prompt.md`) with domain-specific requirements
+3. Agent creation skill (`.github/skills/smaqit.new-agent/SKILL.md`) guides specification gathering
 
 **Example:** Merges `specification-agent.template.md` + `specification.rules.md` + prompt → `[domain].agent.md`.
 
@@ -128,11 +129,7 @@ smaqit-adk uses a **three-level compilation chain**:
 
 1. **Define requirements:**
 
-Fill `.github/prompts/smaqit.new-agent.prompt.md` with:
-- Agent name and purpose
-- Domain it operates on
-- Input requirements and output artifacts
-- Validation criteria
+Invoke `/smaqit.L2` in GitHub Copilot — Agent-L2 activates the `smaqit.new-agent` skill and gathers specifications interactively.
 
 2. **Compile L1 template (if needed):**
 
