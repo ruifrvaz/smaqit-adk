@@ -11,7 +11,11 @@ Instruct Agent-L2 to compile a new base agent by gathering specifications intera
 
 ## When to use this skill
 
-Activate when the user wants to create a new custom agent and has invoked `/smaqit.L2`. This skill is the input-gathering step for the 3-way merge: `base-agent.template.md` + `base.rules.md` + user specifications.
+Activate when the user wants to create a new custom agent. Triggered by:
+- Slash command: `/smaqit.new-agent`
+- Semantic: "create a new agent", "build me an agent for...", "I need an agent that..."
+
+This skill handles the full workflow: interactive specification gathering followed by compilation via Agent-L2.
 
 ## Steps
 
@@ -95,15 +99,74 @@ After gathering all specifications:
 
 Once specifications are confirmed:
 
-1. Read `templates/agents/base-agent.template.md` for structure
-2. Read `templates/agents/compiled/base.rules.md` for foundation directives
-3. Merge: template structure + foundation directives + user specifications → new agent file
-4. Output file: `agents/[name].agent.md` (or `.github/agents/[name].agent.md` for development agents)
-5. Verify: no compile-time placeholders remain, agent is self-contained
-6. Document: record gathered specifications in compilation log at `.github/logs/[name]-compilation-[YYYY-MM-DD].md`
+1. Write a definition file to `.smaqit/definitions/agents/[name].md` containing all gathered specifications in the format below
+2. Use the `agent` tool to invoke `smaqit.L2` as a subagent, passing the definition file path as context
+3. Agent-L2 will read the definition file and perform the 3-way merge:
+   - `templates/agents/base-agent.template.md` — structure
+   - `templates/agents/compiled/base.rules.md` — foundation directives
+   - `.smaqit/definitions/agents/[name].md` — gathered specifications
+4. Output: `agents/[name].agent.md` created and validated by L2
+5. Compilation log written to `.smaqit/logs/[name]-compilation-[YYYY-MM-DD].md` by L2
+
+### Definition File Format
+
+```markdown
+# Agent Definition: [name]
+
+**Created:** YYYY-MM-DD
+**Skill:** smaqit.new-agent
+
+## Identity
+
+- **Name:** [name]
+- **Description:** [description]
+- **Tools:** [tool1, tool2, ...]
+
+## Purpose
+
+- **Goal:** [goal]
+- **Context:** [context/constraints]
+
+## Input Sources
+
+[list of input sources]
+
+## Output Format
+
+[output description]
+
+## Directives
+
+### MUST
+- [directive 1]
+- [directive 2]
+
+### MUST NOT
+- [directive 1]
+- [directive 2]
+
+### SHOULD
+- [directive 1]
+
+## Scope Boundaries
+
+[what is out of scope, redirections]
+
+## Completion Criteria
+
+- [ ] [criterion 1]
+- [ ] [criterion 2]
+
+## Failure Scenarios
+
+| Situation | Action |
+|-----------|--------|
+| [situation] | [action] |
+```
 
 ## Notes
 
-- User-provided specifications are documented in the compilation log, not stored in this skill
+- The definition file at `.smaqit/definitions/agents/[name].md` is the auditable record of what was requested. The compilation log documents what L2 produced from it.
 - This skill covers base agents only. Specification and implementation agents require domain/phase rules (via Agent-L1) before Agent-L2 can compile them
 - The `[EXTENSION_MUST_DIRECTIVES]` placeholder in the base template is filled by user-provided MUST directives — these are agent-specific behaviors, not workflow extensions
+- Expert users can write a definition file directly and switch to `@smaqit.L2` without using this skill

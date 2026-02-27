@@ -33,14 +33,13 @@ Skills are the user-facing input mechanism for agent workflows. They contain ins
 
 ### Location
 
-Skills live in `.github/skills/`. Each skill is a directory containing a `SKILL.md` file:
+Skills live in `skills/` at the root of the ADK repository (shipped artifact). When installed via `smaqit-adk init`, they are copied to `.github/skills/` in the consuming project.
 
 **ADK skills structure:**
 ```
-.github/
-└── skills/
-    └── smaqit.new-agent/
-        └── SKILL.md
+skills/
+└── smaqit.new-agent/
+    └── SKILL.md
 ```
 
 ### Format
@@ -98,13 +97,14 @@ Guides Agent-L2 through gathering specifications for new custom agents:
 
 **Agent Creation Workflow:**
 
-1. **User invokes Agent-L2** — Request new agent creation
-2. **Agent-L2 activates skill** — Loads `.github/skills/smaqit.new-agent/SKILL.md`
-3. **Interactive gathering** — Agent-L2 requests user input for each specification (name, description, tools, directives, scope, completion criteria, failure scenarios)
-4. **3-way merge** — L1 base template + L1 base rules + user-provided specifications → custom agent
-5. **Document specifications** — User inputs recorded in compilation log (skill remains unchanged)
-6. **Output agent** — `agents/[name].agent.md` created
-7. **Use agent** — Invoke via `/[name]` in GitHub Copilot
+1. **User invokes skill** — Via slash command (`/smaqit.new-agent`) or semantic trigger ("create a new agent", "I need an agent that...")
+2. **Active agent loads skill** — Reads full `SKILL.md` body into context
+3. **Interactive gathering** — Active agent follows skill's gathering steps, requesting user input for each specification (name, description, tools, directives, scope, completion criteria, failure scenarios)
+4. **Write definition file** — Skill instructs active agent to write `.smaqit/definitions/agents/[name].md` containing all gathered specifications
+5. **Subagent invocation** — Skill instructs active agent to invoke `smaqit.L2` as a subagent, passing the definition file path
+6. **3-way merge** — L2 reads definition file + L1 base template + L1 base rules → compiles custom agent
+7. **Compilation log** — L2 writes `.smaqit/logs/[name]-compilation-[YYYY-MM-DD].md` documenting the process
+8. **Output agent** — `agents/[name].agent.md` created and returned
 
 ## Agent Interaction with Skills
 

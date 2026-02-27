@@ -161,7 +161,7 @@ fmt.Println("✓ Copied skills (new-agent skill)")
 	fmt.Printf("✓ Initialized smaqit-adk %s\n\n", Version)
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Open GitHub Copilot chat in VS Code")
-	fmt.Println("  2. Type '/smaqit.L2' to compile your custom agent (the new-agent skill guides you interactively)")
+	fmt.Println("  2. Use '/smaqit.new-agent' or type \"create a new agent\" to build your first custom agent")
 }
 
 // copyEmbeddedDir copies files from an embedded FS to a target directory

@@ -57,13 +57,15 @@ This creates:
     └── smaqit.new-agent/  # new-agent skill
 ```
 
-2. **Invoke Agent-L2 to create a custom agent:**
+2. **Create a custom agent using the new-agent skill:**
 
 Open GitHub Copilot chat and type:
 ```
-/smaqit.L2
+/smaqit.new-agent
 ```
-Agent-L2 will activate the `smaqit.new-agent` skill and guide you interactively to compile your custom agent.
+Or just say: *"I need to create a new agent"*
+
+The skill guides you interactively through specification gathering, then invokes Agent-L2 as a subagent to compile your agent.
 
 ## Level Architecture
 
@@ -100,7 +102,7 @@ Compile templates into concrete agents:
 - Produce executable agent definitions
 - Ready for GitHub Copilot integration
 
-**Agent:** `/smaqit.L2` - Compiles product agents from templates
+**Agent:** `/smaqit.L2` - Compiles product agents from templates (invoked as subagent by skills, or switched to directly)
 
 ## Commands
 
@@ -111,13 +113,21 @@ Compile templates into concrete agents:
 | `smaqit-adk uninstall` | Remove ADK from project |
 | `smaqit-adk version` | Show ADK version |
 
-## Agents
+## Skills
+
+| Skill | Invocation | Purpose |
+|-------|------------|---------|
+| `/smaqit.new-agent` | `/smaqit.new-agent` or "create a new agent" | Gather specs and compile a new agent via L2 |
+
+## Level Agents
+
+Level agents are specialist subagents and expert contexts. They are invoked programmatically by skills or switched to deliberately by expert users.
 
 | Agent | Purpose |
-|-------|---------|
-| `/smaqit.L0` | Document framework principles |
-| `/smaqit.L1` | Compile templates from principles |
-| `/smaqit.L2` | Compile product agents from templates |
+|-------|--------|
+| `@smaqit.L0` | Curate framework principles (`framework/*.md`) |
+| `@smaqit.L1` | Compile templates from principles (`templates/`) |
+| `@smaqit.L2` | Compile product agents from templates |
 
 ## ADK Contents
 

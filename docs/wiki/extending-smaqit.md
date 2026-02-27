@@ -6,10 +6,10 @@ This guide covers how to extend the smaQit framework by creating new agents, mod
 
 **smaqit-adk** (Agent Development Kit) is the framework development toolkit that contains:
 
-- **Level agents** (L0, L1, L2) for principle documentation, template compilation, and agent compilation
-- **Framework files** (5 files in `framework/`) defining smaQit architecture
+- **Level agents** (L0, L1, L2) for principle curation, template compilation, and agent compilation
+- **Framework files** (5 files in `framework/`) defining ADK architecture
 - **Templates** (3 agent templates in `templates/agents/`) with compilation rules
-- **new-agent prompt** for creating custom agents
+- **Skills** (`skills/`) for user-facing entry points into ADK workflows
 
 ## When to Use smaqit-adk
 
@@ -86,6 +86,7 @@ smaqit-adk uses a **three-level compilation chain**:
 - Clarifying architectural rationale
 - Defining new concepts or mappings
 - Updating framework files (`framework/*.md`)
+- Invoked as subagent by skills that require principle changes, or switched to directly
 
 ### Level 1 (L1): Templates
 
@@ -104,6 +105,7 @@ smaqit-adk uses a **three-level compilation chain**:
 - Creating or updating agent templates (`templates/agents/*.template.md`)
 - Creating or updating compilation rules (`templates/agents/compiled/*.rules.md`)
 - Compiling L0 principles into structured directives
+- Invoked as subagent by skills that require template changes, or switched to directly
 
 ### Level 2 (L2): Compiled Agents
 
@@ -114,22 +116,21 @@ smaqit-adk uses a **three-level compilation chain**:
 **Compilation mechanism (3-way merge):**
 1. Generic agent template (`base-agent.template.md`, `specification-agent.template.md`, or `implementation-agent.template.md`)
 2. Corresponding compilation rules (`base.rules.md`, `specification.rules.md`, or `implementation.rules.md`)
-3. Agent creation skill (`.github/skills/smaqit.new-agent/SKILL.md`) guides specification gathering
-
-**Example:** Merges `specification-agent.template.md` + `specification.rules.md` + prompt → `[domain].agent.md`.
+3. Gathered specifications — provided via context when invoked as subagent, or gathered interactively when invoked directly
 
 **When to use Agent-L2:**
-- Compiling custom agents from templates (`agents/*.agent.md`)
-- Regenerating agents after template or rules changes
-- Creating new domain-specific agents via compilation
+- Invoked as subagent by `smaqit.new-agent` skill after specification gathering completes
+- Switched to directly by expert users for compilation work
 
 ## Creating a New Agent
 
-### Using the new-agent prompt
+### Using the smaqit.new-agent skill
 
-1. **Define requirements:**
+1. **Invoke the skill:**
 
-Invoke `/smaqit.L2` in GitHub Copilot — Agent-L2 activates the `smaqit.new-agent` skill and gathers specifications interactively.
+In GitHub Copilot chat, type `/smaqit.new-agent` or say *"I need to create a new agent"*.
+
+The skill guides you interactively through specification gathering (name, description, tools, directives, scope, completion criteria, failure scenarios), then instructs the active agent to invoke Agent-L2 as a subagent to perform the 3-way compilation.
 
 2. **Compile L1 template (if needed):**
 
