@@ -20,7 +20,7 @@ prepare:
 	@mkdir -p agents
 	@cp ../agents/*.agent.md agents/
 	@mkdir -p skills/smaqit.new-agent
-	@cp ../.github/skills/smaqit.new-agent/SKILL.md skills/smaqit.new-agent/
+	@cp ../skills/smaqit.new-agent/SKILL.md skills/smaqit.new-agent/
 
 # Default target: build for current platform
 .PHONY: build

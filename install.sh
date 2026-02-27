@@ -195,7 +195,7 @@ main() {
     echo "  smaqit-adk --help     # View available commands"
     echo ""
     echo "Next steps:"
-    echo "  1. Fill .github/prompts/smaqit.new-agent.prompt.md with agent requirements"
+    echo "  1. Type '/smaqit.L2' to compile your custom agent (the new-agent skill guides you interactively)"
     echo "  2. Open GitHub Copilot chat and type '/smaqit.L2' to compile your agent"
     echo ""
 }
