@@ -1,21 +1,11 @@
 ---
 name: smaqit.new-agent
-description: Gather agent specifications interactively to compile a new base agent via Agent-L2. Use when creating a new custom agent (Q&A, helper, orchestrator, utility).
+description: Guides the creation of a new agent for this project. Use this skill when the user wants to define and compile a new agent — the skill gathers the agent's purpose, tools, directives, scope, completion criteria, and failure scenarios through an interactive interview, then writes a definition file and invokes Agent-L2 to compile the agent file.
 metadata:
   version: "0.2.0"
 ---
 
 # New Agent Creation
-
-Instruct Agent-L2 to compile a new base agent by gathering specifications interactively from the user.
-
-## When to use this skill
-
-Activate when the user wants to create a new custom agent. Triggered by:
-- Slash command: `/smaqit.new-agent`
-- Semantic: "create a new agent", "build me an agent for...", "I need an agent that..."
-
-This skill handles the full workflow: interactive specification gathering followed by compilation via Agent-L2.
 
 ## Steps
 
@@ -166,7 +156,5 @@ Once specifications are confirmed:
 
 ## Notes
 
-- The definition file at `.smaqit/definitions/agents/[name].md` is the auditable record of what was requested. The compilation log documents what L2 produced from it.
 - This skill covers base agents only. Specification and implementation agents require domain/phase rules (via Agent-L1) before Agent-L2 can compile them
-- The `[EXTENSION_MUST_DIRECTIVES]` placeholder in the base template is filled by user-provided MUST directives — these are agent-specific behaviors, not workflow extensions
-- Expert users can write a definition file directly and switch to `@smaqit.L2` without using this skill
+- The definition file at `.smaqit/definitions/agents/[name].md` is the auditable record of what was requested; the compilation log documents what L2 produced from it

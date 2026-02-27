@@ -2,24 +2,47 @@
 
 Skills are the user-facing input mechanism for agent workflows. They contain instructions for agents — what to ask, what to validate, how to compile.
 
-**Key Principles:**
+## Core Principles
 
-- **Skills are instructions, not data stores** — A skill tells an agent how to gather and process input. User requirements are held in conversation context.
-- **Progressive disclosure** — Agents load only the skill name and description at startup. The full `SKILL.md` is loaded only when the skill is activated for a task.
-- **Instruction-only content** — Skills contain step-by-step gathering instructions, validation rules, and compilation guidance. They do not accumulate user requirements over time.
-- **Context-driven input** — Requirements gathered during a skill execution live in the conversation context. If persistence is needed, the agent documents them in a compilation log or a user-managed file.
+### Instructions, Not Data
 
-**Structure:**
+**Skills contain instructions for agents, not accumulated requirements or user data.**
 
-- YAML frontmatter: `name`, `description`, `metadata`
-- Markdown body: gathering steps, validation rules, compilation instructions
-- Optional `references/` subdirectory for detailed reference material
-- Optional `assets/` subdirectory for templates and static resources
+A skill tells an agent what to gather, how to validate, and how to compile. User requirements belong in conversation context during execution, or in compilation artifacts after completion. A skill that stores user data conflates the instruction format with the data format and breaks reproducibility across runs.
 
-**Skill types:**
+### Progressive Disclosure
 
-- **Workflow skills** — Session, task, and release management (session-start, task-create, release-analysis, etc.)
-- **Agent creation skills** — Gathering specifications to compile new agents (smaqit.new-agent)
+**Agents load only the skill name and description at startup — the full body loads only on activation.**
+
+Discovery is cheap: a few tokens per skill across all installed skills. The full `SKILL.md` body is read only when the agent determines the skill is relevant to the current task. This means the body can carry detailed instructions without startup cost, and the `description` field carries the full weight of the activation decision.
+
+### Instruction-Only Content
+
+**Skill bodies contain gathering steps, validation rules, and compilation guidance — nothing else.**
+
+Skills do not accumulate user requirements over time. If a skill references supporting material, it does so through explicit file paths in `references/` or `assets/`. The body is a procedure, not a record.
+
+### Context-Driven Input
+
+**Requirements gathered during skill execution live in conversation context, not in the skill file.**
+
+If persistence is needed after execution, the agent documents gathered input in a compilation log or a definition file. The skill itself is unchanged between runs. This preserves the skill as a read-only instruction artifact and prevents version-controlled skill files from diverging between projects.
+
+### Description-Driven Activation
+
+**Skill descriptions are the sole signal used at discovery — they must explain what the skill is and when to use it, not just name it.**
+
+At discovery, the agent reads only `name` and `description` to decide whether a skill matches the user's request. The description is not a label or a tagline — it is an explanation. Write it to complete two sentences: *"This skill does..."* and *"Use this skill when..."*. The agent uses that explanation semantically, so a well-formed description that answers those two questions will match correctly even without keyword overlap.
+
+Length is not the constraint. A description can be several sentences or a short paragraph. Brevity is not a virtue here; precision is. An explanation long enough to rule out adjacent skills is better than a short one that matches ambiguously.
+
+**What makes a description precise:**
+
+- **Explain, don't label** — "Guided specification gathering for a new agent's purpose, tools, directives, scope, and behavior, compiled into a new agent file" explains. "New agent creation" labels. The explanation gives the agent context to distinguish this skill from adjacent ones.
+- **State the output** — Include what is produced. Two skills sharing the same verb (`"create"`, `"start"`, `"run"`) are distinguished by what they produce, not by the verb alone.
+- **Embed keywords in explanation** — Keywords are useful but only when they appear inside explanatory sentences. A list of keywords (`"orchestrator, Q&A, utility"`) broadens the trigger surface unpredictably; the same words inside a sentence that describes the skill boundary do not.
+- **Exclude mechanism** — How the skill works internally (`"via Agent-L2"`, `"interactively"`, `"using a 3-way merge"`) is body content. The description states what the user gets, not how it is produced.
+- **Test for false positives** — For every distinctive noun in the description, ask: "Could a user with a different intent trigger this?" If yes, rephrase to narrow the match. A description that misses occasional valid invocations is recoverable; one that triggers falsely cannot be untriggered.
 
 ## Skills vs Input Records
 
@@ -60,7 +83,7 @@ metadata:
 ...
 ```
 
-### Progressive Disclosure
+### Loading Stages
 
 | Stage | What loads | Size |
 |-------|-----------|------|
