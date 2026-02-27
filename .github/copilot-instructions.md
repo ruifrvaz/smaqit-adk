@@ -27,6 +27,7 @@ The `.github/agents/` and `.github/skills/` directories in this repository conta
 - Use `.github/agents/` or `.github/skills/` as examples of ADK design
 - Treat smaqit extension skills (session, task, release, user-testing) as ADK-owned
 - Assume the ADK ships or controls any content under `.github/`
+- Run `git commit`, `git push`, or any git write operation unless explicitly instructed by the user
 
 **The only exception:** `.github/workflows/` (CI/CD) and `.github/copilot-instructions.md` (this file) are ADK project infrastructure.
 
@@ -58,3 +59,16 @@ The ADK has three Level agents with distinct responsibilities:
 | `smaqit.L2` | Compile templates to product agents | Creating new agents |
 
 Skills that route to a Level agent do so by naming it explicitly in their compilation step — not via frontmatter (which is an industry format not to be extended).
+
+## Build Workflow
+
+Root artifacts (`agents/`, `skills/`, `framework/`, `templates/`) are the source of truth. The `installer/` directory contains build intermediates that are `.gitignore`d and regenerated on every build.
+
+**MUST NOT** manually copy files into `installer/framework/`, `installer/skills/`, `installer/agents/`, or `installer/templates/`. These are overwritten by `make prepare`.
+
+**To build after editing root artifacts:**
+```
+cd installer && make build
+```
+
+The `prepare` target (run automatically by `build`) copies all root artifacts into the installer before compilation. No manual sync step is required.
