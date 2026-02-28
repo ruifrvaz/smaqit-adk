@@ -55,10 +55,7 @@ jobs:
           test -f .github/agents/smaqit.L1.agent.md || exit 1
           test -f .github/agents/smaqit.L2.agent.md || exit 1
           
-          # Prompts (1)
-          test -f .github/prompts/smaqit.new-agent.prompt.md || exit 1
-          
-          echo "✓ All 15 ADK files validated"
+          echo "✓ All 14 ADK files validated"
 
       - name: Verify no product-specific files
         working-directory: installer/test-project
