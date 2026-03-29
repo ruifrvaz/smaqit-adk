@@ -1,6 +1,6 @@
 # Create smaqit.new-principle Skill
 
-**Status:** Not Started
+**Status:** In Progress
 **Created:** 2026-02-27
 
 ## Description
