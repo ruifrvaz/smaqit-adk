@@ -1,6 +1,6 @@
 ---
 name: smaqit.new-skill
-description: Guides the creation of a new skill for this project. Use this skill when the user wants to define and compile a new skill — the skill gathers the skill's purpose, steps, output, scope, completion criteria, and failure handling through an interactive interview, then writes a definition file and invokes Agent-L1 to compile the skill file.
+description: Guides the creation of a new skill for this project. Use this skill when the user wants to define and compile a new skill — the skill gathers the skill's purpose, steps, output, scope, completion criteria, and failure handling through an interactive interview, then writes a definition file and invokes Agent-L2 to compile the skill file.
 metadata:
   version: "0.2.0"
 ---
@@ -74,12 +74,12 @@ After gathering all specifications:
 Once specifications are confirmed:
 
 1. Write a definition file to `.smaqit/definitions/skills/[name].md` containing all gathered specifications in the format below
-2. Use the `agent` tool to invoke `smaqit.L1` as a subagent, passing the definition file path as context
-3. Agent-L1 will read the definition file and compile the skill:
+2. Use the `agent` tool to invoke `smaqit.L2` as a subagent, passing the definition file path as context
+3. Agent-L2 will read the definition file and compile the skill:
    - `templates/skills/base-skill.template.md` — structure
    - `templates/skills/compiled/skill.rules.md` — compilation directives
    - `.smaqit/definitions/skills/[name].md` — gathered specifications
-4. Output: `skills/[name]/SKILL.md` created by L1
+4. Output: `skills/[name]/SKILL.md` created by L2
 
 ### Definition File Format
 

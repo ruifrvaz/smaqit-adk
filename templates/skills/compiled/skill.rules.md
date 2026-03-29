@@ -8,7 +8,7 @@ created: 2026-03-02
 
 # Skill Rules
 
-This file is the L1 vocabulary and compiled directives for skills. It defines the named things that exist in the skill format, their structure, loading behavior, and the directives Agent-L1 MUST follow when compiling a skill from a definition file.
+This file is the L1 vocabulary and compiled directives for skills. It defines the named things that exist in the skill format, their structure, loading behavior, and the directives Agent-L2 MUST follow when compiling a skill from a definition file.
 
 ## Source L0 Principles
 
@@ -48,7 +48,7 @@ Skills are expressed as YAML frontmatter followed by a markdown body.
 
 Discovery is cheap by design — the full body never loads unless the skill is relevant. The description carries the activation decision; the body carries the execution instructions.
 
-**Structural growth:** When a skill requires supporting reference content, that content lives in files bundled alongside `SKILL.md` in the skill directory. All such files MUST be referenced directly from `SKILL.md` — at most one level deep. Reference files longer than 100 lines MUST include a table of contents at the top.
+**Structural growth:** When a skill requires supporting reference content, that content lives in files bundled within the skill directory — including in subdirectories (`scripts/`, `references/`, `assets/`). All such files MUST be referenced directly from `SKILL.md`. Reference files longer than 100 lines MUST include a table of contents at the top. Reference chains must not be nested: a file referenced by `SKILL.md` cannot itself reference another file.
 
 ---
 
@@ -66,7 +66,7 @@ Skills are consumed by agents in three stages that correspond to the loading sta
 
 ## Placeholder Catalog
 
-The following placeholders appear in `templates/skills/base-skill.template.md`. Agent-L1 MUST resolve every placeholder when compiling a skill from a definition file.
+The following placeholders appear in `templates/skills/base-skill.template.md`. Agent-L2 MUST resolve every placeholder when compiling a skill from a definition file.
 
 | Placeholder | Description |
 |-------------|-------------|
@@ -112,9 +112,9 @@ The following placeholders appear in `templates/skills/base-skill.template.md`. 
 - Each sentence in `[STEPS_CONTENT]` must justify its token cost — if Claude would do the right thing without it, omit it
 
 **Reference Structure:**
-- External files referenced from `SKILL.md` MUST be at most one level deep from `SKILL.md`
+- External files referenced from `SKILL.md` may be anywhere within the skill directory, including subdirectories
 - Reference files longer than 100 lines MUST include a table of contents at the top
-- MUST NOT create nested reference chains (SKILL.md → file-a.md → file-b.md)
+- MUST NOT create nested reference chains (SKILL.md → file-a.md → file-b.md is forbidden)
 
 ### Base Failure Handling Pattern
 
@@ -129,7 +129,7 @@ Insert the following as the foundation of `[FAILURE_HANDLING_CONTENT]`:
 
 ---
 
-## Compilation Guidance for Agent-L1
+## Compilation Guidance for Agent-L2
 
 When compiling a skill from a definition file:
 
