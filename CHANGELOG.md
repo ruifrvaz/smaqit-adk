@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-29
+
+### Added
+
+- `smaqit.create-agent` — self-contained lite-tier agent that gathers specs interactively and compiles `.agent.md` files; installed by `init`
+- `smaqit.create-skill` — self-contained lite-tier agent that gathers specs interactively and compiles `SKILL.md` files; installed by `init`
+- `smaqit.new-agent` skill — advanced-tier creation skill with definition file output and L2 subagent invocation
+- `smaqit.new-skill` skill — advanced-tier creation skill with definition file output and L2 subagent invocation
+- Skill compilation layer: `templates/skills/`, `skill.rules.md`, L2 extended for skill compilation
+- Go-based test framework under `tests/` with unit and structural suites
+
+### Changed
+
+- `smaqit-adk init` now installs only `smaqit.create-agent` and `smaqit.create-skill` into `.github/agents/` — no framework files, templates, or skills distributed
+- Framework `PROMPTS.md` replaced by `SKILLS.md`; L0 principles rewritten to behavioral-only
+- Skill compilation ownership corrected from L1 to L2
+- README fully rewritten for lite-tier model
+
+### Removed
+
+- `prompts/smaqit.new-agent.prompt.md` (migrated to `skills/smaqit.new-agent/SKILL.md`)
+- `framework/PROMPTS.md` (replaced by `framework/SKILLS.md`)
+
 ## [0.1.0] - 2026-02-04
 
 ### Added
@@ -26,5 +49,6 @@ smaqit-adk is a **generic agent development toolkit**, not tied to any specific 
 
 The [smaQit product](https://github.com/ruifrvaz/smaqit) demonstrates one possible use case (five-layer specification system), but ADK users can create entirely different architectures.
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.1.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.2.0...HEAD
+[0.2.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.1.0...adk-v0.2.0
 [0.1.0]: https://github.com/ruifrvaz/smaqit-adk/releases/tag/adk-v0.1.0
