@@ -14,16 +14,15 @@ LDFLAGS = -ldflags "-X main.Version=$(VERSION)"
 prepare:
 	@echo "Copying ADK embedded files..."
 	@cp -r ../framework .
-	@mkdir -p templates/agents/compiled
+	@rm -rf templates/agents && mkdir -p templates/agents/compiled
 	@cp ../templates/agents/*.template.md templates/agents/
 	@cp ../templates/agents/compiled/*.rules.md templates/agents/compiled/
-	@mkdir -p agents
+	@rm -rf agents && mkdir -p agents
 	@cp ../agents/*.agent.md agents/
-	@mkdir -p skills/smaqit.new-agent
+	@rm -rf skills && mkdir -p skills/smaqit.new-agent && mkdir -p skills/smaqit.new-skill
 	@cp ../skills/smaqit.new-agent/SKILL.md skills/smaqit.new-agent/
-	@mkdir -p skills/smaqit.new-skill
 	@cp ../skills/smaqit.new-skill/SKILL.md skills/smaqit.new-skill/
-	@mkdir -p templates/skills/compiled
+	@rm -rf templates/skills && mkdir -p templates/skills/compiled
 	@cp ../templates/skills/base-skill.template.md templates/skills/
 	@cp ../templates/skills/compiled/skill.rules.md templates/skills/compiled/
 
@@ -63,9 +62,11 @@ clean:
 	@rm -rf framework templates agents skills
 	@echo "✓ Clean complete"
 
-# Test installation
-.PHONY: test
-test: build
+REPO_ROOT = ..
+
+# Smoke-test installation scaffold (preserved from original 'test' target)
+.PHONY: test-scaffold
+test-scaffold: build
 	@echo "Testing ADK installation..."
 	@mkdir -p test-project
 	@cd test-project && ../$(DIST_DIR)/$(DEV_BINARY_NAME) init
@@ -78,6 +79,20 @@ test: build
 	@echo "✓ Structure validation passed"
 	@rm -rf test-project
 	@echo "✓ Test complete"
+
+# Layer 1 + 2: black-box unit tests + structural validation
+.PHONY: test
+test: build
+	@cd $(REPO_ROOT)/tests && SMAQIT_ADK_BIN=$(CURDIR)/$(DIST_DIR)/$(DEV_BINARY_NAME) go test ./unit/... ./structural/...
+
+# Layer 3: behavioral evaluations (requires COPILOT_GITHUB_TOKEN)
+.PHONY: evals
+evals: build
+	@cd $(REPO_ROOT)/tests && go run ./evals/runner/... $(REPO_ROOT)/tests/evals/
+
+# All layers
+.PHONY: test-all
+test-all: test evals
 
 # Help
 .PHONY: help
