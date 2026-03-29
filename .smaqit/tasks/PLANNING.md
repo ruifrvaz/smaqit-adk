@@ -4,7 +4,7 @@
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
-| 009 | Create smaqit.new-skill Skill | In Progress | base-skill.template.md authored; skill.rules.md directives added; L1 extended; SKILL.md created; wiring complete |
+| 009 | Create smaqit.new-skill Skill | Completed | All criteria met; architectural correction: skill compilation moved from L1 → L2; reference chain constraint clarified |
 | 006 | Create smaqit.new-principle Skill | Not Started | Depends on Task 009 — should be created using smaqit.new-skill |
 
 ## Completed
@@ -28,4 +28,5 @@
 
 | ID | Title | Notes |
 |----|-------|-------|
-| 010 | Test Framework | Three-layer: embed bug fix + Go unit tests (installer) + structural validation (all artifacts) + behavioral eval runner + JSON eval files; see task file for full plan |}
+| 011 | Interactive CLI Product | Redesign smaqit-adk as global standalone CLI with create-agent/create-skill commands; uses Copilot SDK (go); Phase 0 resolved — SDK confirmed viable |
+| 010 | Test Framework | Three-layer: embed bug fix + Go unit tests + structural validation + Copilot SDK eval runner (isolated workspace, scripted turns, LLM grading); Phases 0–2 unblocked; Phase 3 uses same Copilot SDK as Task 011 |
