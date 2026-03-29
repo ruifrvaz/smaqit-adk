@@ -21,6 +21,31 @@ created: 2026-01-24
 
 ---
 
+## Placeholder Catalog
+
+The following placeholders appear in `templates/agents/base-agent.template.md`. Agent-L2 MUST resolve every placeholder when compiling a product agent.
+
+| Placeholder | Description |
+|-------------|-------------|
+| `[AGENT_NAME]` | Agent identifier in YAML frontmatter `name` field |
+| `[AGENT_DESCRIPTION]` | One-line description in YAML frontmatter `description` field |
+| `[TOOL_LIST]` | Tool list in YAML frontmatter `tools` field |
+| `[AGENT_TITLE]` | Display heading for the compiled agent document |
+| `[ROLE_CONTENT]` | Agent identity, goal, and context (3–4 sentences) |
+| `[INPUT_CONTENT]` | All information sources the agent consumes |
+| `[OUTPUT_CONTENT]` | Output artifacts and their format |
+| `[BASE_MUST_DIRECTIVES]` | Base MUST directives compiled from this rules file |
+| `[EXTENSION_MUST_DIRECTIVES]` | Role-specific MUST directives from the active extension rules |
+| `[BASE_MUST_NOT_DIRECTIVES]` | Base MUST NOT directives compiled from this rules file |
+| `[EXTENSION_MUST_NOT_DIRECTIVES]` | Role-specific MUST NOT directives from the active extension rules |
+| `[BASE_SHOULD_DIRECTIVES]` | Base SHOULD directives compiled from this rules file |
+| `[EXTENSION_SHOULD_DIRECTIVES]` | Role-specific SHOULD directives from the active extension rules |
+| `[SCOPE_CONTENT]` | Scope boundary enforcement content |
+| `[COMPLETION_CRITERIA_CONTENT]` | Self-validation checklist |
+| `[FAILURE_HANDLING_CONTENT]` | Failure mode situation/action table |
+
+---
+
 ## L1 Directive Compilation
 
 ### Base MUST Directives

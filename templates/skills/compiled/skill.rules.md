@@ -1,0 +1,153 @@
+---
+type: base-skill
+target: templates/skills/base-skill.template.md
+sources:
+  - framework/SKILLS.md (all principles)
+created: 2026-03-02
+---
+
+# Skill Rules
+
+This file is the L1 vocabulary and compiled directives for skills. It defines the named things that exist in the skill format, their structure, loading behavior, and the directives Agent-L1 MUST follow when compiling a skill from a definition file.
+
+## Source L0 Principles
+
+| Source File | Section |
+|-------------|---------|
+| SKILLS.md | Instructions, Not Data |
+| SKILLS.md | Progressive Disclosure |
+| SKILLS.md | Instruction-Only Content |
+| SKILLS.md | Context-Driven Input |
+| SKILLS.md | Description-Driven Activation |
+
+---
+
+## Skill Format
+
+Skills are expressed as YAML frontmatter followed by a markdown body.
+
+**Required frontmatter fields:**
+
+| Field | Constraint |
+|-------|------------|
+| `name` | Skill identifier. Maximum 64 characters. Lowercase letters, numbers, and hyphens only. Loaded at discovery alongside `description`. |
+| `description` | Activation signal. Maximum 1024 characters. Must be written in third person. Must explain what the skill does and when to use it. The sole content used to determine whether the skill matches a task. |
+| `metadata.version` | Semantic version string for the skill. |
+
+**Body:** Markdown prose containing the skill's procedure. The body is read-only at runtime — unchanged between executions.
+
+---
+
+## Loading Stages
+
+| Stage | What loads | Typical constraint |
+|-------|-----------|-------------------|
+| Discovery | `name` + `description` only | ~100 tokens per skill |
+| Activation | Full `SKILL.md` body | < 5000 tokens recommended |
+| Execution | Referenced external files | On demand |
+
+Discovery is cheap by design — the full body never loads unless the skill is relevant. The description carries the activation decision; the body carries the execution instructions.
+
+**Structural growth:** When a skill requires supporting reference content, that content lives in files bundled alongside `SKILL.md` in the skill directory. All such files MUST be referenced directly from `SKILL.md` — at most one level deep. Reference files longer than 100 lines MUST include a table of contents at the top.
+
+---
+
+## Agent-Skill Interaction Model
+
+Skills are consumed by agents in three stages that correspond to the loading stages above.
+
+**Discovery** — The active agent reads `name` and `description` from every available skill. This happens at session start or when the agent needs to determine which skill matches the current task. No body content loads at this stage.
+
+**Activation** — When the agent determines a skill matches, it reads the full `SKILL.md` body into context. This is a deliberate read — the agent has committed to the skill before loading its body.
+
+**Execution** — The agent follows the skill's instructions step by step. If the skill references external files, the agent reads them on demand during execution. The skill body does not change as a result of execution.
+
+---
+
+## Placeholder Catalog
+
+The following placeholders appear in `templates/skills/base-skill.template.md`. Agent-L1 MUST resolve every placeholder when compiling a skill from a definition file.
+
+| Placeholder | Description |
+|-------------|-------------|
+| `[SKILL_NAME]` | Skill identifier in YAML frontmatter `name` field. Lowercase, hyphens only. |
+| `[SKILL_DESCRIPTION]` | Activation signal in YAML frontmatter `description` field. Third person. What + when. |
+| `[SKILL_VERSION]` | Semantic version string in `metadata.version` field. Start at `"1.0.0"`. |
+| `[SKILL_TITLE]` | Display heading for the compiled skill document. |
+| `[PURPOSE_CONTENT]` | 2–3 sentences: what the skill does, what it produces, and what triggers it. |
+| `[STEPS_CONTENT]` | Ordered procedure the agent follows. Each step written at the appropriate degree of freedom (see Degrees of Freedom below). |
+| `[OUTPUT_CONTENT]` | Artifact produced, its path, and the subagent invoked (if any). |
+| `[SCOPE_CONTENT]` | What this skill does NOT handle. Redirections to other agents or skills where applicable. |
+| `[COMPLETION_CONTENT]` | How the agent knows the skill is done. Checklist of verifiable conditions. |
+| `[FAILURE_HANDLING_CONTENT]` | Situation/action table for failure modes. |
+
+---
+
+## L1 Directive Compilation
+
+### Compilation Directives
+
+**Instructions-Not-Data:**
+- Write skill body as a procedure — gathering steps, validation rules, compilation guidance only
+- MUST NOT write user requirements or gathered input into the skill body
+- MUST NOT write execution records or state into the skill body
+
+**Description-Driven Activation:**
+- MUST write `[SKILL_DESCRIPTION]` in third person
+- MUST include both what the skill does and when to invoke it in the description
+- MUST NOT use first person ("I can...") or second person ("You can use this to...")
+- MUST write the description with enough precision to distinguish the skill from adjacent skills
+
+**Degrees of Freedom:**
+- For each step in `[STEPS_CONTENT]`, match instruction form to step fragility:
+  - High fragility (exact sequence required, errors are costly): write literal commands or exact instructions
+  - Medium fragility (preferred pattern exists, variation acceptable): write template or pseudocode
+  - Low fragility (many valid approaches, context determines best path): write prose guidance
+- MUST NOT over-specify low-fragility steps — assume Claude can determine the best approach
+- MUST over-specify high-fragility steps — do not leave critical sequences to interpretation
+
+**Conciseness:**
+- MUST NOT explain concepts Claude can derive from the task or from general knowledge
+- MUST include only: project-specific paths and constraints, non-obvious sequences, domain-specific rules
+- Each sentence in `[STEPS_CONTENT]` must justify its token cost — if Claude would do the right thing without it, omit it
+
+**Reference Structure:**
+- External files referenced from `SKILL.md` MUST be at most one level deep from `SKILL.md`
+- Reference files longer than 100 lines MUST include a table of contents at the top
+- MUST NOT create nested reference chains (SKILL.md → file-a.md → file-b.md)
+
+### Base Failure Handling Pattern
+
+Insert the following as the foundation of `[FAILURE_HANDLING_CONTENT]`:
+
+| Situation | Action |
+|-----------|--------|
+| Required input not provided | Request the missing information before proceeding |
+| Gathered input is ambiguous | Flag the ambiguity and ask for clarification |
+| Subagent invocation fails | Report the failure with context; do not silently retry |
+| Output artifact already exists | Confirm with user before overwriting |
+
+---
+
+## Compilation Guidance for Agent-L1
+
+When compiling a skill from a definition file:
+
+1. **Read definition file** (`.smaqit/definitions/skills/[name].md`) for skill specifications
+2. **Confirm definition is complete** — all required sections present (identity, purpose, steps, output, scope, completion, failure handling). If any section is missing, stop and request it before proceeding.
+3. **Read base skill template** (`templates/skills/base-skill.template.md`) for structure
+4. **Read this rules file** for directives and placeholder catalog
+5. **Compile:**
+   - Fill `[SKILL_NAME]` from definition identity
+   - Fill `[SKILL_DESCRIPTION]` from definition purpose — third person, what + when
+   - Fill `[SKILL_VERSION]` from definition identity (default `"1.0.0"` if not specified)
+   - Fill `[SKILL_TITLE]` as a readable title derived from the skill name
+   - Fill `[PURPOSE_CONTENT]` from definition purpose section
+   - Fill `[STEPS_CONTENT]` from definition steps — apply degrees of freedom per step fragility
+   - Fill `[OUTPUT_CONTENT]` from definition output section
+   - Fill `[SCOPE_CONTENT]` from definition scope section
+   - Fill `[COMPLETION_CONTENT]` from definition completion section
+   - Fill `[FAILURE_HANDLING_CONTENT]` with base failure handling pattern + definition failure scenarios
+6. **Apply conciseness filter** — review every sentence in the compiled body against the conciseness directive before writing
+7. **Write output** to `skills/[SKILL_NAME]/SKILL.md`
+8. **Validate:** No unresolved placeholders remain; description is third person; all sections present

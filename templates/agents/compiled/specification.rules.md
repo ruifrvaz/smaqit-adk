@@ -20,6 +20,31 @@ created: 2026-01-25
 
 ---
 
+## Placeholder Catalog
+
+The following placeholders appear in `templates/agents/specification-agent.template.md` in addition to those defined in `base-agent.template.md`. Agent-L2 MUST resolve all base placeholders plus these when compiling a specification agent.
+
+| Placeholder | Description |
+|-------------|-------------|
+| `[LAYER]` | Lowercase domain identifier appended to agent name in frontmatter (e.g., `business`) |
+| `[LAYER_NAME]` | Title-case domain name used in agent heading and description (e.g., `Business`) |
+| `[SPECIFICATION_MUST_DIRECTIVES]` | Specification-extension MUST directives compiled from this rules file |
+| `[LAYER_MUST_DIRECTIVES]` | Domain-specific MUST directives from a user-created domain compilation file (omit if none) |
+| `[SPECIFICATION_MUST_NOT_DIRECTIVES]` | Specification-extension MUST NOT directives compiled from this rules file |
+| `[LAYER_MUST_NOT_DIRECTIVES]` | Domain-specific MUST NOT directives from a user-created domain compilation file (omit if none) |
+| `[SPECIFICATION_SHOULD_DIRECTIVES]` | Specification-extension SHOULD directives compiled from this rules file |
+| `[LAYER_SHOULD_DIRECTIVES]` | Domain-specific SHOULD directives from a user-created domain compilation file (omit if none) |
+| `[SCOPE_BOUNDARIES_CONTENT]` | Domain-specific scope boundary enforcement |
+| `[LAYER_SPECIFIC_RULES_CONTENT]` | Domain-specific operational rules from a user-created domain compilation file (omit if none) |
+| `[REQUIREMENT_ID_FORMAT_CONTENT]` | Domain-specific requirement ID format and rules |
+| `[ACCEPTANCE_CRITERIA_FORMAT_CONTENT]` | Domain-specific acceptance criteria rules and testability examples |
+| `[FILE_ORGANIZATION_CONTENT]` | Domain-specific file naming and directory conventions |
+| `[COMPLETION_CRITERIA_CONTENT]` | Domain-specific self-validation checklist (extends base criteria) |
+| `[WORKFLOW_HANDOVER_CONTENT]` | Domain-specific next-step guidance after completion |
+| `[FAILURE_HANDLING_CONTENT]` | Domain-specific failure handling (extends base failure table) |
+
+---
+
 ## L1 Directive Compilation
 
 ### Role Content Structure

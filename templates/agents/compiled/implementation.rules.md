@@ -20,6 +20,31 @@ created: 2026-01-25
 
 ---
 
+## Placeholder Catalog
+
+The following placeholders appear in `templates/agents/implementation-agent.template.md` in addition to those defined in `base-agent.template.md`. Agent-L2 MUST resolve all base placeholders plus these when compiling an implementation agent.
+
+| Placeholder | Description |
+|-------------|-------------|
+| `[PHASE]` | Lowercase phase identifier appended to agent name in frontmatter (e.g., `development`) |
+| `[PHASE_NAME]` | Title-case phase name used in descriptions (e.g., `Development`) |
+| `[AGENT_NAME]` | Display name for the phase agent document heading (e.g., `Development Agent`) — used as the H1 title, overriding the base `[AGENT_TITLE]` |
+| `[IMPLEMENTATION_MUST_DIRECTIVES]` | Implementation-extension MUST directives compiled from this rules file |
+| `[PHASE_MUST_DIRECTIVES]` | Phase-specific MUST directives from a user-created phase compilation file (omit if none) |
+| `[IMPLEMENTATION_MUST_NOT_DIRECTIVES]` | Implementation-extension MUST NOT directives compiled from this rules file |
+| `[PHASE_MUST_NOT_DIRECTIVES]` | Phase-specific MUST NOT directives from a user-created phase compilation file (omit if none) |
+| `[IMPLEMENTATION_SHOULD_DIRECTIVES]` | Implementation-extension SHOULD directives compiled from this rules file |
+| `[PHASE_SHOULD_DIRECTIVES]` | Phase-specific SHOULD directives from a user-created phase compilation file (omit if none) |
+| `[CROSS_LAYER_CONSOLIDATION_CONTENT]` | Phase-specific cross-layer coherence checking workflow |
+| `[SCOPE_BOUNDARIES_CONTENT]` | Phase-specific scope boundary enforcement |
+| `[PHASE_SPECIFIC_RULES_CONTENT]` | Phase-unique directives from a user-created phase compilation file (omit if none) |
+| `[STATE_TRACKING_CONTENT]` | Phase-specific state update instructions; contains secondary placeholders `[STATUS_VALUE]` and `[TIMESTAMP_FIELD]` resolved at L2 with concrete product-defined values |
+| `[COMPLETION_CRITERIA_CONTENT]` | Phase-specific self-validation checklist (extends base criteria) |
+| `[WORKFLOW_HANDOVER_CONTENT]` | Phase-specific next-step guidance after completion |
+| `[FAILURE_HANDLING_CONTENT]` | Phase-specific failure handling (extends base failure table with cross-layer conflict row) |
+
+---
+
 ## L1 Directive Compilation
 
 ### Role Content Structure
