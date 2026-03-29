@@ -1,26 +1,25 @@
 # smaQit Agent Development Kit
 
-smaQit-adk provides the foundational framework for building AI agent orchestration systems. It's a toolkit of principles, templates, and compilation agents that enable developers to create custom specification-driven development workflows.
+smaQit-adk is an **Agent Development Kit** for GitHub Copilot. It gives you two compiled agents — `@smaqit.create-agent` and `@smaqit.create-skill` — that let you build new Copilot agents and skills interactively, without requiring any framework files or external compilation steps in your project.
 
 ## What is smaQit-adk?
 
-smaQit-adk is **not** an application - it's a development kit for building agent-based systems. It provides:
+smaQit-adk ships two self-contained agents that know how to gather agent and skill specifications from you and compile them directly into your project. Install once, create agents anytime.
 
-- **Framework principles** - Generic concepts for agent orchestration
-- **Agent templates** - Reusable patterns for specification and implementation agents
-- **Level agents** - Meta-agents that compile principles into executable agents (L0, L1, L2)
-- **Compilation system** - Transform abstract principles into concrete agent implementations
+- **`@smaqit.create-agent`** — Interactively gathers specs and writes a `.agent.md` into `.github/agents/`
+- **`@smaqit.create-skill`** — Interactively gathers specs and writes a `SKILL.md` into `.github/skills/`
+
+Both agents carry all ADK compilation knowledge inline — no framework files, no templates, no Level agents required in your project.
 
 ## What can you build with smaQit-adk?
 
-- Custom specification agents for any domain (security, compliance, performance, etc.)
-- Implementation agents tailored to your stack and workflow
-- Domain-specific agent orchestration frameworks
-- Organization-specific development workflows
+- Custom Copilot agents for any domain (Q&A bots, specification agents, implementation agents)
+- Skills that package domain knowledge as reusable slash-command workflows
+- Agent-based development workflows for your team
 
 ## Example: smaQit Product
 
-**[smaQit](https://github.com/ruifrvaz/smaqit)** is a proof-of-concept built with smaQit-adk, demonstrating a five-layer specification system (business, functional, stack, infrastructure, coverage) with development/deployment/validation phases. It shows one way to use the ADK, but you can create entirely different architectures.
+**[smaQit](https://github.com/ruifrvaz/smaqit)** is a proof-of-concept built with smaQit-adk, demonstrating a five-layer specification system with compiled agents for each development phase.
 
 ## Installation
 
@@ -45,118 +44,88 @@ make build
 smaqit-adk init
 ```
 
-This creates:
+This installs two agents into `.github/agents/`:
 ```
-.smaqit/
-├── framework/          # 5 principle files
-└── templates/
-    └── agents/         # 3 generic templates + 3 compilation rules
 .github/
-├── agents/             # 3 Level agents (L0, L1, L2)
-└── skills/
-    └── smaqit.new-agent/  # new-agent skill
+└── agents/
+    ├── smaqit.create-agent.agent.md
+    └── smaqit.create-skill.agent.md
 ```
 
-2. **Create a custom agent using the new-agent skill:**
+That's it — no framework files, no templates, no skills directory.
 
-Open GitHub Copilot chat and type:
+2. **Create a new agent:**
+
+Open GitHub Copilot chat and ask:
 ```
-/smaqit.new-agent
+Create a new agent for [your purpose]
 ```
-Or just say: *"I need to create a new agent"*
 
-The skill guides you interactively through specification gathering, then invokes Agent-L2 as a subagent to compile your agent.
+Copilot will invoke `@smaqit.create-agent` as a subagent to gather your specs and compile the agent file.
 
-## Level Architecture
+> **Tip — Clean context via subagent:** For the best results, let Copilot invoke these agents as subagents rather than switching to them directly. Running as a subagent provides a clean LLM context free of the current session's loaded agents, conversation history, and open file context. This is how the ADK is designed to be used.
 
-smaQit-adk uses a **three-level compilation chain**:
+## Creating Agents and Skills
 
-### L0: Principles (Framework Philosophy)
+### Create an agent
 
-**Files:** `framework/*.md`
+```
+create a new agent for [purpose]
+```
+or explicitly:
+```
+@smaqit.create-agent
+```
 
-Define WHY and WHAT without implementation details:
-- Core principles and concepts
-- Structural mappings
-- No directives, no file paths, no specifics
+`smaqit.create-agent` gathers 8 specification sections interactively:
+1. Identity (name, description, tools)
+2. Purpose
+3. Input sources
+4. Output format
+5. Directives (MUST / MUST NOT / SHOULD)
+6. Scope boundaries
+7. Completion criteria
+8. Failure scenarios
 
-**Agent:** `/smaqit.L0` - Maintains principle purity
+Then it compiles and writes `.github/agents/[name].agent.md`.
 
-### L1: Templates (Compilation Rules)
+> **Note:** `smaqit.create-agent` compiles **base agents** — agents with foundation behaviors customized for a specific purpose. For specification or implementation agents (which require ADK extension rules), use the full ADK compilation chain (see [Advanced Use](#advanced-use)).
 
-**Files:** `templates/agents/*.template.md`, `templates/agents/compiled/*.rules.md`
+### Create a skill
 
-Transform principles into structured directives:
-- Generic agent templates with placeholders
-- Compilation rules (L0 → L1 transformation)
-- Directives (MUST/MUST NOT/SHOULD)
+```
+create a new skill for [purpose]
+```
+or explicitly:
+```
+@smaqit.create-skill
+```
 
-**Agent:** `/smaqit.L1` - Compiles templates from principles
+`smaqit.create-skill` gathers 6 specification sections:
+1. Identity (name, description, version)
+2. Purpose
+3. Steps with fragility levels
+4. Output
+5. Scope
+6. Failure handling
 
-### L2: Product Agents (Executable Implementations)
-
-**Files:** Your custom agents
-
-Compile templates into concrete agents:
-- Merge template + compilation rules
-- Produce executable agent definitions
-- Ready for GitHub Copilot integration
-
-**Agent:** `/smaqit.L2` - Compiles product agents from templates (invoked as subagent by skills, or switched to directly)
+Then it compiles and writes `.github/skills/[name]/SKILL.md`.
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `smaqit-adk init [dir]` | Scaffold ADK structure |
+| `smaqit-adk init [dir]` | Install create-agent and create-skill into `.github/agents/` |
 | `smaqit-adk help` | Show detailed command help |
-| `smaqit-adk uninstall` | Remove ADK from project |
+| `smaqit-adk uninstall` | Remove smaqit-adk agents from project |
 | `smaqit-adk version` | Show ADK version |
 
-## Skills
+## Agents
 
-| Skill | Invocation | Purpose |
-|-------|------------|---------|
-| `/smaqit.new-agent` | `/smaqit.new-agent` or "create a new agent" | Gather specs and compile a new agent via L2 |
-| `/smaqit.new-skill` | `/smaqit.new-skill` or "create a new skill" | Gather specs and compile a new skill via L2 |
-
-## Level Agents
-
-Level agents are specialist subagents and expert contexts. They are invoked programmatically by skills or switched to deliberately by expert users.
-
-| Agent | Purpose |
-|-------|--------|
-| `@smaqit.L0` | Curate framework principles (`framework/*.md`) |
-| `@smaqit.L1` | Compile templates from principles (`templates/`) |
-| `@smaqit.L2` | Compile product agents from templates |
-
-## ADK Contents
-
-### Framework Files (5)
-
-- `SMAQIT.md` - Core principles
-- `AGENTS.md` - Agent concepts
-- `TEMPLATES.md` - Template structure
-- `ARTIFACTS.md` - Artifact patterns
-- `SKILLS.md` - Skill architecture
-
-### Agent Templates (3)
-
-- `base-agent.template.md` - Common agent structure
-- `specification-agent.template.md` - Pattern for spec-generating agents
-- `implementation-agent.template.md` - Pattern for code-generating agents
-
-### Compilation Rules (3)
-
-- `base.rules.md` - Base agent compilation
-- `specification.rules.md` - Specification agent compilation
-- `implementation.rules.md` - Implementation agent compilation
-
-### Level Agents (3)
-
-- `smaqit.L0.agent.md` - Principle curator
-- `smaqit.L1.agent.md` - Template compiler
-- `smaqit.L2.agent.md` - Agent compiler
+| Agent | Invocation | Purpose |
+|-------|------------|---------| 
+| `smaqit.create-agent` | `@smaqit.create-agent` or "create a new agent" | Gather specs and compile a new `.agent.md` |
+| `smaqit.create-skill` | `@smaqit.create-skill` or "create a new skill" | Gather specs and compile a new `SKILL.md` |
 
 ## Compatibility
 
@@ -165,25 +134,24 @@ Level agents are specialist subagents and expert contexts. They are invoked prog
 | GitHub Copilot (VS Code) | ✅ Supported |
 | Other AI assistants | Planned |
 
+## Advanced Use
+
+For advanced use cases — specification agents, implementation agents, framework extension, or CLI-driven compilation — the ADK ships a full compilation chain (L0 → L1 → L2), a framework of principles and templates, and two advanced-tier creation skills:
+
+- **`smaqit.new-agent`** — Gather agent specs interactively, write a definition file to `.smaqit/definitions/`, and invoke L2 to compile the agent. Produces a full audit trail (definition file + compilation log).
+- **`smaqit.new-skill`** — Same workflow for skills.
+
+These skills require the full ADK stack at runtime (L2, framework files, templates). They are not installed by `smaqit-adk init` and are intended for ADK contributors and expert users operating the full compilation chain.
+
+See the ADK source at `agents/`, `skills/`, `framework/`, and `templates/` for the full compilation chain.
+
 ## Philosophy
 
-smaQit-adk embodies several key principles:
-
-- **Generic by design** - No domain-specific assumptions
-- **Compilation-based** - Principles → Templates → Agents
-- **Self-describing** - Framework documents itself
-- **Extensible** - Build your own architectures
-- **Traceable** - Clear L0 → L1 → L2 lineage
-
-## Documentation
-
-- [Extending Agents](#) - Guide to creating custom agents
-- [Framework Principles](framework/SMAQIT.md) - Core concepts
-- [Compilation Chain](#) - Understanding L0/L1/L2
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+- **Self-contained agents** — No framework files needed in the consuming project
+- **Compilation-based** — Principles → Templates → Agents (the compilation chain is internalized, not distributed)
+- **Subagent isolation** — Clean context via subagent invocation is a first-class design goal
+- **Generic by design** — No domain-specific assumptions
+- **Traceable** — Clear L0 → L1 → L2 lineage (visible in the ADK source)
 
 ## License
 
