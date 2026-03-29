@@ -223,9 +223,31 @@ Agent-L2 will:
 
 ### Level Boundaries
 
-- **L0 files** should contain NO directives (MUST/MUST NOT/SHOULD), NO file paths, NO implementation details
-- **L1 files** should transform L0 concepts into directives, structure, and mappings
-- **L2 files** should be pure compilation outputs, not manually edited
+Each level has a precise content type. Applying the wrong type to a level is contamination.
+
+| Type | Answers | Language | Lives at |
+|------|---------|----------|----------|
+| **Principle** | Why does this matter? | Rationale prose | L0 `framework/` |
+| **Invariant** | What is always true when this principle is applied? | Declarative present-tense | L0 `framework/` |
+| **Vocabulary / Catalog** | What named things exist and what do they mean? | Definitions, tables, placeholder lists | L1 `templates/agents/compiled/*.rules.md` |
+| **Directive** | What must an agent do? | MUST / MUST NOT / SHOULD | L1 `templates/agents/compiled/*.rules.md` |
+| **Compiled output** | Concrete executable agent | Filled template, no placeholders | L2 `agents/` or project `.github/agents/` |
+
+**Invariant vs directive:** An invariant states what is *true* about a compliant agent in declarative present-tense. A directive instructs what an agent must *do* using MUST/MUST NOT/SHOULD. L1 reads invariants and compiles them into directives — invariant language never appears in L1 output.
+
+**Vocabulary vs principle:** A placeholder catalog or named-things table is L1 vocabulary. It requires knowing which specific agents, layers, or placeholders exist. A principle is prior to and independent of those specifics.
+
+#### Audit Test — 5 questions
+
+For any content block in a framework or rules file, ask in order:
+
+1. Does it say *why* something matters? → **Principle** (L0)
+2. Does it describe what is *always true* about a compliant system? → **Invariant** (L0), stated declaratively
+3. Does it list *which things exist* by name? → **Vocabulary/Catalog** (L1, in the rules file for the relevant template)
+4. Does it instruct an agent what to *do*? → **Directive** (L1, MUST/MUST NOT/SHOULD)
+5. Does it assume a specific product domain (layer names, phase names, file paths, CLI commands)? → **Product-domain content** — does not belong in smaqit-adk at any level
+
+If content falls into question 5, flag it inline before removing: state "Why excluded" and "Where it belongs." Remove the flag once the content is disposed of.
 
 ### Opportunistic Cleanup
 
@@ -271,8 +293,19 @@ Document decisions in:
 2. Update compilation rules if needed
 3. Recompile L2 agents: `/smaqit.L2`
 
+## Downstream Input Patterns
+
+ADK skills do not prescribe how downstream products should handle persistent requirement storage. A product that needs users to write requirements into files should define its own input file pattern — separate from skills. Common approaches:
+
+- A `requirements/` directory with user-managed markdown files that product agents read directly
+- A `context/` or `prompts/` directory maintained by the product
+- Any other user-editable file convention the product defines
+
+The ADK's generic directive form (`MUST read from [user-defined input path]`) leaves this decision entirely to the product. Skills gather input interactively and deposit it into a designated artifact when persistence is needed — they do not double as input file locations.
+
 ## Further Reading
 
 - [README](../../README.md) — ADK overview and quickstart
 - [Framework Files](../../framework/) — Core principle definitions
 - [Templates](../../templates/agents/) — Generic agent templates
+- [Skill Rules](../../templates/skills/compiled/skill.rules.md) — L1 vocabulary for skill format and loading
