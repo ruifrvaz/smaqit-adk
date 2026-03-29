@@ -28,5 +28,6 @@
 
 | ID | Title | Notes |
 |----|-------|-------|
-| 011 | Interactive CLI Product | Redesign smaqit-adk as global standalone CLI with create-agent/create-skill commands; uses Copilot SDK (go); Phase 0 resolved — SDK confirmed viable |
+| 012 | Lite Tier — Compiled Standalone Agents | Compile smaqit.create-agent + smaqit.create-skill via L2; repurpose init to drop only these two files; no boilerplate |
+| 011 | Interactive CLI Product (Advanced Tier) | Full Go CLI developer suite: create-agent, create-skill, create-principle, validate; Copilot SDK (go); Phase 0 resolved — SDK confirmed viable; init fate resolved by Task 012 |
 | 010 | Test Framework | Three-layer: embed bug fix + Go unit tests + structural validation + Copilot SDK eval runner (isolated workspace, scripted turns, LLM grading); Phases 0–2 unblocked; Phase 3 uses same Copilot SDK as Task 011 |

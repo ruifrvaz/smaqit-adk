@@ -5,7 +5,9 @@
 
 ## Description
 
-Redesign smaqit-adk from a per-project scaffolder into a globally installed, standalone interactive CLI. Users install smaqit-adk once and invoke it from any project whenever they need to create a new agent or skill. The CLI drives the interactive creation flow using the Copilot API and writes only the compiled output file into the user's project. No framework boilerplate is dropped into the project.
+**Advanced Tier** — the full smaqit-adk developer suite as a globally installed, standalone interactive CLI. This task covers the Go CLI (Copilot SDK) implementation of the complete `create-*` command surface, Level agents accessible as CLI modes, framework files shipped with the binary, and the eval kit for validating compiled outputs. The lite tier (`init` + two compiled standalone agents) is handled in Task 012.
+
+Users install smaqit-adk once. The CLI drives each interactive workflow in a fresh, isolated LLM context — no VS Code, no Copilot extension required, no project context contamination.
 
 **Problem with current model:**
 - `smaqit-adk init` requires per-project installation of framework files, templates, and Level agents
@@ -13,13 +15,14 @@ Redesign smaqit-adk from a per-project scaffolder into a globally installed, sta
 - Existing agent instructions and session context in a project can contaminate the creation process with conflicting rules
 - Every project carries ADK boilerplate even after the agent/skill is created
 
-**Target model:**
+**Target model (advanced tier):**
 - smaqit-adk is installed globally once
-- User runs `smaqit-adk create-agent` or `smaqit-adk create-skill` from any project directory
+- User runs `smaqit-adk create-agent`, `create-skill`, or `create-principle` from any project directory
 - CLI opens a fresh, isolated LLM context with only the ADK framework and templates loaded
-- CLI drives the interactive gathering and compilation flow (equivalent to the current skill flow)
-- CLI writes only the compiled output (`*.agent.md` or `SKILL.md`) into the user's project
-- User closes the CLI and continues working — no residual ADK files in the project
+- CLI drives the interactive gathering and compilation flow
+- CLI writes only the compiled output file into the user's project
+- `validate` command runs the eval kit against a compiled agent or skill file
+- `init` repurposed in Task 012 — drops only two L2-compiled standalone agents, no boilerplate
 
 ## Acceptance Criteria
 
@@ -28,7 +31,9 @@ Redesign smaqit-adk from a per-project scaffolder into a globally installed, sta
 - [ ] No framework files, templates, or Level agents are written into the user's project
 - [ ] Creation runs in an isolated LLM context (only ADK framework + templates in context — no project agent instructions)
 - [ ] smaqit-adk can be installed globally (not per-project)
-- [ ] Phase 0 research spike documents the chosen integration path (copilot-sdk, copilot-cli, or alternative) and its auth model
+- [x] Phase 0 research spike documents the chosen integration path — resolved 2026-03-29, Copilot Go SDK confirmed
+- [ ] `smaqit-adk create-principle` runs interactively and writes a principle file into `.smaqit/framework/` (depends on Task 006)
+- [ ] `smaqit-adk validate <file>` runs the eval kit against a compiled output file (depends on Task 010 Phase 3)
 
 ## Phases
 
@@ -59,7 +64,9 @@ Redesign smaqit-adk from a per-project scaffolder into a globally installed, sta
 1. **CLI command surface:**
    - `smaqit-adk create-agent [--output <dir>]` — output defaults to `./.github/agents/`
    - `smaqit-adk create-skill [--output <dir>]` — output defaults to `./.github/skills/<name>/`
-   - `smaqit-adk init [dir]` — fate TBD (retained, removed, or repurposed — open decision for Phase 1)
+   - `smaqit-adk create-principle [--output <dir>]` — output defaults to `./.smaqit/framework/` (depends on Task 006)
+   - `smaqit-adk validate <file>` — runs eval kit against a compiled agent or skill file (depends on Task 010 Phase 3)
+   - `smaqit-adk init [dir]` — repurposed in Task 012; drops only two L2-compiled standalone agents
    - `smaqit-adk version`, `help`, `uninstall` — retained
 
 2. **Context loading strategy:** How ADK framework + templates are injected as system context for the LLM session (embedded files read at startup, loaded as messages or system prompt)
@@ -82,13 +89,14 @@ Redesign smaqit-adk from a per-project scaffolder into a globally installed, sta
 **`create-skill` flow:**
 1. Load ADK framework + templates into isolated LLM context
 2. Run interactive gathering loop (equivalent to `smaqit.new-skill` skill: name, description, steps, fragility, output, scope)
-3. Invoke L1 compilation step within same context
+3. Invoke L2 compilation step within same context
 4. Write compiled `SKILL.md` to output dir
 5. Print confirmation with path
 
 **Installer changes:**
-- `init` fate is an open decision — may be retained, removed, or repurposed depending on Phase 1 architecture conclusions
+- `init` repurposed in Task 012 — drops only `smaqit.create-agent.agent.md` and `smaqit.create-skill.agent.md`; no framework, no templates, no Level agents
 - Update `install.sh` and README to reflect global installation story
+- Add `validate` command wired to Task 010 eval kit (Phase 3 dependency)
 
 **Skills retained:**
 - `smaqit.new-agent` and `smaqit.new-skill` remain as the Copilot-chat alternative path for users in VS Code
@@ -98,17 +106,27 @@ Redesign smaqit-adk from a per-project scaffolder into a globally installed, sta
 
 ### Phase 3 — Update Documentation and README
 
-- Update README: global installation story, new command surface, no per-project init required
-- Update `cmdHelp()` text
+- Update README: two-tier model (lite via `init`, advanced via CLI); global installation story; full command surface
+- Update `cmdHelp()` text for all new commands
 - Update `install.sh` global install steps
-- Deprecation note on `init` as boilerplate scaffolder
+- No deprecation note on `init` — it is repurposed (lite tier, Task 012), not deprecated
 
 ## Notes
 
 **Phase 0 resolved 2026-03-29** — Copilot Go SDK confirmed viable. See Phase 0 section above for full findings.
+
+**Relationship to Task 012 (Lite Tier):**
+- Task 012 handles `init` repurposing and compiles the two standalone agents (`smaqit.create-agent`, `smaqit.create-skill`)
+- Task 012 can proceed independently of Task 011; no shared implementation dependencies
+- Task 011 `create-agent` and `create-skill` CLI commands are the isolated-context equivalents of the Task 012 agents
 
 **Relationship to Task 010 (Test Framework):**
 - Task 010 Phase 3 (eval runner) uses the same `github.com/github/copilot-sdk/go` package
 - Both tasks share the same SDK dependency in `installer/go.mod` — coordinate version pinning
 - Task 010 Phase 3 is no longer blocked on the SDK research spike; it can proceed in parallel with Task 011 Phase 1
 - Suggested order: Task 010 Phases 0–2 (no SDK required) can proceed independently; Task 010 Phase 3 and Task 011 Phase 1+ can proceed in parallel once the SDK dependency is added to the module
+
+**Product identity:**
+- Task 012 = lite tier: VS Code users, no global CLI required, immediate value from two compiled agents installed by `init`
+- Task 011 = advanced tier: developer suite, isolated context, full `create-*` + eval surface
+- Both delivered by the same `smaqit-adk` binary; `init` bridges them
