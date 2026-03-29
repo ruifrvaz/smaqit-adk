@@ -10,8 +10,8 @@ When reasoning about or modifying the ADK, work exclusively with root-level arti
 
 | Path | Purpose |
 |------|---------|
-| `agents/` | Shipped Level agents (L0, L1, L2) |
-| `skills/` | Shipped skills (e.g., `smaqit.new-agent`) |
+| `agents/` | Shipped agents: Level agents (L0, L1, L2) + compiled product agents (smaqit.create-agent, smaqit.create-skill) |
+| `skills/` | Advanced-tier skills (smaqit.new-agent, smaqit.new-skill) — require full ADK at runtime, not installed by `init` |
 | `framework/` | L0 principle files |
 | `templates/` | L1 templates and compilation rules (agents and skills) |
 | `installer/` | Go CLI that packages and distributes the above |
@@ -35,8 +35,8 @@ The `.github/agents/` and `.github/skills/` directories in this repository conta
 
 ```
 smaqit-adk (this repo, root)
-├── agents/          ← ADK ships these (L0, L1, L2)
-├── skills/          ← ADK ships these (smaqit.new-agent, ...)
+├── agents/          ← ADK ships these (L0, L1, L2, smaqit.create-agent, smaqit.create-skill)
+├── skills/          ← ADK ships these (smaqit.new-agent, smaqit.new-skill) — expert/advanced tier
 ├── framework/       ← ADK ships these (principle files)
 ├── templates/       ← ADK ships these (compilation templates)
 └── installer/       ← packages all of the above into a binary
@@ -46,7 +46,7 @@ smaqit-adk (this repo, root)
 └── skills/          ← may contain smaqit product skills (external)
 ```
 
-When a project runs `smaqit-adk init`, it receives copies of `agents/`, `skills/`, `framework/`, and `templates/` into its own `.github/` and `.smaqit/`. The `.github/` content in this development repo is not that — it is smaqit product work that happens to live here.
+When a project runs `smaqit-adk init`, it receives only `smaqit.create-agent.agent.md` and `smaqit.create-skill.agent.md` into `.github/agents/`. No framework files, templates, or skills are written. The `.github/` content in this development repo is smaqit product work that happens to live here — it is not installed by `init`.
 
 ## Routing between Level agents
 
@@ -117,7 +117,9 @@ Agents declare their tool requirements in frontmatter. Tool sets vary by role:
 
 ### Location and Shipping
 
-Skills live in `skills/` at the ADK root and are copied to `.github/skills/` in consuming projects by `smaqit-adk init`. Skills in `.github/skills/` of this repository are smaqit product skills, not ADK-shipped skills.
+Skills live in `skills/` at the ADK root. They are **advanced-tier ADK infrastructure** — they require L2, framework files, and templates to be present at runtime. They are not installed by `smaqit-adk init` and are intended for ADK contributors and expert users operating the full compilation chain.
+
+Skills in `.github/skills/` of this repository are smaqit product skills, not ADK-shipped skills.
 
 ### ADK-Shipped Skills
 
