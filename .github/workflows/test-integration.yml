@@ -33,40 +33,27 @@ jobs:
       - name: Validate ADK structure
         working-directory: installer/test-project
         run: |
-          # Framework files (5)
-          test -f .smaqit/framework/SMAQIT.md || exit 1
-          test -f .smaqit/framework/AGENTS.md || exit 1
-          test -f .smaqit/framework/TEMPLATES.md || exit 1
-          test -f .smaqit/framework/ARTIFACTS.md || exit 1
-          test -f .smaqit/framework/PROMPTS.md || exit 1
+          # Lite-tier agents (2) — the only files installed by init
+          test -f .github/agents/smaqit.create-agent.agent.md || (echo "Error: smaqit.create-agent.agent.md not found" && exit 1)
+          test -f .github/agents/smaqit.create-skill.agent.md || (echo "Error: smaqit.create-skill.agent.md not found" && exit 1)
           
-          # Agent templates (3)
-          test -f .smaqit/templates/agents/base-agent.template.md || exit 1
-          test -f .smaqit/templates/agents/specification-agent.template.md || exit 1
-          test -f .smaqit/templates/agents/implementation-agent.template.md || exit 1
-          
-          # Compilation rules (3)
-          test -f .smaqit/templates/agents/compiled/base.rules.md || exit 1
-          test -f .smaqit/templates/agents/compiled/specification.rules.md || exit 1
-          test -f .smaqit/templates/agents/compiled/implementation.rules.md || exit 1
-          
-          # Level agents (3)
-          test -f .github/agents/smaqit.L0.agent.md || exit 1
-          test -f .github/agents/smaqit.L1.agent.md || exit 1
-          test -f .github/agents/smaqit.L2.agent.md || exit 1
-          
-          # Prompts (1)
-          test -f .github/prompts/smaqit.new-agent.prompt.md || exit 1
-          
-          echo "✓ All 15 ADK files validated"
+          echo "✓ All 2 ADK files validated"
 
-      - name: Verify no product-specific files
+      - name: Verify lite-tier install boundaries
         working-directory: installer/test-project
         run: |
-          # Should NOT exist (product-specific)
-          test ! -f .smaqit/framework/LAYERS.md || (echo "Error: LAYERS.md should not be in ADK" && exit 1)
-          test ! -f .smaqit/framework/PHASES.md || (echo "Error: PHASES.md should not be in ADK" && exit 1)
-          test ! -d .smaqit/templates/specs || (echo "Error: specs templates should not be in ADK" && exit 1)
-          test ! -f .smaqit/templates/agents/compiled/business.rules.md || (echo "Error: business.rules.md should not be in ADK" && exit 1)
+          # Framework and templates must NOT be distributed
+          test ! -d .smaqit || (echo "Error: .smaqit/ should not be created by init" && exit 1)
           
-          echo "✓ No product-specific contamination detected"
+          # Level agents must NOT be installed
+          test ! -f .github/agents/smaqit.L0.agent.md || (echo "Error: L0 agent should not be installed by init" && exit 1)
+          test ! -f .github/agents/smaqit.L1.agent.md || (echo "Error: L1 agent should not be installed by init" && exit 1)
+          test ! -f .github/agents/smaqit.L2.agent.md || (echo "Error: L2 agent should not be installed by init" && exit 1)
+          
+          # Prompts directory must NOT be created
+          test ! -d .github/prompts || (echo "Error: .github/prompts/ should not be created by init" && exit 1)
+          
+          # Skills directory must NOT be created
+          test ! -d .github/skills || (echo "Error: .github/skills/ should not be created by init" && exit 1)
+          
+          echo "✓ Lite-tier install boundaries verified"
