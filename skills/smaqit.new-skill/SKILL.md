@@ -7,6 +7,10 @@ metadata:
 
 # New Skill Creation
 
+## Purpose
+
+Guides an interactive specification interview to define a new skill, writes a definition file, and invokes smaqit.L2 to compile the skill. Use when the user wants to create a new custom skill for their project.
+
 ## Steps
 
 Gather the following specifications from the user in order. Request each section systematically — do not infer values without asking.
@@ -122,6 +126,31 @@ Once specifications are confirmed:
 |-----------|--------|
 | [situation] | [action] |
 ```
+
+## Output
+
+- **Definition file:** `.smaqit/definitions/skills/[name].md` — auditable specification record
+- **Compiled skill:** `skills/[name]/SKILL.md` — produced by smaqit.L2
+
+## Scope
+
+New skill creation only. Does not edit or update existing skills. Does not manage distribution — after compilation, the user must add the skill to the `installer/Makefile` prepare target to include it in ADK distribution.
+
+## Completion
+
+- [ ] All 6 specification sections gathered and confirmed by user
+- [ ] Definition file written to `.smaqit/definitions/skills/[name].md`
+- [ ] smaqit.L2 invoked and has produced `skills/[name]/SKILL.md` without errors
+
+## Failure Handling
+
+| Situation | Action |
+|-----------|--------|
+| Description is in first or second person | Reject; ask user to restate in third person before proceeding |
+| Any specification section is incomplete | Request the missing information before moving to Validation |
+| Any step is missing a fragility level | Request the fragility level before moving to Validation |
+| smaqit.L2 produces a skill with unresolved placeholders | Return to definition file, resolve gaps, retry compilation |
+| User requests an update to an existing skill | Explain creation-only scope; redirect to the active agent directly |
 
 ## Notes
 

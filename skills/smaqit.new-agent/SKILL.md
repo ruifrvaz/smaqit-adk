@@ -7,6 +7,10 @@ metadata:
 
 # New Agent Creation
 
+## Purpose
+
+Guides an interactive specification interview to define a new base agent, writes a definition file, and invokes smaqit.L2 to compile the agent. Use when the user wants to create a new custom agent for their project.
+
 ## Steps
 
 Gather the following specifications from the user in order. Request each section systematically — do not infer values without asking.
@@ -153,6 +157,31 @@ Once specifications are confirmed:
 |-----------|--------|
 | [situation] | [action] |
 ```
+
+## Output
+
+- **Definition file:** `.smaqit/definitions/agents/[name].md` — auditable specification record
+- **Compiled agent:** `agents/[name].agent.md` — produced and validated by smaqit.L2
+- **Compilation log:** `.smaqit/logs/[name]-compilation-[YYYY-MM-DD].md` — L2 audit trail
+
+## Scope
+
+Base agents only. Specification agents and implementation agents require domain and phase rules (via smaqit.L1) before smaqit.L2 can compile them. Redirect requests for those agent types to smaqit.L1 first.
+
+## Completion
+
+- [ ] All 8 specification sections gathered and confirmed by user
+- [ ] Definition file written to `.smaqit/definitions/agents/[name].md`
+- [ ] smaqit.L2 invoked and has produced `agents/[name].agent.md` without errors
+
+## Failure Handling
+
+| Situation | Action |
+|-----------|--------|
+| User-provided directive conflicts with foundation directives | Flag the conflict in Validation; request clarification before proceeding |
+| Any specification section is incomplete | Request the missing information before moving to Validation |
+| smaqit.L2 reports unresolved placeholders | Return to definition file, resolve gaps, retry compilation |
+| User requests a specification or implementation agent | Explain base-only scope; redirect to smaqit.L1 for domain/phase rules first |
 
 ## Notes
 
