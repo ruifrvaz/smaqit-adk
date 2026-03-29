@@ -76,6 +76,32 @@ All tests use `os.ReadFile` and path walks on `../` (root artifacts). No LLM req
 
 ### Phase 3 — Layer 3: Behavioral Evaluations
 
+**SDK:** `github.com/github/copilot-sdk/go` (public, technical preview, active — last commit 3 days ago)
+
+**SDK research findings (resolved 2026-03-29):**
+- `ClientOptions.Cwd` — sets CLI working directory; this is the isolated workspace root
+- `SessionConfig.SystemMessage` with `Mode: "replace"` — replaces the full system prompt with the artifact under test
+- `OnUserInputRequest` — intercepts agent `ask_user` calls; drives scripted conversation turns from eval definitions
+- `OnPermissionRequest` — controls tool permissions per eval: deny shell, allow file read/write within temp dir only
+- `session.GetMessages()` — retrieves full conversation history after a run for grading
+- CLI bundling via `go:embed` + `cmd/bundler` — eval runner binary ships with embedded CLI; no external install required for users
+- Auth: `COPILOT_GITHUB_TOKEN` / `GH_TOKEN` / `GITHUB_TOKEN` env vars — CI-friendly
+- Note: Technical Preview — breaking API changes possible; pin to a specific SDK release in `go.mod`
+
+**Isolated workspace model:**
+Each eval run creates a fresh `t.TempDir()` (or `os.MkdirTemp`) containing a standardized scaffold:
+```
+<eval-workspace>/
+  .github/
+    agents/    ← empty; agent output written here during agent evals
+    skills/    ← empty; skill output written here during skill evals
+```
+The `ClientOptions.Cwd` is set to this temp dir. The artifact under test is injected as the full system prompt (`Mode: "replace"`). No smaqit-adk repo content, no user project files, no cross-contamination.
+
+**Eval scope:** Both skills and compiled agents.
+- **Skill evals** — inject `SKILL.md` as system prompt; drive scripted `OnUserInputRequest` turns; verify gathering flow behavior and output artifact
+- **Agent evals** — inject `.agent.md` as system prompt; give the agent a task; verify it behaves per its directives
+
 **Directory structure:**
 
 ```
@@ -88,32 +114,57 @@ evals/
     smaqit.new-skill/
       001_create_new_principle_skill.json
       002_invalid_description_person.json
+  agents/
+    smaqit.L2/
+      001_compile_base_agent.json
+      002_reject_unresolved_placeholders.json
   README.md
 ```
 
-**Eval JSON format** (Anthropic standard + `skill_file` extension field):
+**Eval JSON format:**
 
 ```json
 {
-  "skill": "smaqit.new-agent",
-  "skill_file": "skills/smaqit.new-agent/SKILL.md",
-  "query": "I need to create a QA agent for this project",
+  "type": "skill",
+  "artifact_file": "skills/smaqit.new-agent/SKILL.md",
+  "description": "Verify gathering flow: agent name asked before proceeding",
+  "turns": [
+    { "user_input": "I need to create a QA agent for this project" },
+    { "user_input": "qa-helper", "trigger": "ask_user" },
+    { "user_input": "Answers questions about QA processes", "trigger": "ask_user" }
+  ],
   "expected_behavior": [
-    "Asks for the agent name before proceeding",
+    "Asks for the agent name before any other section",
     "Asks for a description under 80 characters",
-    "Asks which tools the agent needs from the allowed list",
-    "Does not generate an agent file without completing all 8 gathering sections"
+    "Does not write any output file before all gathering sections are complete"
+  ],
+  "forbidden_behavior": [
+    "Writes an agent file before completing gathering"
   ]
 }
 ```
 
+- `type` — `"skill"` or `"agent"`
+- `artifact_file` — path to the `SKILL.md` or `.agent.md` relative to repo root; injected as system prompt via `Mode: "replace"`
+- `turns` — scripted conversation; `trigger: "ask_user"` entries are fed via `OnUserInputRequest`; others via `session.Send`
+- `expected_behavior` — natural language criteria graded by a second Copilot session
+- `forbidden_behavior` — criteria that must NOT be present; graded as inverted pass
+
 **Eval runner:** `installer/cmd/eval-runner/main.go`
-- Parses eval JSON files from the `evals/` path passed as argument
-- Builds a synthetic system prompt injecting the skill file content
-- Sends query to Anthropic API (reads `ANTHROPIC_API_KEY` from env)
-- Grades each `expected_behavior` criterion via a second LLM call: "Did the response satisfy: [criterion]? Answer Yes or No."
-- Outputs pass/fail per criterion and overall result
-- Dependency: `github.com/anthropics/anthropic-sdk-go` added to `go.mod`
+1. For each eval JSON file in the provided `evals/` path:
+   a. Create a temp dir, write standardized workspace scaffold
+   b. `copilot.NewClient(&copilot.ClientOptions{Cwd: tempDir})` — start client
+   c. `client.CreateSession` with `SystemMessage.Mode = "replace"`, `SystemMessage.Content = artifact file content`
+   d. Register `OnUserInputRequest` that pops from the `turns` queue
+   e. Register `OnPermissionRequest` that denies shell, approves read/write within temp dir
+   f. Drive `turns` via `session.Send` in order
+   g. Collect `session.GetMessages()` after `session.idle`
+   h. Grade: start a second Copilot session; for each criterion, send "Did this conversation satisfy: [criterion]? Answer YES or NO with one sentence reason." — collect answer
+2. Output per-criterion pass/fail and overall result per eval file
+3. Exit non-zero if any eval fails (CI gate)
+
+**Dependency:** `github.com/github/copilot-sdk/go` added to `installer/go.mod`; SDK version pinned.
+**Auth requirement:** `COPILOT_GITHUB_TOKEN` (or `GH_TOKEN`) in environment — required for eval runner to run; runner prints a clear error if missing.
 
 ---
 
@@ -144,14 +195,21 @@ test-all: test evals    # All layers
 - [ ] Phase 2: Intentionally breaking a skill description (add "I ") causes a test failure
 - [ ] Phase 2: Adding `[UNRESOLVED]` to a skill body causes a test failure
 - [ ] Phase 2: Removing a placeholder from a template without updating the catalog causes a test failure
-- [ ] Phase 3: `make evals ANTHROPIC_API_KEY=...` runs without crashing and outputs per-criterion results
+- [ ] Phase 3: `make evals COPILOT_GITHUB_TOKEN=...` runs without crashing and outputs per-criterion results
 - [ ] Phase 3: At least 3 eval files exist for `smaqit.new-agent` and 2 for `smaqit.new-skill`
+- [ ] Phase 3: At least 2 eval files exist for `smaqit.L2` (agent compilation behavior)
 
 ## Design Decisions
 
 - **All Go tests in `installer/`** — single Go module, no new module; root artifacts accessed via `../` relative paths
 - **Eval runner as separate binary** (`cmd/eval-runner/`) — not mixed into `main.go`; runnable without building the full CLI
-- **Behavioral evals graded by a second LLM call** — natural language criteria require semantic grading; no manual scoring
+- **Copilot Go SDK for eval runtime** — `github.com/github/copilot-sdk/go`; SDK is public (technical preview); chosen over Anthropic API because both Task 010 and Task 011 require the same Copilot session driver; no API key duplication
+- **Isolated workspace = temp dir + `ClientOptions.Cwd`** — clean room via OS temp dir; standardized `.github/` scaffold inside; the CLI sees only what we put there
+- **System prompt injection via `Mode: "replace"`** — the artifact under test (SKILL.md or .agent.md) becomes the full system prompt; no Copilot CLI persona, no contaminating instructions
+- **Multi-turn scripted conversations** — `OnUserInputRequest` drives `ask_user` triggers from eval JSON `turns`; enables end-to-end gathering flow validation
+- **Grader = second Copilot session** — natural language criteria require semantic grading; a second session evaluates each criterion against the collected message history
 - **`evals/` at repo root** — eval definitions are ADK artifacts, not build artifacts; not under `installer/`
+- **Both skills and agents evaluated** — skills validate gathering flows; agents validate directive compliance and behavioral boundaries
 - **Framework file tests are heuristic** — MUST/SHOULD detection is reliable; "no file paths" is best-effort, not a hard gate
 - **Embed bug fix is Phase 0 prerequisite** — installer unit tests must be able to assert correct post-`init` state including `smaqit.new-skill`
+- **SDK version pinned** — technical preview; pin to specific release in `go.mod` to prevent silent breaking changes
