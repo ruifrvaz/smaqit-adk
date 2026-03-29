@@ -1,149 +1,69 @@
 # smaQit Framework
 
-Spec-driven agent orchestration where specifications are split into layers and phases. Users input requirements in prompt files, AI specification agents read from these prompt files to write specifications, then implementation agents generate outputs from those specifications.
+This document establishes principles that apply across all concepts in an agentic framework — agents, skills, templates, and artifacts. These are system-level properties that must hold for a well-functioning agentic system, not properties of any single concept.
 
 ## Core Principles
 
-### Phases as Workflow Units
+### Explicit Over Implicit
 
-**Each phase includes specifications and implementation together.**
+**Every decision, assumption, boundary, and requirement is stated. Nothing in a well-functioning agentic system remains implicit.**
 
-Phases are the primary workflow units in smaQit. Users can generate all specifications first, but the recommended approach is to complete each phase (specifications + implementation) before moving to the next. This provides faster feedback and validates the system incrementally.
+Implicit content compounds silently. An assumption that travels through a system without being named becomes invisible — to other agents, to downstream consumers, and to the humans responsible for the system. Each transition between stages is an opportunity for implicit content to diverge from intent. Making things explicit at every stage closes those gaps before they propagate.
 
-### Specs Before Code
+**Invariants:**
+- Assumptions are stated, not embedded.
+- Boundaries are defined, not implied by convention.
+- Requirements are explicit at the point they are consumed, not assumed from context.
+- When something is unclear, it is named as unclear — not resolved silently.
 
-**Never write implementation without a corresponding specification.**
-
-Specifications are not documentation—they are the source of truth. Implementation agents consume specs as contracts, not guidelines. This inverts the common pattern where code comes first and docs follow.
-
-### Traceability Across Layers
-
-**Every output traces to its input source, creating an unbroken chain from user requirements through specifications to implementation.**
-
-Each layer receives requirements from its prompt file. Upstream layers provide context for coherence, not requirements. Code references specs. Tests reference requirements. This creates explicit lineage for every decision and artifact.
-
-### Layer Independence
-
-**Each layer's prompt file is the sole source of requirements for that layer.**
-
-Each layer has its own prompt file where users input requirements. Upstream layers provide context for coherence, not requirements. This ensures that user intent guides every layer without false derivation chains.
+---
 
 ### Single Source of Truth
 
-**Each piece of information exists in exactly one place.**
+**Each piece of information exists in exactly one authoritative location. Other locations reference the source rather than replicating it.**
 
-When information is needed in multiple contexts, reference the source rather than duplicate. Foundation specs contain shared requirements that multiple feature specs depend on. This prevents conflicting sources of truth, reduces maintenance burden, and ensures consistency across specifications.
+Replication creates divergence. When the same information exists in multiple places, those places drift — through edits, updates, and omissions. Each diverged copy becomes a competing source of truth, and the system's behavior becomes dependent on which copy any given stage happens to consult. Single sourcing eliminates that class of inconsistency: there is always one place to update, one place to verify, and one place that is correct.
 
-### Complete Specification Coverage
+**Invariants:**
+- Information is defined once and referenced elsewhere.
+- When two locations contain equivalent content, one is the source and the other is a reference or derivation — never two independent definitions.
+- A system that requires reconciling multiple copies of the same information has a sourcing problem.
 
-**Every requirement receives verification through traceable test coverage.**
+---
 
-Complete coverage emerges from explicit traceability. When requirements flow through identifiable chains from intent to implementation to verification, gaps become visible rather than hidden. Untested requirements appear as explicit omissions in the coverage map, not silent assumptions about completeness.
+### Traceability
 
-### Self-Validating Agents
+**Every output in the system can be traced back to its origin. An output that cannot be traced to an input is either an invention or an error.**
 
-**Agents validate their own output before declaring completion.**
+Traceability is what makes a system auditable and its outputs trustworthy. Without it, a change to a requirement cannot be reliably propagated to the outputs that depended on it, and an output cannot be verified against what it was meant to fulfill. Traceability is not a documentation practice — it is a structural property that must be designed in at every stage, because it cannot be reconstructed after the fact.
 
-Agents are not fire-and-forget. Each agent has completion criteria and verifies them before finishing. This shifts quality assurance left—into the agent itself, not a separate review step.
+**Invariants:**
+- Every output references the input it was derived from.
+- A system element with no traceable origin is not a valid output.
+- Changes to a source either propagate to all outputs that depend on it, or those dependencies are explicitly invalidated.
 
-### Bounded Agents
+---
 
-**Agents execute only their designated layer or phase.**
+### Composability
 
-Unbounded agents lose accountability. Each agent has a single responsibility. Agents decline out-of-scope requests with clear redirection to the appropriate agent. This enforces separation of concerns and prevents scope creep across workflow boundaries.
+**Systems are built from single-responsibility parts that compose, not from monoliths that do everything.**
 
-### Template-Constrained Output
+A part with one responsibility can be replaced, verified, and reused independently. A part with many responsibilities cannot. Composability is not a style preference — it is what makes a system maintainable when requirements change and trustworthy when parts are combined. Composition requires that each part has a clearly bounded role and interacts with other parts only through explicit interfaces.
 
-**Templates are cognitive scaffolds, not suggestions.**
+**Invariants:**
+- Each part of the system has exactly one responsibility.
+- Parts interact through explicit interfaces, not through shared state or implied convention.
+- A part that cannot be used or verified independently is not composable.
 
-Unpredictable structure breaks downstream consumers. Templates define the exact structure agents produce. This ensures consistent output across runs, predictable input for downstream consumers and reduced LLM variance.
+---
 
-### Extensible Through Templates
+### Validate Behavior, Not Reproduction
 
-**Templates constrain execution and enable extension simultaneously.**
+**The measure of correctness is whether the system behaves as specified — not whether it produces identical output across runs.**
 
-What agents share philosophically belongs in foundational templates. What makes agents distinct belongs in role-specific templates. When templates capture principles explicitly, generation becomes principled rather than ad-hoc. This enables agent extensibility while preserving framework coherence.
+Agentic systems are non-deterministic. The same inputs produce outputs that differ in form while remaining equivalent in behavior. Enforcing identical reproduction fights this property at significant cost for no gain. The correct target is behavioral equivalence: outputs that satisfy the same specification, meet the same acceptance conditions, and fulfill the same requirements — regardless of surface differences.
 
-The **smaqit-adk** product provides framework extension capabilities through Level agents (L0/L1/L2), enabling organizations to create custom agents, modify compilation rules, and extend smaQit principles while maintaining framework integrity.
-
-### Accept Mutability, Validate Behavior
-
-**Embrace non-determinism in artifacts, enforce determinism in outcomes.**
-
-LLMs rarely generate identical output twice. Rather than fighting this inherent variability, smaQit accepts it:
-
-- **Mutable artifacts**: Code, configurations, and documents may vary between runs
-- **Immutable behavior**: Specifications define expected outcomes, not implementation details
-- **Validation over reproducibility**: Success is measured by passing acceptance criteria, not by identical output
-
-### Reproducible from Input Set
-
-**Identical input sets produce equivalent validated behavior.**
-
-The complete set of prompts across all layers defines a reproducible workflow. Given the same prompt set:
-
-- **Equivalent outcomes**: Acceptance criteria pass or fail consistently
-- **Traceable changes**: Modifying any prompt in the set reveals requirement changes explicitly
-- **Audit trail**: Prompt sets document what was requested at each layer
-
-### Progressive Refinement
-
-**Each layer addresses a distinct concern.**
-
-Layers are independent but coherent. Business captures intent, Functional defines behavior, Stack selects tools, Infrastructure specifies environment, Coverage verifies implementation. No layer derives requirements from another—each reads from its own prompt file. Implementation agents validate cross-layer coherence before execution.
-
-### Stateful Specifications
-
-**Specifications track their lifecycle state through implementation phases.**
-
-Specs are not static documents—they evolve through phases with tracked states:
-- **Draft**: Spec generated, ready for implementation
-- **Implemented**: Code generated, tests pass
-- **Deployed**: Running in target environment
-- **Validated**: All acceptance criteria verified
-- **Failed**: Processing failed at some phase
-
-### Explicit Over Implicit
-
-**When in doubt, make it explicit.**
-
-Ambiguity multiplies as context travels through layers and agents. Stated assumptions become verifiable constraints. Defined boundaries create clear accountability. Explicit references enable traceability. What remains implicit becomes a source of divergence and confusion.
-
-### Fail-Fast on Ambiguity
-
-**When input is unclear, stop and request clarification.**
-
-Proceeding with unclear input compounds errors through every downstream layer. Invented requirements masquerade as user intent. Early clarification prevents late-stage rework and maintains the integrity of the requirement chain from source to implementation.
-
-## Quick Reference
-
-### Layers
-
-| Layer | Question | Purpose |
-|-------|----------|---------|
-| Business | Why? | Use cases, actors, goals |
-| Functional | What? | Behaviors, contracts, flows |
-| Stack | With what? | Languages, frameworks, libraries |
-| Infrastructure | Where? | Compute, networking, observability |
-| Coverage | Verified? | Integration, E2E, acceptance testing |
-
-### Phases
-
-| Phase | Spec Agents | Impl Agent | Output |
-|-------|-------------|------------|--------|
-| Develop | Business → Functional → Stack | Development | Working application |
-| Deploy | Infrastructure | Deployment | Running system |
-| Validate | Coverage | Validation | Validation report |
-
-## See Also
-
-Read SMAQIT.md for framework overview and principles. Consult these files as needed:
-
-| File | Purpose | When to Consult |
-|------|---------|-----------------|
-| [PROMPTS](PROMPTS.md) | Prompt structure, input records, agent interaction | Understanding prompt files or agent invocation |
-| [LAYERS](LAYERS.md) | Five specification layers and their dependencies | Generating or validating layer specs |
-| [PHASES](PHASES.md) | Three development phases and their workflows | Orchestrating multi-agent workflows |
-| [TEMPLATES](TEMPLATES.md) | Template structure rules for prompts, specs, and agents | Creating or validating templates |
-| [AGENTS](AGENTS.md) | Agent behaviors (actors) | Understanding agent responsibilities |
-| [ARTIFACTS](ARTIFACTS.md) | Artifact rules (outputs) | Understanding spec structure and traceability |
+**Invariants:**
+- Correctness is defined by specified behavior, not by output identity.
+- Acceptance conditions are the basis for evaluating output, not comparison to a reference output.
+- Two outputs that satisfy the same specification are equivalent, regardless of how they differ in form.

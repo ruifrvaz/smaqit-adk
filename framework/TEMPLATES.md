@@ -1,273 +1,61 @@
 # Templates
 
-Templates define the structure that agents MUST follow when producing output. This document establishes the rules for both specification templates, agent templates and prompt templates.
+This document establishes the principles and invariants that govern templates. A template is the structural contract that defines what a compiled output must contain — every required section, its purpose, and its order.
 
-## Template Types
+## Core Principles
 
-smaQit uses three types of templates:
+### Template as Compilation Surface
 
-| Type | Location | Purpose | Produces |
-|------|----------|---------|----------|
-| **Specification templates** | `templates/specs/` | Structure for spec documents | `specs/**/*.md` |
-| **Agent templates** | `templates/agents/` | Structure for agent definitions | `agents/*.agent.md` |
-| **Prompt templates** | `templates/prompts/` | Structure for prompt files | `.github/prompts/*.prompt.md` |
+**Templates define what is architecturally invariant and what varies by role — compilation fills in the variation while preserving the invariant.**
 
-## Placeholder Convention
+A template captures the structure every compiled agent must have: sections, their order, and behavioral shape. It marks every location where role- or domain-specific content belongs as a placeholder. Compilation is the act of resolving those placeholders without altering the structure. A template is not a guideline; it is the required shape of the compiled output.
 
-All templates use `[PLACEHOLDER]` format (brackets, SCREAMING_CASE) for customizable values.
+**Invariants:**
+- Every section that must appear in a compiled agent is present in the template, even if its content is a placeholder.
+- Every value that varies by role or domain is expressed as a placeholder — not hardcoded in the template.
+- A compiled agent that omits a required section or retains unresolved placeholders is not valid.
 
-### Common Placeholders
+### Placeholder Convention
 
-| Placeholder | Description | Example |
-|-------------|-------------|---------|
-| `[LAYER]` | Lowercase layer name | `business` |
-| `[LAYER_NAME]` | Title case layer name | `Business` |
-| `[LAYER_PREFIX]` | 3-letter layer code | `BUS` |
-| `[PHASE]` | Lowercase phase name | `development` |
-| `[CONCEPT]` | Concept name in requirement ID | `LOGIN` |
-| `[NNN]` | Sequential number (3 digits) | `001` |
+**Placeholders are the compilation interface — marked locations where the compiler resolves generic structure into domain-specific content.**
 
-### Agent Template Placeholders
+All placeholders use a consistent format: screaming-case inside square brackets (`[PLACEHOLDER]`). This allows the compiler to locate and resolve every placeholder unambiguously. The complete set of placeholders a template defines is that template's compilation contract. The meaning of each placeholder is documented in the corresponding compilation rules file — not in the template itself.
 
-**Shared placeholders:**
-
-| Placeholder | Description |
-|-------------|-------------|
-| `[UPSTREAM_SPEC_PATHS]` | Input spec paths |
-| `[USER_INPUT_DESCRIPTION]` | What user input is accepted |
-
-**Specification agent placeholders:**
-
-| Placeholder | Description |
-|-------------|-------------|
-| `[LAYER]` | Lowercase layer name (e.g., `business`) |
-| `[LAYER_NAME]` | Title case layer name (e.g., `Business`) |
-| `[LAYER_PREFIX]` | 3-letter layer code (e.g., `BUS`) |
-| `[LAYER_SPECIFIC_RULES]` | MUST/MUST NOT from LAYERS.md |
-
-**Implementation agent placeholders:**
-
-| Placeholder | Description |
-|-------------|-------------|
-| `[PHASE]` | Lowercase phase name (e.g., `development`) |
-| `[PHASE_NAME]` | Title case phase name (e.g., `Development`) |
-| `[AGENT_NAME]` | Agent display name (e.g., `Development Agent`) |
-| `[UPSTREAM_SPEC_LAYERS]` | Which specification layers this agent consumes (e.g., `Business, Functional, and Stack`) |
-| `[OUTPUT_ARTIFACTS_SUMMARY]` | Brief description of what this agent produces (e.g., `a working, tested application`) |
-| `[PHASE_SEQUENCE_NOTE]` | Phase position in workflow (e.g., `Phase 1 of 3`) |
-| `[PHASE_SPEC_LAYERS]` | Which spec layers are generated in this phase |
-| `[PHASE_SPEC_SUMMARY]` | Brief summary of specs in this phase (e.g., `business, functional, stack specs`) |
-| `[PHASE_SPECIFIC_RULES]` | MUST/MUST NOT from PHASES.md |
-| `[ROLE_DETAILS]` | Phase-specific role description |
-| `[OUTPUT_ARTIFACTS]` | What artifacts are produced |
-| `[OUTPUT_FORMAT]` | Format of output artifacts |
-| `[ADDITIONAL_COMPLETION_CRITERIA]` | Phase-specific completion checks |
-
-## Specification Templates
-
-Specification templates define the structure for spec documents produced by specification agents.
-
-### Location
-
-```
-templates/specs/
-├── business.template.md
-├── functional.template.md
-├── stack.template.md
-├── infrastructure.template.md
-└── coverage.template.md
-```
-
-### Required Sections
-
-Every specification template MUST include:
-
-| Section | Purpose |
-|---------|---------|
-| Frontmatter | YAML metadata with state tracking |
-| Title | Concept name |
-| References | Upstream spec links (except Business) |
-| Scope | What's included and excluded |
-| [Layer-specific content] | Varies by layer |
-| Acceptance Criteria | Testable requirements with IDs |
-
-**Frontmatter Requirements:**
-
-All spec templates MUST begin with YAML frontmatter:
-
-```yaml
----
-id: [LAYER_PREFIX]-[CONCEPT]
-status: draft
-created: [TIMESTAMP]
-prompt_version: [GIT_HASH]
----
-```
-
-**Required frontmatter fields:**
-- `id`: Spec identifier (e.g., `BUS-LOGIN`, `FUN-AUTH-FLOW`)
-- `status`: Initial state is always `draft`
-- `created`: ISO8601 timestamp when spec generated
-- `prompt_version`: Git commit hash of prompt file at generation
-
-**Optional frontmatter fields** (added by implementation agents):
-- `implemented`: Timestamp when Development agent completed
-- `deployed`: Timestamp when Deployment agent completed
-- `validated`: Timestamp when Validation agent completed
-
-Specification agents MUST generate frontmatter with required fields. Implementation agents update frontmatter as specs progress through phases.
-
-### Compliance Rules
-
-When producing specs from templates:
-
-- Agents MUST use the template from `templates/specs/[LAYER].template.md`
-- Agents MUST produce consistent output structure across all runs
-- Agents MUST NOT add sections not defined in the template
-- Agents MUST NOT omit required sections from the template
-- Agents MUST NOT leave placeholder text in completed specs
-- Agents MUST minimize variance in generated artifacts
-
-### Placeholder Handling
-
-- All placeholders MUST be replaced with actual content
-- If a section is not applicable, state "Not applicable: [reason]"
-- Empty sections are not permitted
-
-## Agent Templates
-
-Agent templates define structure for agent definition files. Templates organize into a hierarchy reflecting foundational principles and role-specific extensions.
+**Invariants:**
+- Every placeholder follows the `[SCREAMING_CASE]` format inside square brackets.
+- Every placeholder in a template has a defined meaning in the template's compilation rules file.
+- A valid compiled agent contains no unresolved placeholders.
 
 ### Template Hierarchy
 
-**Foundation Template**
+**Templates organize into a foundation that all agents share and extensions that add role-specific behavior without duplicating the foundation.**
 
-Captures principles shared across all agents regardless of role:
-- Bounded scope (single responsibility)
-- Self-validation (completion criteria verification)
-- Fail-fast behaviors (ambiguity and inconsistency handling)
-- Template-constrained output (predictable structure)
-- Traceable references (explicit source linkage)
-- Scope boundaries (redirection when out-of-scope)
+The foundation template captures what must remain invariant across every compiled agent: bounded scope, self-validation, traceable references, fail-fast behaviors, template-constrained output. Extension templates inherit the full foundation and add sections for role-specific concerns. Extensions never redefine or duplicate foundation sections. Changes to the foundation propagate to all agent types; role-specific changes remain isolated.
 
-The foundation template materializes what remains invariant across agent types.
+**Invariants:**
+- A compiled agent's foundation structure is identical regardless of which extension template was used.
+- An extension template adds sections to the foundation; it does not override or duplicate foundation sections.
+- What differentiates agents by role lives exclusively in extension templates.
 
-**Extension Templates**
+### Section Structure as Behavioral Contract
 
-Build upon foundation by adding role-specific behaviors while preserving shared principles:
+**Template sections define what a compiled agent must contain; their presence, purpose, and order are part of the structural contract.**
 
-- **Specification template** — Layer-specific sections (References to upstream specs, layer scope boundaries, acceptance criteria structure). Extends foundation with prompt-to-spec generation behaviors.
+Template sections are not organizational suggestions — they are the behavioral map of a compiled agent. Each section captures a distinct concern (role, input, output, directives, scope, completion, failure handling). Compilation fills sections; it does not add new sections beyond what the template defines or omit required ones. This predictability makes compiled agents structurally consistent across runs and domains.
 
-- **Implementation template** — Phase-specific sections (Cross-layer consolidation, frontmatter updates, retry thresholds, artifact generation). Extends foundation with spec-to-artifact generation behaviors.
+**Invariants:**
+- Every template section appears in the compiled agent.
+- The compiler does not add sections not defined in the template.
+- The compiler does not omit required sections.
+- Section order in compiled agents matches the template order.
 
-Extensions inherit foundation structure. Each extension adds sections capturing role-specific concerns without duplicating shared foundation content.
+### Extension Inheritance
 
-### Section Structure
+**Extensions inherit the full foundation — they are strictly additive.**
 
-Agent definitions contain these sections:
+Compiling with an extension template means all foundation content is included first, then extension-specific content is appended. Extensions do not weaken, override, or selectively apply foundation behaviors. Every compiled agent, regardless of role, carries the complete foundation.
 
-| Section | Content | Foundation or Extension |
-|---------|---------|-------------------------|
-| YAML Frontmatter | Agent metadata (name, description, tools) | Foundation |
-| Role | Agent identity, goal, context | Foundation |
-| Framework Reference | Links to relevant framework files | Foundation |
-| Input | Source specifications and prompt files | Extension-specific |
-| Output | Target artifacts and structure | Extension-specific |
-| Directives | Behavioral rules compiled from principles | Extension-specific |
-| Completion Criteria | Self-validation checklist | Foundation pattern, extension details |
-| Failure Handling | Error response mapping | Foundation pattern, extension details |
-
-### Agent Definition Format
-
-Agent definitions follow GitHub Custom Agent format with YAML frontmatter, markdown sections, and placeholder resolution during compilation.
-
-Frontmatter captures agent metadata. Sections contain behavioral guidelines compiled from framework principles. Placeholders enable template reuse across agent instances.
-
-## Prompt Templates
-
-Prompt templates define the structure for prompt files that serve as input records and agent invocation interface.
-
-### Location
-
-```
-templates/prompts/
-├── specification-prompt.template.md
-└── implementation-prompt.template.md
-```
-
-### Required Sections
-
-Every prompt template MUST include:
-
-| Section | Purpose |
-|---------|---------|
-| YAML Frontmatter | name, description, agent |
-| Purpose | What this prompt captures |
-| Requirements | Sub-sections with suggested structure |
-| Comment Examples | `<!-- Example: ... -->` for guidance |
-
-### Prompt Template Format
-
-Prompt templates use GitHub Copilot prompt format:
-
-```markdown
----
-name: smaQit.[layer]
-description: [One-line description]
-agent: smaQit.[layer]
----
-
-# [Layer] Prompt
-
-[Brief explanation]
-
-## Requirements
-
-[Sub-sections with suggested structure]
-
-<!-- Example: [Guidance showing format] -->
-
-[User fills requirements here]
-```
-
-### Free-Style with Structure
-
-Prompts are **free-style natural language inputs**, not rigidly structured forms. Templates provide:
-
-- **Suggested structure**: Sections and sub-sections to guide users
-- **Commented examples**: `<!-- Example: ... -->` showing good formats
-- **No enforcement**: Users write in their own words
-
-Agents interpret natural language and request clarification if needed. See [PROMPTS](PROMPTS.md) for complete principles.
-
-### Comment Convention
-
-Templates and shipped prompts include examples wrapped in HTML comments:
-
-```markdown
-### Actors
-
-<!-- Example: "Mario Fan - Users who love Nintendo's Mario franchise" -->
-
-[User writes actual actors here]
-```
-
-**Critical:** Agents MUST ignore HTML comments to prevent example requirements from contaminating generated specs.
-
-### Single Manifest Pattern
-
-Unlike specifications (one file per concept), prompts are **single manifest files**:
-
-- One prompt per layer captures all requirements for that layer
-- Users add features to existing prompts as projects evolve
-- Prompts become consolidated input records for entire project
-
-## Template Completeness
-
-A template is complete when:
-
-- [ ] All required sections are present
-- [ ] Placeholders are clearly marked with `[PLACEHOLDER]` format
-- [ ] Section purposes are unambiguous
-- [ ] Layer-specific rules from LAYERS.md are incorporated (for spec templates)
-- [ ] Comment examples use `<!-- Example: ... -->` format (for prompt templates)
+**Invariants:**
+- All base directives appear before extension directives in the compiled agent.
+- Extension directives do not contradict or remove base directives.
+- The boundary between base and extension content is recognizable in every compiled agent.
