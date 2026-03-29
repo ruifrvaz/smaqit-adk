@@ -56,7 +56,7 @@ The ADK has three Level agents with distinct responsibilities:
 |-------|---------------|-------------|
 | `smaqit.L0` | Maintain framework principles | Changing `framework/*.md` |
 | `smaqit.L1` | Compile principles to templates | Changing `templates/` |
-| `smaqit.L2` | Compile templates to product agents | Creating new agents |
+| `smaqit.L2` | Compile templates to agents and skills | Creating new agents or skills |
 
 Skills that route to a Level agent do so by naming it explicitly in their compilation step — not via frontmatter (which is an industry format not to be extended).
 
@@ -124,6 +124,7 @@ Skills live in `skills/` at the ADK root and are copied to `.github/skills/` in 
 | Skill | Purpose |
 |-------|--------|
 | `smaqit.new-agent` | Gather agent specifications interactively, write a definition file, and invoke L2 as a subagent to compile the agent |
+| `smaqit.new-skill` | Gather skill specifications interactively, write a definition file, and invoke L2 as a subagent to compile the skill |
 
 ### Skill Format
 

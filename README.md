@@ -118,6 +118,7 @@ Compile templates into concrete agents:
 | Skill | Invocation | Purpose |
 |-------|------------|---------|
 | `/smaqit.new-agent` | `/smaqit.new-agent` or "create a new agent" | Gather specs and compile a new agent via L2 |
+| `/smaqit.new-skill` | `/smaqit.new-skill` or "create a new skill" | Gather specs and compile a new skill via L2 |
 
 ## Level Agents
 
