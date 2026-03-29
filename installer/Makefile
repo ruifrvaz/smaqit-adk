@@ -21,6 +21,11 @@ prepare:
 	@cp ../agents/*.agent.md agents/
 	@mkdir -p skills/smaqit.new-agent
 	@cp ../skills/smaqit.new-agent/SKILL.md skills/smaqit.new-agent/
+	@mkdir -p skills/smaqit.new-skill
+	@cp ../skills/smaqit.new-skill/SKILL.md skills/smaqit.new-skill/
+	@mkdir -p templates/skills/compiled
+	@cp ../templates/skills/base-skill.template.md templates/skills/
+	@cp ../templates/skills/compiled/skill.rules.md templates/skills/compiled/
 
 # Default target: build for current platform
 .PHONY: build
