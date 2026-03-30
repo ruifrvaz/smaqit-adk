@@ -1,18 +1,34 @@
 package main
 
 import (
+	"bufio"
+	"context"
 	"embed"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
+	"time"
+
+	copilot "github.com/github/copilot-sdk/go"
 )
 
 //go:embed agents/*.md
 var adkAgentFiles embed.FS
 
+//go:embed agents/smaqit.L2.agent.md
+var adkL2AgentFile []byte
+
+//go:embed skills/smaqit.new-agent/SKILL.md
+var adkNewAgentSkillFile []byte
+
+//go:embed skills/smaqit.new-skill/SKILL.md
+var adkNewSkillSkillFile []byte
+
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
-var Version = "0.2.0"
+var Version = "0.3.0"
 
 func main() {
 if len(os.Args) < 2 {
@@ -21,22 +37,34 @@ os.Exit(1)
 }
 
 switch os.Args[1] {
-case "init":
-targetDir := "."
-if len(os.Args) > 2 {
-targetDir = os.Args[2]
-}
-cmdInit(targetDir)
-case "help", "--help", "-h":
-cmdHelp()
-case "uninstall":
-cmdUninstall()
-case "version", "--version", "-v":
-	fmt.Printf("smaqit-adk %s\n", Version)
-default:
-printUsage()
-os.Exit(1)
-}
+	case "init":
+		targetDir := "."
+		if len(os.Args) > 2 {
+			targetDir = os.Args[2]
+		}
+		cmdInit(targetDir)
+	case "create-agent":
+		outputDir := ""
+		if len(os.Args) > 2 && os.Args[2] == "--output" && len(os.Args) > 3 {
+			outputDir = os.Args[3]
+		}
+		cmdCreate("agent", outputDir)
+	case "create-skill":
+		outputDir := ""
+		if len(os.Args) > 2 && os.Args[2] == "--output" && len(os.Args) > 3 {
+			outputDir = os.Args[3]
+		}
+		cmdCreate("skill", outputDir)
+	case "help", "--help", "-h":
+		cmdHelp()
+	case "uninstall":
+		cmdUninstall()
+	case "version", "--version", "-v":
+		fmt.Printf("smaqit-adk %s\n", Version)
+	default:
+		printUsage()
+		os.Exit(1)
+	}
 }
 
 func printUsage() {
@@ -45,11 +73,12 @@ func printUsage() {
 Usage: smaqit-adk <command>
 
 Commands:
-  init [dir] Install smaqit.create-agent and smaqit.create-skill into .github/agents/
-             Optional: specify target directory (default: current)
-  help       Show detailed command help
-  uninstall  Remove smaqit-adk agents from project
-  version    Show smaqit-adk version`)
+  init [dir]                     Install smaqit.create-agent and smaqit.create-skill into .github/agents/
+  create-agent [--output <dir>]  Create a new agent interactively
+  create-skill [--output <dir>]  Create a new skill interactively
+  help                           Show detailed command help
+  uninstall                      Remove smaqit-adk agents from project
+  version                        Show smaqit-adk version`)
 }
 
 func cmdHelp() {
@@ -57,9 +86,19 @@ func cmdHelp() {
 	fmt.Printf("Version: %s\n\n", Version)
 
 	fmt.Println("CLI Commands:")
-	fmt.Println("  smaqit-adk init [dir] Install smaqit.create-agent and smaqit.create-skill")
-	fmt.Println("                        into .github/agents/ in the target project")
-	fmt.Println("                        Optional: specify target directory (created if needed)")
+	fmt.Println("  smaqit-adk init [dir]")
+	fmt.Println("      Install smaqit.create-agent and smaqit.create-skill into .github/agents/")
+	fmt.Println("      Optional: specify target directory (created if needed)")
+	fmt.Println()
+	fmt.Println("  smaqit-adk create-agent [--output <dir>]")
+	fmt.Println("      Interactively gather agent specs and compile a .agent.md into the project.")
+	fmt.Println("      Runs in an isolated LLM context — no project agent instructions in scope.")
+	fmt.Println("      Output defaults to ./.github/agents/")
+	fmt.Println()
+	fmt.Println("  smaqit-adk create-skill [--output <dir>]")
+	fmt.Println("      Interactively gather skill specs and compile a SKILL.md into the project.")
+	fmt.Println("      Runs in an isolated LLM context — no project agent instructions in scope.")
+	fmt.Println("      Output defaults to ./.github/skills/<name>/")
 	fmt.Println()
 	fmt.Println("  smaqit-adk help       Show this help message")
 	fmt.Println()
@@ -69,15 +108,12 @@ func cmdHelp() {
 	fmt.Println()
 	fmt.Println("  smaqit-adk version    Show smaqit-adk version")
 	fmt.Println()
-	fmt.Println("Copilot Agents (invoke as subagents for clean, isolated context):")
+	fmt.Println("VS Code Agents (lite tier — install with 'init', invoke as subagents):")
 	fmt.Println("  @smaqit.create-agent  Interactively gather specs and compile a new .agent.md")
 	fmt.Println("  @smaqit.create-skill  Interactively gather specs and compile a new SKILL.md")
 	fmt.Println()
-	fmt.Println("Getting Started:")
-	fmt.Println("  1. Run 'smaqit-adk init' in your project directory")
-	fmt.Println("  2. Open GitHub Copilot chat in VS Code")
-	fmt.Println("  3. Start a new chat and select @smaqit.create-agent or @smaqit.create-skill")
-	fmt.Println("     Tip: run as a subagent for a clean context isolated from your current session")
+	fmt.Println("Auth: set COPILOT_GITHUB_TOKEN, GH_TOKEN, or GITHUB_TOKEN,")
+	fmt.Println("      or log in with 'gh auth login' / VS Code GitHub Copilot extension.")
 	fmt.Println()
 	fmt.Println("Documentation: https://github.com/ruifrvaz/smaqit-adk")
 }
@@ -210,4 +246,167 @@ func cmdUninstall() {
 	} else {
 		fmt.Println("\n\u2713 Uninstall complete")
 	}
+}
+
+// cmdCreate drives an interactive create-agent or create-skill session via the Copilot SDK.
+// kind must be "agent" or "skill". outputDir overrides the default output location.
+func cmdCreate(kind, outputDir string) {
+	var systemContent string
+	var initialPrompt string
+	var defaultOutputDir string
+
+	switch kind {
+	case "agent":
+		systemContent = string(adkL2AgentFile) + "\n\n---\n\n" + string(adkNewAgentSkillFile)
+		initialPrompt = "Create a new agent. Follow the smaqit.new-agent skill: gather all sections interactively, then compile and write the agent file."
+		defaultOutputDir = filepath.Join(".github", "agents")
+	case "skill":
+		systemContent = string(adkL2AgentFile) + "\n\n---\n\n" + string(adkNewSkillSkillFile)
+		initialPrompt = "Create a new skill. Follow the smaqit.new-skill skill: gather all sections interactively, then compile and write the skill file."
+		defaultOutputDir = filepath.Join(".github", "skills")
+	default:
+		fmt.Fprintf(os.Stderr, "unknown kind: %s\n", kind)
+		os.Exit(1)
+	}
+
+	if outputDir == "" {
+		outputDir = defaultOutputDir
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error getting working directory: %v\n", err)
+		os.Exit(1)
+	}
+
+	// 15-minute session timeout (Option D).
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	defer cancel()
+
+	// Ctrl-C cancels cleanly via context.
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt)
+	go func() {
+		<-sigCh
+		fmt.Fprintln(os.Stderr, "\nCancelled.")
+		cancel()
+	}()
+
+	token := resolveToken()
+
+	client := copilot.NewClient(&copilot.ClientOptions{
+		Cwd:         cwd,
+		GitHubToken: token,
+	})
+
+	// Track how many messages have been displayed so we only print new ones.
+	var displayedMsgIdx atomic.Int32
+	displayedMsgIdx.Store(0)
+
+	var session *copilot.Session
+
+	sessionCfg := &copilot.SessionConfig{
+		SystemMessage: &copilot.SystemMessageConfig{
+			Mode:    "replace",
+			Content: systemContent,
+		},
+		WorkingDirectory: cwd,
+		OnPermissionRequest: func(req copilot.PermissionRequest, _ copilot.PermissionInvocation) (copilot.PermissionRequestResult, error) {
+			// Deny shell execution; approve file reads and writes.
+			if req.Kind == copilot.PermissionRequestKindShell {
+				return copilot.PermissionRequestResult{Kind: copilot.PermissionRequestResultKindDeniedByRules}, nil
+			}
+			return copilot.PermissionRequestResult{Kind: copilot.PermissionRequestResultKindApproved}, nil
+		},
+		OnUserInputRequest: func(_ copilot.UserInputRequest, _ copilot.UserInputInvocation) (copilot.UserInputResponse, error) {
+			// Display any new assistant messages before prompting the user.
+			if session != nil {
+				if events, err := session.GetMessages(ctx); err == nil {
+					idx := int(displayedMsgIdx.Load())
+					for i, ev := range events {
+						if i < idx {
+							continue
+						}
+						if ev.Type == copilot.SessionEventTypeAssistantMessage && ev.Data.Content != nil {
+							fmt.Printf("\n%s\n", *ev.Data.Content)
+						}
+					}
+					displayedMsgIdx.Store(int32(len(events)))
+				}
+			}
+			fmt.Print("> ")
+			reader := bufio.NewReader(os.Stdin)
+			answer, err := reader.ReadString('\n')
+			if err != nil {
+				return copilot.UserInputResponse{}, fmt.Errorf("reading input: %w", err)
+			}
+			return copilot.UserInputResponse{Answer: strings.TrimSpace(answer)}, nil
+		},
+	}
+
+	session, err = client.CreateSession(ctx, sessionCfg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error creating session: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("smaqit-adk create-%s — working directory: %s\n", kind, cwd)
+	fmt.Printf("Output: %s\n", filepath.Join(cwd, outputDir))
+	fmt.Println("Type your answers when prompted. Ctrl-C to cancel.")
+	fmt.Println()
+
+	// Progress ticker — prints elapsed time while the session is working.
+	progressDone := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		elapsed := 0
+		for {
+			select {
+			case <-ticker.C:
+				elapsed += 10
+				fmt.Printf("  [working... %ds]\n", elapsed)
+			case <-progressDone:
+				return
+			}
+		}
+	}()
+
+	_, sendErr := session.SendAndWait(ctx, copilot.MessageOptions{Prompt: initialPrompt})
+	close(progressDone)
+
+	if sendErr != nil {
+		if ctx.Err() != nil {
+			fmt.Fprintln(os.Stderr, "\nSession timed out or was cancelled.")
+		} else {
+			fmt.Fprintf(os.Stderr, "session error: %v\n", sendErr)
+		}
+		os.Exit(1)
+	}
+
+	// Print any remaining assistant messages not yet displayed.
+	if events, err := session.GetMessages(ctx); err == nil {
+		idx := int(displayedMsgIdx.Load())
+		for i, ev := range events {
+			if i < idx {
+				continue
+			}
+			if ev.Type == copilot.SessionEventTypeAssistantMessage && ev.Data.Content != nil {
+				fmt.Printf("\n%s\n", *ev.Data.Content)
+			}
+		}
+	}
+
+	fmt.Printf("\n✓ Done. Output written to %s\n", filepath.Join(cwd, outputDir))
+}
+
+// resolveToken returns a GitHub token from environment variables, or empty string
+// to use the SDK's default UseLoggedInUser behaviour (VS Code / gh CLI credentials).
+func resolveToken() string {
+	for _, env := range []string{"COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"} {
+		if v := os.Getenv(env); v != "" {
+			return v
+		}
+	}
+	return ""
 }
