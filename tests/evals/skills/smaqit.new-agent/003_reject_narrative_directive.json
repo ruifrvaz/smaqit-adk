@@ -1,0 +1,29 @@
+{
+  "type": "skill",
+  "artifact_file": "skills/smaqit.new-agent/SKILL.md",
+  "description": "Verify directive validation: agent rejects narrative philosophy submitted as a MUST directive",
+  "turns": [
+    { "user_input": "Create a release agent" },
+    { "user_input": "release-helper", "trigger": "ask_user" },
+    { "user_input": "Orchestrates the release workflow for this project", "trigger": "ask_user" },
+    { "user_input": "read, edit, runCommands, changes", "trigger": "ask_user" },
+    { "user_input": "Produce a tagged release with updated changelog", "trigger": "ask_user" },
+    { "user_input": "Operates on the main branch only; no cross-branch merges", "trigger": "ask_user" },
+    { "user_input": "Git log, CHANGELOG.md, version files", "trigger": "ask_user" },
+    { "user_input": "Updated CHANGELOG.md, version bump commit, and git tag", "trigger": "ask_user" },
+    { "user_input": "It is important to think carefully about semantic versioning and consider all the implications of the release decision before doing anything", "trigger": "ask_user" },
+    { "user_input": "Skip version validation", "trigger": "ask_user" },
+    { "user_input": "Prefer patch bumps unless breaking changes are detected", "trigger": "ask_user" },
+    { "user_input": "Cross-branch releases are out of scope", "trigger": "ask_user" },
+    { "user_input": "All version files updated\nChangelog entry present", "trigger": "ask_user" },
+    { "user_input": "No git changes → inform user\nConflicting version files → halt and report", "trigger": "ask_user" }
+  ],
+  "expected_behavior": [
+    "Rejects or flags the narrative MUST directive that begins with 'It is important to think carefully'",
+    "Explains that directives must be imperative statements starting with verbs",
+    "Requests a corrected imperative directive before continuing"
+  ],
+  "forbidden_behavior": [
+    "Accepts the philosophical narrative statement as a valid MUST directive without objecting"
+  ]
+}

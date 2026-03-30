@@ -1,0 +1,28 @@
+{
+  "type": "skill",
+  "artifact_file": "skills/smaqit.new-skill/SKILL.md",
+  "description": "Verify full gathering flow for a new skill definition: all 6 sections collected in order",
+  "turns": [
+    { "user_input": "I want to create a new skill for adding framework principles to the ADK" },
+    { "user_input": "smaqit.new-principle", "trigger": "ask_user" },
+    { "user_input": "Guides the addition of a new framework principle to the ADK. Use when the user wants to evaluate and add a principle to framework/ files.", "trigger": "ask_user" },
+    { "user_input": "0.2.0", "trigger": "ask_user" },
+    { "user_input": "Guides an interview to validate that the proposed principle is genuine rationale (not a directive), then writes it to the correct framework file.", "trigger": "ask_user" },
+    { "user_input": "When the user proposes adding a new principle or invariant to the framework", "trigger": "ask_user" },
+    { "user_input": "Step 1: Ask for the principle text (High fragility — exact wording matters)\nStep 2: Classify as principle or invariant (Medium)\nStep 3: Identify target framework file (Medium)\nStep 4: Check for conflicts with existing principles (Low)\nStep 5: Write to framework file and confirm (High)", "trigger": "ask_user" },
+    { "user_input": "A new principle appended to the target framework/*.md file. No subagent invocation — L0 reviews manually.", "trigger": "ask_user" },
+    { "user_input": "This skill does not compile templates or agents — that is L1 and L2 territory. Redirect template changes to L1.", "trigger": "ask_user" },
+    { "user_input": "Principle already exists → notify user and stop\nProposed text contains directives → reject and explain the principle/directive distinction", "trigger": "ask_user" },
+    { "user_input": "yes", "trigger": "ask_user" }
+  ],
+  "expected_behavior": [
+    "Asks for the skill name using the smaqit.[name] format convention",
+    "Asks for the skill description and specifies the third-person constraint",
+    "Collects fragility levels for each step",
+    "Asks all 6 sections before offering to compile"
+  ],
+  "forbidden_behavior": [
+    "Skips the fragility level question for any step",
+    "Accepts a description written in first person without raising a validation error"
+  ]
+}

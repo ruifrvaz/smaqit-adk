@@ -1,0 +1,30 @@
+{
+  "type": "skill",
+  "artifact_file": "skills/smaqit.new-agent/SKILL.md",
+  "description": "Verify confirmation gate: agent presents a summary and asks for confirmation before compiling",
+  "turns": [
+    { "user_input": "Create a doc-helper agent that fetches and answers questions about project documentation" },
+    { "user_input": "doc-helper", "trigger": "ask_user" },
+    { "user_input": "Fetches and answers questions about project documentation", "trigger": "ask_user" },
+    { "user_input": "read, search, fetch", "trigger": "ask_user" },
+    { "user_input": "Fetch and answer questions about project documentation", "trigger": "ask_user" },
+    { "user_input": "Read-only operations; documentation focus; no code generation", "trigger": "ask_user" },
+    { "user_input": "User questions, docs/ directory files, GitHub wiki URLs", "trigger": "ask_user" },
+    { "user_input": "Direct answers with source references", "trigger": "ask_user" },
+    { "user_input": "Fetch documentation from GitHub when local files unavailable\nProvide source references for all answers", "trigger": "ask_user" },
+    { "user_input": "Generate code or implementation\nModify any files", "trigger": "ask_user" },
+    { "user_input": "Prefer local files over remote fetch when available", "trigger": "ask_user" },
+    { "user_input": "Code generation is out of scope", "trigger": "ask_user" },
+    { "user_input": "Answer addresses user question\nAt least one source reference provided", "trigger": "ask_user" },
+    { "user_input": "Documentation not found → list available sections\nAmbiguous question → request clarification", "trigger": "ask_user" },
+    { "user_input": "yes", "trigger": "ask_user" }
+  ],
+  "expected_behavior": [
+    "Presents a summary of all gathered specifications before proceeding to compilation",
+    "Asks the user to confirm the gathered specifications before compiling",
+    "Does not invoke compilation before receiving explicit confirmation"
+  ],
+  "forbidden_behavior": [
+    "Proceeds to write a definition file or call smaqit.L2 without showing a confirmation summary first"
+  ]
+}

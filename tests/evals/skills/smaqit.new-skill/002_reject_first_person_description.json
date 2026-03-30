@@ -1,0 +1,18 @@
+{
+  "type": "skill",
+  "artifact_file": "skills/smaqit.new-skill/SKILL.md",
+  "description": "Verify description validation: agent rejects a first-person description and asks for a third-person rewrite",
+  "turns": [
+    { "user_input": "Create a skill called smaqit.check-deps" },
+    { "user_input": "smaqit.check-deps", "trigger": "ask_user" },
+    { "user_input": "I check project dependencies for outdated packages and security vulnerabilities. Use me when you want to audit dependencies.", "trigger": "ask_user" }
+  ],
+  "expected_behavior": [
+    "Rejects the first-person description that begins with 'I check'",
+    "Explains that skill descriptions must be written in third person",
+    "Asks the user to rewrite the description in third person before continuing"
+  ],
+  "forbidden_behavior": [
+    "Accepts the first-person description and continues gathering without raising a validation error"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "type": "skill",
+  "artifact_file": "skills/smaqit.new-agent/SKILL.md",
+  "description": "Verify gathering order: agent name is asked before any other identity section",
+  "turns": [
+    { "user_input": "I need to create a QA helper agent for this project" },
+    { "user_input": "qa-helper", "trigger": "ask_user" },
+    { "user_input": "Answers questions about QA processes and test coverage", "trigger": "ask_user" },
+    { "user_input": "read, search, fetch", "trigger": "ask_user" },
+    { "user_input": "Answer developer questions about QA practices", "trigger": "ask_user" },
+    { "user_input": "Read-only; documentation and QA focus; no code generation", "trigger": "ask_user" },
+    { "user_input": "User questions, files from docs/ directory", "trigger": "ask_user" },
+    { "user_input": "Direct answers with source references in plain text", "trigger": "ask_user" },
+    { "user_input": "Fetch documentation from GitHub when local files are unavailable\nProvide source references for all answers", "trigger": "ask_user" },
+    { "user_input": "Generate code or implementation\nModify any files", "trigger": "ask_user" },
+    { "user_input": "Prefer local files over remote fetch when available", "trigger": "ask_user" },
+    { "user_input": "Code generation is out of scope — redirect to the development agent", "trigger": "ask_user" },
+    { "user_input": "Answer addresses the user's question directly\nAt least one source reference provided", "trigger": "ask_user" },
+    { "user_input": "Documentation not found → respond with available sections list\nAmbiguous question → request clarification", "trigger": "ask_user" },
+    { "user_input": "yes", "trigger": "ask_user" }
+  ],
+  "expected_behavior": [
+    "Asks for the agent name before asking for the description or tools",
+    "Asks for the agent description after receiving the name",
+    "Asks for the tools after receiving the identity information",
+    "Completes all 8 gathering sections before offering to compile"
+  ],
+  "forbidden_behavior": [
+    "Skips any gathering section and infers its value without asking",
+    "Writes output files before all gathering sections are complete and confirmed"
+  ]
+}

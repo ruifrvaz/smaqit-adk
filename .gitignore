@@ -16,6 +16,7 @@ test/
 *.dylib
 *.test
 *.out
+tests/runner
 
 # IDE
 .vscode/

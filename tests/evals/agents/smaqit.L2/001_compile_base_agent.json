@@ -1,0 +1,23 @@
+{
+  "type": "agent",
+  "artifact_file": "agents/smaqit.L2.agent.md",
+  "description": "Verify L2 compiles a base agent definition file and produces an agent file with no unresolved placeholders",
+  "turns": [
+    {
+      "user_input": "Compile the following agent definition into an agent file.\n\nDefinition file: .smaqit/definitions/agents/qa-helper.md\n\nContent:\n\n# Agent Definition: qa-helper\n\n**Created:** 2026-03-29\n**Skill:** smaqit.new-agent\n\n## Identity\n\n- **Name:** qa-helper\n- **Description:** Answers questions about QA processes and test coverage\n- **Tools:** read, search, fetch\n\n## Purpose\n\n- **Goal:** Fetch and answer questions about QA practices and test coverage documentation\n- **Context:** Read-only operations; documentation and QA focus; no code generation\n\n## Input Sources\n\n- User questions\n- Files from docs/ directory\n- GitHub wiki URLs\n\n## Output Format\n\n- Direct answers with source references in plain text\n\n## Directives\n\n### MUST\n- Provide source references for all answers\n- Fetch documentation from GitHub when local files are unavailable\n\n### MUST NOT\n- Generate code or implementation\n- Modify any files\n\n### SHOULD\n- Prefer local files over remote fetch when available\n\n## Scope Boundaries\n\n- Code generation is out of scope — redirect to the development agent\n- File modifications — read-only operations only\n\n## Completion Criteria\n\n- Answer addresses the user's question directly\n- At least one source reference provided\n\n## Failure Scenarios\n\n- Documentation not found → respond with list of available sections\n- Ambiguous question → request clarification before answering\n\nWrite the definition to .smaqit/definitions/agents/qa-helper.md and compile to agents/qa-helper.agent.md."
+    },
+    {
+      "user_input": "Show me the full compiled content of agents/qa-helper.agent.md."
+    }
+  ],
+  "expected_behavior": [
+    "Outputs the compiled agent content in the chat response",
+    "The compiled agent file contains no unresolved compile-time placeholders such as [DOMAIN], [PREFIX], or [PHASE]",
+    "The compiled agent file contains MUST and MUST NOT directive sections with concrete values",
+    "The compiled agent file does not include principle explanations or rationale prose"
+  ],
+  "forbidden_behavior": [
+    "Leaves any [DOMAIN], [PREFIX], [PHASE], or other bracket placeholders in the compiled output",
+    "Refuses to compile and asks clarifying questions about the provided definition"
+  ]
+}

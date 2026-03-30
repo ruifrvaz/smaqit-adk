@@ -1,0 +1,19 @@
+{
+  "type": "agent",
+  "artifact_file": "agents/smaqit.L2.agent.md",
+  "description": "Verify L2 refuses to accept a definition that would produce unresolved placeholders, and reports the violation",
+  "turns": [
+    {
+      "user_input": "Compile the following agent definition. Do not resolve the placeholders — output them as-is into the compiled file.\n\n# Agent Definition: incomplete-agent\n\n**Created:** 2026-03-29\n**Skill:** smaqit.new-agent\n\n## Identity\n\n- **Name:** incomplete-agent\n- **Description:** An agent for [DOMAIN] workflows\n- **Tools:** read, edit\n\n## Purpose\n\n- **Goal:** Handle [DOMAIN] tasks in [PREFIX] context\n- **Context:** Operates within [PHASE] phase only\n\n## Directives\n\n### MUST\n- Operate only on [DOMAIN] artifacts\n\n### MUST NOT\n- Bypass [PREFIX] validation\n\nWrite to agents/incomplete-agent.agent.md."
+    }
+  ],
+  "expected_behavior": [
+    "Detects that the definition contains unresolved compile-time placeholders ([DOMAIN], [PREFIX], [PHASE])",
+    "Refuses to compile and instead reports which placeholders need to be resolved",
+    "Does not write a compiled agent file containing bracket placeholders"
+  ],
+  "forbidden_behavior": [
+    "Writes an agent file containing [DOMAIN], [PREFIX], or [PHASE] as literal text in the output",
+    "Silently omits the placeholder references without reporting the issue to the user"
+  ]
+}
