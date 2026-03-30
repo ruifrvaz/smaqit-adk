@@ -299,11 +299,8 @@ func cmdCreate(kind, outputDir string) {
 		GitHubToken: token,
 	})
 
-	// Track how many messages have been displayed so we only print new ones.
-	var displayedMsgIdx atomic.Int32
-	displayedMsgIdx.Store(0)
-
-	var session *copilot.Session
+	// inputActive suppresses the progress ticker while the user is being prompted.
+	var inputActive atomic.Bool
 
 	sessionCfg := &copilot.SessionConfig{
 		SystemMessage: &copilot.SystemMessageConfig{
@@ -318,21 +315,13 @@ func cmdCreate(kind, outputDir string) {
 			}
 			return copilot.PermissionRequestResult{Kind: copilot.PermissionRequestResultKindApproved}, nil
 		},
-		OnUserInputRequest: func(_ copilot.UserInputRequest, _ copilot.UserInputInvocation) (copilot.UserInputResponse, error) {
-			// Display any new assistant messages before prompting the user.
-			if session != nil {
-				if events, err := session.GetMessages(ctx); err == nil {
-					idx := int(displayedMsgIdx.Load())
-					for i, ev := range events {
-						if i < idx {
-							continue
-						}
-						if ev.Type == copilot.SessionEventTypeAssistantMessage && ev.Data.Content != nil {
-							fmt.Printf("\n%s\n", *ev.Data.Content)
-						}
-					}
-					displayedMsgIdx.Store(int32(len(events)))
-				}
+		OnUserInputRequest: func(req copilot.UserInputRequest, _ copilot.UserInputInvocation) (copilot.UserInputResponse, error) {
+			inputActive.Store(true)
+			defer inputActive.Store(false)
+
+			// req.Question contains the agent's question text.
+			if req.Question != "" {
+				fmt.Printf("\n%s\n\n", req.Question)
 			}
 			fmt.Print("> ")
 			reader := bufio.NewReader(os.Stdin)
@@ -344,7 +333,7 @@ func cmdCreate(kind, outputDir string) {
 		},
 	}
 
-	session, err = client.CreateSession(ctx, sessionCfg)
+	session, err := client.CreateSession(ctx, sessionCfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error creating session: %v\n", err)
 		os.Exit(1)
@@ -355,7 +344,8 @@ func cmdCreate(kind, outputDir string) {
 	fmt.Println("Type your answers when prompted. Ctrl-C to cancel.")
 	fmt.Println()
 
-	// Progress ticker — prints elapsed time while the session is working.
+	// Progress ticker — prints elapsed time while the agent is working, but
+	// suppresses output while waiting for user input.
 	progressDone := make(chan struct{})
 	go func() {
 		ticker := time.NewTicker(10 * time.Second)
@@ -365,7 +355,9 @@ func cmdCreate(kind, outputDir string) {
 			select {
 			case <-ticker.C:
 				elapsed += 10
-				fmt.Printf("  [working... %ds]\n", elapsed)
+				if !inputActive.Load() {
+					fmt.Printf("  [working... %ds]\n", elapsed)
+				}
 			case <-progressDone:
 				return
 			}
@@ -384,13 +376,9 @@ func cmdCreate(kind, outputDir string) {
 		os.Exit(1)
 	}
 
-	// Print any remaining assistant messages not yet displayed.
+	// Print any final assistant messages not delivered via ask_user.
 	if events, err := session.GetMessages(ctx); err == nil {
-		idx := int(displayedMsgIdx.Load())
-		for i, ev := range events {
-			if i < idx {
-				continue
-			}
+		for _, ev := range events {
 			if ev.Type == copilot.SessionEventTypeAssistantMessage && ev.Data.Content != nil {
 				fmt.Printf("\n%s\n", *ev.Data.Content)
 			}
