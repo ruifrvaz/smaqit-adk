@@ -28,7 +28,7 @@ var adkNewAgentSkillFile []byte
 var adkNewSkillSkillFile []byte
 
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
-var Version = "0.3.0"
+var Version = "0.3.1"
 
 func main() {
 if len(os.Args) < 2 {
