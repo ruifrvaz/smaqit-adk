@@ -85,9 +85,14 @@ test-scaffold: build
 test: build
 	@cd $(REPO_ROOT)/tests && SMAQIT_ADK_BIN=$(CURDIR)/$(DIST_DIR)/$(DEV_BINARY_NAME) go test ./unit/... ./structural/...
 
-# Layer 3: behavioral evaluations (requires COPILOT_GITHUB_TOKEN)
+# Layer 3: behavioral evaluations (requires an explicit token — no VS Code auth fallback)
+# Usage: GH_TOKEN=$(gh auth token) make evals
 .PHONY: evals
 evals: build
+	@if [ -z "$$COPILOT_GITHUB_TOKEN" ] && [ -z "$$GH_TOKEN" ] && [ -z "$$GITHUB_TOKEN" ]; then \
+		echo "error: no GitHub token found. Run: GH_TOKEN=\$$(gh auth token) make evals"; \
+		exit 1; \
+	fi
 	@cd $(REPO_ROOT)/tests && go run ./evals/runner/... $(REPO_ROOT)/tests/evals/
 
 # All layers
