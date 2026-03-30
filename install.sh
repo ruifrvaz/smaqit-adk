@@ -82,8 +82,8 @@ get_latest_version() {
     
     case "$SMAQIT_ADK_VERSION" in
         latest)
-            # Get latest ADK stable release (tag starts with adk-v, excludes pre-releases)
-            VERSION=$(curl -fsSL "$api_url" | grep '"tag_name"' | grep 'adk-v' | grep -v '-' | head -1 | sed -E 's/.*"([^"]+)".*/\1/' || echo "")
+            # Get latest ADK stable release (tag starts with adk-v, version part has no pre-release suffix)
+            VERSION=$(curl -fsSL "$api_url" | grep '"tag_name"' | grep '"adk-v[0-9]' | grep -v 'adk-v[0-9][^"]*-' | head -1 | sed -E 's/.*"([^"]+)".*/\1/' || echo "")
             
             # Fallback: if no stable ADK release, get most recent ADK pre-release
             if [ -z "$VERSION" ]; then
@@ -195,8 +195,8 @@ main() {
     echo "  smaqit-adk --help     # View available commands"
     echo ""
     echo "Next steps:"
-    echo "  1. Type '/smaqit.L2' to compile your custom agent (the new-agent skill guides you interactively)"
-    echo "  2. Open GitHub Copilot chat and type '/smaqit.L2' to compile your agent"
+    echo "  1. Run 'smaqit-adk create-agent' to create a new agent from the CLI"
+    echo "  2. Or run 'smaqit-adk init' in a project, then use @smaqit.create-agent in VS Code Copilot chat"
     echo ""
 }
 
