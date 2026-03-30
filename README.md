@@ -1,15 +1,22 @@
 # smaQit Agent Development Kit
 
-smaQit-adk is an **Agent Development Kit** for GitHub Copilot. It gives you two compiled agents — `@smaqit.create-agent` and `@smaqit.create-skill` — that let you build new Copilot agents and skills interactively, without requiring any framework files or external compilation steps in your project.
+smaQit-adk is an **Agent Development Kit** for GitHub Copilot. It ships everything you need to create custom agents and skills — either from the command line or directly inside VS Code.
 
 ## What is smaQit-adk?
 
-smaQit-adk ships two self-contained agents that know how to gather agent and skill specifications from you and compile them directly into your project. Install once, create agents anytime.
+smaQit-adk has two tiers:
+
+**Lite tier** — Zero-config VS Code integration. Run `smaqit-adk init` once in your project to install two self-contained Copilot agents. No framework files, no templates, no Level agents required.
 
 - **`@smaqit.create-agent`** — Interactively gathers specs and writes a `.agent.md` into `.github/agents/`
 - **`@smaqit.create-skill`** — Interactively gathers specs and writes a `SKILL.md` into `.github/skills/`
 
-Both agents carry all ADK compilation knowledge inline — no framework files, no templates, no Level agents required in your project.
+**Advanced tier** — A globally installed CLI that creates agents and skills from any project directory, with no VS Code required. Each command runs in a fully isolated LLM context — no project agent instructions, no session history, no contamination.
+
+- **`smaqit-adk create-agent`** — Interactive gathering + compilation, writes `.agent.md` into the current project
+- **`smaqit-adk create-skill`** — Interactive gathering + compilation, writes `SKILL.md` into the current project
+
+Both tiers produce the same compiled output. The difference is how they get there.
 
 ## What can you build with smaQit-adk?
 
@@ -89,7 +96,7 @@ or explicitly:
 
 Then it compiles and writes `.github/agents/[name].agent.md`.
 
-> **Note:** `smaqit.create-agent` compiles **base agents** — agents with foundation behaviors customized for a specific purpose. For specification or implementation agents (which require ADK extension rules), use the full ADK compilation chain (see [Advanced Use](#advanced-use)).
+> **Note:** `smaqit.create-agent` compiles **base agents** — agents with foundation behaviors customized for a specific purpose. For specification or implementation agents (which require ADK extension rules), use the full ADK compilation chain (see [ADK Source](#adk-source-expert-use)).
 
 ### Create a skill
 
@@ -115,7 +122,9 @@ Then it compiles and writes `.github/skills/[name]/SKILL.md`.
 
 | Command | Description |
 |---------|-------------|
-| `smaqit-adk init [dir]` | Install create-agent and create-skill into `.github/agents/` |
+| `smaqit-adk init [dir]` | Install lite-tier agents into `.github/agents/` |
+| `smaqit-adk create-agent [--output <dir>]` | Create a new agent interactively (isolated CLI context) |
+| `smaqit-adk create-skill [--output <dir>]` | Create a new skill interactively (isolated CLI context) |
 | `smaqit-adk help` | Show detailed command help |
 | `smaqit-adk uninstall` | Remove smaqit-adk agents from project |
 | `smaqit-adk version` | Show ADK version |
@@ -127,23 +136,35 @@ Then it compiles and writes `.github/skills/[name]/SKILL.md`.
 | `smaqit.create-agent` | `@smaqit.create-agent` or "create a new agent" | Gather specs and compile a new `.agent.md` |
 | `smaqit.create-skill` | `@smaqit.create-skill` or "create a new skill" | Gather specs and compile a new `SKILL.md` |
 
-## Compatibility
+## CLI (Advanced Tier)
 
-| Platform | Status |
-|----------|--------|
-| GitHub Copilot (VS Code) | ✅ Supported |
-| Other AI assistants | Planned |
+The CLI is installed globally and can be used from any project directory without VS Code or the Copilot extension.
 
-## Advanced Use
+```bash
+# Create a new agent
+smaqit-adk create-agent
 
-For advanced use cases — specification agents, implementation agents, framework extension, or CLI-driven compilation — the ADK ships a full compilation chain (L0 → L1 → L2), a framework of principles and templates, and two advanced-tier creation skills:
+# Create a new skill
+smaqit-adk create-skill
 
-- **`smaqit.new-agent`** — Gather agent specs interactively, write a definition file to `.smaqit/definitions/`, and invoke L2 to compile the agent. Produces a full audit trail (definition file + compilation log).
+# Override output location
+smaqit-adk create-agent --output path/to/dir
+```
+
+Each command opens an interactive session. The LLM context is isolated: only ADK artifacts are loaded — no project `.github/` files, no session history. You answer questions in the terminal; the compiled file is written into your project when gathering is complete.
+
+**Auth:** Set `COPILOT_GITHUB_TOKEN`, `GH_TOKEN`, or `GITHUB_TOKEN`, or log in with `gh auth login` / the VS Code GitHub Copilot extension (credentials are reused automatically).
+
+## ADK Source (Expert Use)
+
+For framework extension, specification agents, implementation agents, or direct compilation chain access, the ADK ships the full source:
+
+- **`smaqit.new-agent`** — Gather agent specs interactively in VS Code, write a definition file to `.smaqit/definitions/`, and invoke L2 to compile. Produces a full audit trail (definition file + compilation log).
 - **`smaqit.new-skill`** — Same workflow for skills.
 
 These skills require the full ADK stack at runtime (L2, framework files, templates). They are not installed by `smaqit-adk init` and are intended for ADK contributors and expert users operating the full compilation chain.
 
-See the ADK source at `agents/`, `skills/`, `framework/`, and `templates/` for the full compilation chain.
+See the ADK source at `agents/`, `skills/`, `framework/`, and `templates/` for the full L0 → L1 → L2 compilation chain.
 
 ## Philosophy
 
