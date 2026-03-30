@@ -1,6 +1,6 @@
 # Task 011: Interactive CLI Product
 
-**Status:** Not Started
+**Status:** In Progress
 **Created:** 2026-03-29
 
 ## Description
@@ -26,14 +26,14 @@ Users install smaqit-adk once. The CLI drives each interactive workflow in a fre
 
 ## Acceptance Criteria
 
-- [ ] `smaqit-adk create-agent` runs interactively from any directory, gathers agent spec, and writes a compiled `.agent.md` into `.github/agents/` of the current project
-- [ ] `smaqit-adk create-skill` runs interactively from any directory, gathers skill spec, and writes a compiled `SKILL.md` into `.github/skills/<skill-name>/` of the current project
-- [ ] No framework files, templates, or Level agents are written into the user's project
-- [ ] Creation runs in an isolated LLM context (only ADK framework + templates in context — no project agent instructions)
-- [ ] smaqit-adk can be installed globally (not per-project)
+- [x] `smaqit-adk create-agent` runs interactively from any directory, gathers agent spec, and writes a compiled `.agent.md` into `.github/agents/` of the current project — implemented 2026-03-29
+- [x] `smaqit-adk create-skill` runs interactively from any directory, gathers skill spec, and writes a compiled `SKILL.md` into `.github/skills/<skill-name>/` of the current project — implemented 2026-03-29
+- [x] No framework files, templates, or Level agents are written into the user's project — guaranteed by isolation contract in `cmdCreate`
+- [x] Creation runs in an isolated LLM context (only ADK framework + templates in context — no project agent instructions) — `SystemMessage.Mode=replace` with embedded ADK artifacts only
+- [x] smaqit-adk can be installed globally (not per-project) — `install.sh` installs to `~/.local/bin`
 - [x] Phase 0 research spike documents the chosen integration path — resolved 2026-03-29, Copilot Go SDK confirmed
-- [ ] `smaqit-adk create-principle` runs interactively and writes a principle file into `.smaqit/framework/` (depends on Task 006)
-- [ ] `smaqit-adk validate <file>` runs the eval kit against a compiled output file (depends on Task 010 Phase 3)
+- [ ] `smaqit-adk create-principle` — **deferred to Task 013** (depends on Task 006: smaqit.new-principle skill)
+- [ ] `smaqit-adk validate <file>` — **deferred to Task 013** (design decision required: eval criteria for user-compiled files)
 
 ## Phases
 
@@ -57,9 +57,9 @@ Users install smaqit-adk once. The CLI drives each interactive workflow in a fre
 
 ---
 
-### Phase 1 — Architecture Decision
+### Phase 1 — Architecture Decision ✓ RESOLVED (2026-03-29)
 
-**Decisions to codify before writing code:**
+**Decisions codified:**
 
 1. **CLI command surface:**
    - `smaqit-adk create-agent [--output <dir>]` — output defaults to `./.github/agents/`
@@ -69,28 +69,32 @@ Users install smaqit-adk once. The CLI drives each interactive workflow in a fre
    - `smaqit-adk init [dir]` — repurposed in Task 012; drops only two L2-compiled standalone agents
    - `smaqit-adk version`, `help`, `uninstall` — retained
 
-2. **Context loading strategy:** How ADK framework + templates are injected as system context for the LLM session (embedded files read at startup, loaded as messages or system prompt)
+2. **Module strategy — Option A:** Add `github.com/github/copilot-sdk/go v0.2.0` to `installer/go.mod`. Single module, single binary. `tests/go.mod` remains a separate test module.
 
-3. **Output contract:** Naming conventions, file location resolution, overwrite behavior
+3. **Context loading strategy — Option C:** System prompt = compiled L2 agent (`agents/smaqit.L2.agent.md`) + relevant skill (`skills/smaqit.new-agent/SKILL.md` or `skills/smaqit.new-skill/SKILL.md`), concatenated. No raw framework files or templates loaded. Both files embedded via `go:embed`. If gathering behavior gaps are found in testing, targeted framework files may be added — not all of them.
 
-4. **Isolation guarantee:** The create-* commands must not read or inject any files from the current project's `.github/` or `.smaqit/` into the LLM context
+4. **Timeout policy — Option D:** 15-minute `context.WithTimeout` at session level. Print elapsed time or spinner while `SendAndWait` is blocking. Ctrl-C cancels cleanly via context cancellation.
+
+5. **Output contract:** Naming conventions, file location resolution, overwrite behavior (unchanged from original spec).
+
+6. **Isolation guarantee:** The `create-*` commands load only embedded ADK artifacts into `SystemMessage.Content`. No files from the current project's `.github/` or `.smaqit/` are read or injected into the session context.
 
 ---
 
-### Phase 2 — Implementation
+### Phase 2 — Implementation ✓ RESOLVED (2026-03-29)
 
 **`create-agent` flow:**
-1. Load ADK framework + templates into isolated LLM context
-2. Run interactive gathering loop (equivalent to `smaqit.new-agent` skill: purpose, role, input, output, directives, tools)
-3. Invoke L2 compilation step within same context
-4. Write compiled `.agent.md` to output dir
+1. Load `agents/smaqit.L2.agent.md` + `skills/smaqit.new-agent/SKILL.md` as system context (Mode: replace)
+2. Run interactive gathering loop — `OnUserInputRequest` routes agent questions to terminal stdin; user answers fed back via callback
+3. Compilation step runs in same session
+4. Write compiled `.agent.md` to output dir (default: `./.github/agents/`)
 5. Print confirmation with path
 
 **`create-skill` flow:**
-1. Load ADK framework + templates into isolated LLM context
-2. Run interactive gathering loop (equivalent to `smaqit.new-skill` skill: name, description, steps, fragility, output, scope)
-3. Invoke L2 compilation step within same context
-4. Write compiled `SKILL.md` to output dir
+1. Load `agents/smaqit.L2.agent.md` + `skills/smaqit.new-skill/SKILL.md` as system context (Mode: replace)
+2. Run interactive gathering loop — `OnUserInputRequest` routes agent questions to terminal stdin
+3. Compilation step runs in same session
+4. Write compiled `SKILL.md` to output dir (default: `./.github/skills/<name>/`)
 5. Print confirmation with path
 
 **Installer changes:**
@@ -104,16 +108,17 @@ Users install smaqit-adk once. The CLI drives each interactive workflow in a fre
 
 ---
 
-### Phase 3 — Update Documentation and README
+### Phase 3 — Update Documentation and README ✓ RESOLVED (2026-03-29)
 
-- Update README: two-tier model (lite via `init`, advanced via CLI); global installation story; full command surface
-- Update `cmdHelp()` text for all new commands
-- Update `install.sh` global install steps
+- Updated README: two-tier model (lite via `init`, advanced via CLI); global installation story; full command surface
+- Updated `cmdHelp()` text for all new commands
 - No deprecation note on `init` — it is repurposed (lite tier, Task 012), not deprecated
 
 ## Notes
 
 **Phase 0 resolved 2026-03-29** — Copilot Go SDK confirmed viable. See Phase 0 section above for full findings.
+
+**Deferred 2026-03-29** — `create-principle` and `validate` deferred to Task 013. Core task (create-agent, create-skill, isolation, global install) is complete.
 
 **Relationship to Task 012 (Lite Tier):**
 - Task 012 handles `init` repurposing and compiles the two standalone agents (`smaqit.create-agent`, `smaqit.create-skill`)
@@ -121,10 +126,9 @@ Users install smaqit-adk once. The CLI drives each interactive workflow in a fre
 - Task 011 `create-agent` and `create-skill` CLI commands are the isolated-context equivalents of the Task 012 agents
 
 **Relationship to Task 010 (Test Framework):**
-- Task 010 Phase 3 (eval runner) uses the same `github.com/github/copilot-sdk/go` package
-- Both tasks share the same SDK dependency in `installer/go.mod` — coordinate version pinning
-- Task 010 Phase 3 is no longer blocked on the SDK research spike; it can proceed in parallel with Task 011 Phase 1
-- Suggested order: Task 010 Phases 0–2 (no SDK required) can proceed independently; Task 010 Phase 3 and Task 011 Phase 1+ can proceed in parallel once the SDK dependency is added to the module
+- Task 010 Phase 3 (eval runner) completed 2026-03-29 — functional, 1/7 evals passing on last run
+- Both tasks share `github.com/github/copilot-sdk/go v0.2.0` in `installer/go.mod`
+- `validate` command is NOT blocked on Task 010 Phase 3 (already done); it is blocked on an open design question: what eval criteria apply to user-compiled files (not the same as the ADK's own agent/skill evals)
 
 **Product identity:**
 - Task 012 = lite tier: VS Code users, no global CLI required, immediate value from two compiled agents installed by `init`

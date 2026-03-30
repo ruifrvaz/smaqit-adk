@@ -1,6 +1,6 @@
 # Task 010: Test Framework
 
-**Status:** In Progress
+**Status:** Completed
 **Created:** 2026-03-03
 **Updated:** 2026-03-29
 
@@ -76,18 +76,18 @@ New files: `tests/structural/skills_test.go`, `tests/structural/templates_test.g
 
 ---
 
-### Phase 3 — Layer 3: Behavioral Evaluations
+### Phase 3 — Layer 3: Behavioral Evaluations ✅ *(completed 2026-03-29)*
 
-**SDK:** `github.com/github/copilot-sdk/go` (public, technical preview, active — last commit 3 days ago)
+**SDK:** `github.com/github/copilot-sdk/go v0.2.0` (pinned; promoted to direct dep in `tests/go.mod`)
 
 **SDK research findings (resolved 2026-03-29):**
 - `ClientOptions.Cwd` — sets CLI working directory; this is the isolated workspace root
 - `SessionConfig.SystemMessage` with `Mode: "replace"` — replaces the full system prompt with the artifact under test
 - `OnUserInputRequest` — intercepts agent `ask_user` calls; drives scripted conversation turns from eval definitions
-- `OnPermissionRequest` — controls tool permissions per eval: deny shell, allow file read/write within temp dir only
+- `OnPermissionRequest` — controls tool permissions per eval: deny shell (`PermissionRequestKindShell`), approve all else
 - `session.GetMessages()` — retrieves full conversation history after a run for grading
-- CLI bundling via `go:embed` + `cmd/bundler` — eval runner binary ships with embedded CLI; no external install required for users
-- Auth: `COPILOT_GITHUB_TOKEN` / `GH_TOKEN` / `GITHUB_TOKEN` env vars — CI-friendly
+- `session.SendAndWait` — drives non-triggered turns; blocks until agent is idle (preferred over `Send`)
+- Auth: `COPILOT_GITHUB_TOKEN` / `GH_TOKEN` / `GITHUB_TOKEN` env vars (CI); defaults to `UseLoggedInUser=true` for local users
 - Note: Technical Preview — breaking API changes possible; pin to a specific SDK release in `go.mod`
 
 **Isolated workspace model:**
@@ -210,9 +210,9 @@ test-all: test evals
 - [x] Phase 2: Intentionally breaking a skill description (add "I ") causes a test failure
 - [x] Phase 2: Adding `[UNRESOLVED]` to a skill body causes a test failure
 - [x] Phase 2: Removing a placeholder from a template without updating the catalog causes a test failure
-- [ ] Phase 3: `make evals COPILOT_GITHUB_TOKEN=...` runs without crashing and outputs per-criterion results
-- [ ] Phase 3: At least 3 eval files exist for `smaqit.new-agent` and 2 for `smaqit.new-skill`
-- [ ] Phase 3: At least 2 eval files exist for `smaqit.L2` (agent compilation behavior)
+- [x] Phase 3: `make evals COPILOT_GITHUB_TOKEN=...` runs without crashing and outputs per-criterion results
+- [x] Phase 3: At least 3 eval files exist for `smaqit.new-agent` and 2 for `smaqit.new-skill`
+- [x] Phase 3: At least 2 eval files exist for `smaqit.L2` (agent compilation behavior)
 
 ## Design Decisions
 

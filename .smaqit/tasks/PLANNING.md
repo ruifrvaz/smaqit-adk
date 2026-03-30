@@ -4,13 +4,17 @@
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
-| 009 | Create smaqit.new-skill Skill | Completed | All criteria met; architectural correction: skill compilation moved from L1 → L2; reference chain constraint clarified |
-| 006 | Create smaqit.new-principle Skill | Not Started | Depends on Task 009 — should be created using smaqit.new-skill |
+| 006 | Create smaqit.new-principle Skill | Not Started | Depends on Task 009 (done) — use smaqit.new-skill; unblocks Task 013 create-principle |
+| 011 | Interactive CLI Product (Advanced Tier) | In Progress | create-agent + create-skill implemented; create-principle + validate deferred to Task 013 |
+| 013 | CLI create-principle and validate Commands | Not Started | Deferred from Task 011; create-principle depends on Task 006; validate needs design decision |
 
 ## Completed
 
 | ID | Title | Completed | Notes |
 |----|-------|-----------|-------|
+| 012 | Lite Tier — Compiled Standalone Agents | 2026-03-29 | smaqit.create-agent + smaqit.create-skill compiled via L2; init repurposed to drop only these two files; no boilerplate |
+| 010 | Test Framework | 2026-03-29 | Three-layer test suite complete: embed bug fix, Go unit/structural tests, Copilot SDK eval runner; 1/7 evals passing on last run |
+| 009 | Create smaqit.new-skill Skill | 2026-03-29 | All criteria met; architectural correction: skill compilation moved from L1 → L2; reference chain constraint clarified |
 | 008 | Framework Philosophy Recalibration | 2026-03-01 | All 5 framework files rewritten to behavioral principles only; removed self-referencing and product content; SMAQIT.md made cross-cutting; templates/skills/ created; catalog content moved to copilot-instructions and wiki |
 | 005 | Redesign Framework Files | 2026-03-01 | All 5 files redesigned: SMAQIT.md (cross-cutting principles), AGENTS.md (behavioral, voice-cleaned), SKILLS.md (principles only, catalog removed), TEMPLATES.md (Agent Templates section dropped), ARTIFACTS.md (minor cleanup) |
 | 004 | Distill AGENTS-old into AGENTS.md | 2026-02-28 | Added 3 invariants/behaviors (assumption-flagging, blocker-stop, skill-mediated workflows); deleted AGENTS-old.md; synced installer |
@@ -28,6 +32,3 @@
 
 | ID | Title | Notes |
 |----|-------|-------|
-| 012 | Lite Tier — Compiled Standalone Agents | Compile smaqit.create-agent + smaqit.create-skill via L2; repurpose init to drop only these two files; no boilerplate |
-| 011 | Interactive CLI Product (Advanced Tier) | Full Go CLI developer suite: create-agent, create-skill, create-principle, validate; Copilot SDK (go); Phase 0 resolved — SDK confirmed viable; init fate resolved by Task 012 |
-| 010 | Test Framework | Three-layer: embed bug fix + Go unit tests + structural validation + Copilot SDK eval runner (isolated workspace, scripted turns, LLM grading); Phases 0–2 unblocked; Phase 3 uses same Copilot SDK as Task 011 |

@@ -31,7 +31,7 @@ All outstanding changes from Task 012 (and related work) committed by relevance:
 
 ## Problems Solved
 
-None — session was clean finalization. No blockers or rework needed.
+- **CI workflow stale**: `test-integration.yml` was validating old install output (15 files across `.smaqit/framework/`, `.smaqit/templates/`, Level agents, prompts). Rewritten to validate 2 compiled agents + assert all old artifacts absent. Fix committed and pushed; CI passed.
 
 ---
 
@@ -40,6 +40,8 @@ None — session was clean finalization. No blockers or rework needed.
 - **Advanced Use section names skills explicitly**: `smaqit.new-agent` and `smaqit.new-skill` are now surfaced in the README with a clear description of what they do differently from the lite-tier agents (definition file + compilation log).
 - **Commit granularity**: 7 commits organized by artifact type (agents, installer, skills, tests, docs×2, tasks) rather than a single squash — preserves clear audit trail per change category.
 - **`.github/skills/smaqit.new-agent/` deleted**: stale product-skills copy removed; canonical location is `skills/` at ADK root.
+- **CI workflow validation scope**: `test-integration.yml` validation steps rewritten to match lite-tier model — checking 2 agents (not 15 files) and asserting old artifacts absent.
+- **Release adk-v0.2.0**: CHANGELOG.md updated, `installer/main.go` version bumped to 0.2.0, annotated tag pushed.
 
 ---
 
@@ -48,6 +50,9 @@ None — session was clean finalization. No blockers or rework needed.
 | File | Change |
 |------|--------|
 | `README.md` | Advanced Use section expanded with skill names, audit trail distinction, and `skills/` in source list |
+| `.github/workflows/test-integration.yml` | Validation steps rewritten for lite-tier: 2 agents checked, absence of old artifacts asserted |
+| `CHANGELOG.md` | 0.2.0 entry added with Added/Changed/Removed sections; comparison links updated |
+| `installer/main.go` | Version constant bumped from 0.1.0 to 0.2.0 |
 
 ## Files Committed (7 commits total)
 
@@ -72,8 +77,8 @@ None — session was clean finalization. No blockers or rework needed.
 ---
 
 ## Session Metrics
-- Duration: Short (2 user turns)
-- Tasks completed: Task 012 finalized (all changes committed)
-- Files modified in session: 1 (`README.md`)
-- Commits created: 7
-- Files committed across all commits: ~20
+- Duration: Medium (5 user turns)
+- Tasks completed: Task 012 finalized; release adk-v0.2.0 shipped; CI fixed
+- Files modified in session: 4 (`README.md`, `CHANGELOG.md`, `installer/main.go`, `test-integration.yml`)
+- Commits created: 9 (7 feature + 1 release + 1 CI fix)
+- Files committed across all commits: ~24
