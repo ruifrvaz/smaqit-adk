@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-30
+
+### Added
+
+- `smaqit-adk create-agent` — interactive CLI command; gathers agent specs via Copilot SDK in an isolated LLM context and writes a compiled `.agent.md` into `.github/agents/`
+- `smaqit-adk create-skill` — interactive CLI command; gathers skill specs via Copilot SDK in an isolated LLM context and writes a compiled `SKILL.md` into `.github/skills/<name>/`
+- Copilot SDK integration (`github.com/github/copilot-sdk/go`) — enables programmatic Copilot sessions from the CLI
+- Eval runner under `tests/evals/runner/` — drives Copilot SDK evaluation sessions from the command line with workspace isolation and grading
+- 7 evals across `smaqit.L2` and `smaqit.new-agent` / `smaqit.new-skill` skills
+
+### Changed
+
+- `installer/main.go` refactored to include `cmdCreate` driving full interactive `create-agent` / `create-skill` sessions
+- README updated with advanced-tier CLI documentation
+
+### Removed
+
+- `HANDOVER.md` removed
+
 ## [0.2.0] - 2026-03-29
 
 ### Added
@@ -49,6 +68,7 @@ smaqit-adk is a **generic agent development toolkit**, not tied to any specific 
 
 The [smaQit product](https://github.com/ruifrvaz/smaqit) demonstrates one possible use case (five-layer specification system), but ADK users can create entirely different architectures.
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.2.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.3.0...HEAD
+[0.3.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.2.0...adk-v0.3.0
 [0.2.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.1.0...adk-v0.2.0
 [0.1.0]: https://github.com/ruifrvaz/smaqit-adk/releases/tag/adk-v0.1.0
