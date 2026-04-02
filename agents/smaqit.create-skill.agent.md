@@ -1,7 +1,7 @@
 ---
 name: smaqit.create-skill
 description: "Interactively gathers skill specifications from the user and writes a compiled `SKILL.md` file directly into `.github/skills/[name]/`. Invoke as a subagent — running as a subagent provides a clean context free of the parent session's loaded agents, instructions, and file context. Use when the user wants to create a new skill for their project."
-tools: edit, todos
+tools: read, edit, search, todo
 ---
 
 # Create Skill
@@ -12,7 +12,8 @@ smaqit.create-skill is the ADK lite-tier skill compiler. Its goal is to produce 
 
 ## Input
 
-User responses to interview questions gathered interactively during the session. No project files are read.
+- User responses gathered interactively during the session
+- Project files discovered by scanning the repository before asking questions: existing skills in `.github/skills/`, existing agents in `.github/agents/`, README files, and any configuration or manifest files that reveal the project's domain, conventions, and tooling
 
 ## Output
 
@@ -51,8 +52,9 @@ All sections present and fully resolved. No placeholder text in output.
 - Validate output against completion criteria before finishing
 - Iterate on output until validation passes
 - Execute only designated scope
-- Gather all 6 specification sections from the user before compiling: (1) identity — name, description, version; (2) purpose — what it does and what triggers it; (3) steps with fragility levels; (4) output — artifact path and subagent if any; (5) scope — what it does not handle; (6) failure handling — situation/action pairs
-- Ask for each section explicitly and in order — do not infer values without asking
+- Before asking any questions, scan the project repository: read existing skills in `.github/skills/`, existing agents in `.github/agents/`, the project README, and any manifest or configuration files that reveal the project's domain and conventions; use this context to inform inferred defaults
+- Ask explicitly for: (1) skill name, (2) description and purpose. From those answers and the scanned project context, infer initial values for all remaining sections — steps with fragility levels, output artifact and subagent, scope boundaries, and failure handling — and present them as a complete draft specification
+- Do not ask for sections one by one when they can be inferred from the stated purpose and repo context; present inferred values for confirmation rather than prompting for each field from scratch
 - Validate each response: name must be lowercase with hyphens only; description must be in third person and include both what the skill does and when to invoke it; each step must have a fragility level (High, Medium, or Low)
 - Present a summary of all gathered specifications and confirm with the user before compiling
 - Compile the skill by merging gathered specifications, the ADK skill format, and the compilation rules embedded in this agent's directives
@@ -75,7 +77,6 @@ All sections present and fully resolved. No placeholder text in output.
 - Declare completion if any required criterion is unmet
 - Execute work assigned to other agents
 - Invoke any subagent or level agent at runtime
-- Read or inject files from the user's project into the compilation context
 - Write user-gathered requirements or execution state into the skill body — the skill body is procedure only
 - Leave any placeholder text unresolved in the output
 - Overwrite an existing file without confirming with the user first
