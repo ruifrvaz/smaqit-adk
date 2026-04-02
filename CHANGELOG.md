@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-04-02
+
+### Fixed
+
+- `create-agent` / `create-skill` CLI: wrong agent context — was using `smaqit.L2 + smaqit.new-agent` skill (which invokes L2 as a subagent, unsupported in CLI sessions); now uses self-contained `smaqit.create-agent` / `smaqit.create-skill` agents
+- `create-agent` / `create-skill` CLI: removed 15-minute session timeout; interactive sessions are human-paced and exit via Ctrl-C only
+
+### Changed
+
+- `smaqit.create-agent` and `smaqit.create-skill`: agents now scan the project repository before asking questions — reads existing agents, skills, README, and config files to infer defaults; asks only name and description/purpose explicitly; presents a full draft for one confirmation pass before compiling
+- `smaqit.create-agent` and `smaqit.create-skill`: added `read` and `search` tools to frontmatter to support repo scanning
+- Makefile eval target: auto-detects GitHub token via `gh auth token`; explicit `GH_TOKEN` override still supported
+
+### Removed
+
+- `agents/qa-helper.agent.md` — test artifact not part of the ADK agent catalog
+
 ## [0.3.1] - 2026-03-30
 
 ### Fixed
