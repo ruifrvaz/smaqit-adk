@@ -9,8 +9,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
-	"time"
 
 	copilot "github.com/github/copilot-sdk/go"
 )
@@ -18,17 +16,14 @@ import (
 //go:embed agents/*.md
 var adkAgentFiles embed.FS
 
-//go:embed agents/smaqit.L2.agent.md
-var adkL2AgentFile []byte
+//go:embed agents/smaqit.create-agent.agent.md
+var adkCreateAgentFile []byte
 
-//go:embed skills/smaqit.new-agent/SKILL.md
-var adkNewAgentSkillFile []byte
-
-//go:embed skills/smaqit.new-skill/SKILL.md
-var adkNewSkillSkillFile []byte
+//go:embed agents/smaqit.create-skill.agent.md
+var adkCreateSkillFile []byte
 
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
-var Version = "0.3.1"
+var Version = "0.3.2"
 
 func main() {
 if len(os.Args) < 2 {
@@ -257,12 +252,12 @@ func cmdCreate(kind, outputDir string) {
 
 	switch kind {
 	case "agent":
-		systemContent = string(adkL2AgentFile) + "\n\n---\n\n" + string(adkNewAgentSkillFile)
-		initialPrompt = "Create a new agent. Follow the smaqit.new-agent skill: gather all sections interactively, then compile and write the agent file."
+		systemContent = string(adkCreateAgentFile)
+		initialPrompt = "The user wants to create a new agent. Begin by asking for the agent name."
 		defaultOutputDir = filepath.Join(".github", "agents")
 	case "skill":
-		systemContent = string(adkL2AgentFile) + "\n\n---\n\n" + string(adkNewSkillSkillFile)
-		initialPrompt = "Create a new skill. Follow the smaqit.new-skill skill: gather all sections interactively, then compile and write the skill file."
+		systemContent = string(adkCreateSkillFile)
+		initialPrompt = "The user wants to create a new skill. Begin by asking for the skill name."
 		defaultOutputDir = filepath.Join(".github", "skills")
 	default:
 		fmt.Fprintf(os.Stderr, "unknown kind: %s\n", kind)
@@ -279,8 +274,8 @@ func cmdCreate(kind, outputDir string) {
 		os.Exit(1)
 	}
 
-	// 15-minute session timeout (Option D).
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	// No timeout — interactive sessions are human-paced. Ctrl-C is the exit path.
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// Ctrl-C cancels cleanly via context.
@@ -299,9 +294,6 @@ func cmdCreate(kind, outputDir string) {
 		GitHubToken: token,
 	})
 
-	// inputActive suppresses the progress ticker while the user is being prompted.
-	var inputActive atomic.Bool
-
 	sessionCfg := &copilot.SessionConfig{
 		SystemMessage: &copilot.SystemMessageConfig{
 			Mode:    "replace",
@@ -316,10 +308,6 @@ func cmdCreate(kind, outputDir string) {
 			return copilot.PermissionRequestResult{Kind: copilot.PermissionRequestResultKindApproved}, nil
 		},
 		OnUserInputRequest: func(req copilot.UserInputRequest, _ copilot.UserInputInvocation) (copilot.UserInputResponse, error) {
-			inputActive.Store(true)
-			defer inputActive.Store(false)
-
-			// req.Question contains the agent's question text.
 			if req.Question != "" {
 				fmt.Printf("\n%s\n\n", req.Question)
 			}
@@ -344,32 +332,11 @@ func cmdCreate(kind, outputDir string) {
 	fmt.Println("Type your answers when prompted. Ctrl-C to cancel.")
 	fmt.Println()
 
-	// Progress ticker — prints elapsed time while the agent is working, but
-	// suppresses output while waiting for user input.
-	progressDone := make(chan struct{})
-	go func() {
-		ticker := time.NewTicker(10 * time.Second)
-		defer ticker.Stop()
-		elapsed := 0
-		for {
-			select {
-			case <-ticker.C:
-				elapsed += 10
-				if !inputActive.Load() {
-					fmt.Printf("  [working... %ds]\n", elapsed)
-				}
-			case <-progressDone:
-				return
-			}
-		}
-	}()
-
 	_, sendErr := session.SendAndWait(ctx, copilot.MessageOptions{Prompt: initialPrompt})
-	close(progressDone)
 
 	if sendErr != nil {
 		if ctx.Err() != nil {
-			fmt.Fprintln(os.Stderr, "\nSession timed out or was cancelled.")
+			fmt.Fprintln(os.Stderr, "\nCancelled.")
 		} else {
 			fmt.Fprintf(os.Stderr, "session error: %v\n", sendErr)
 		}
