@@ -2,8 +2,11 @@
 // Drives Copilot SDK sessions against ADK artifacts (skills and agents),
 // then grades the resulting transcript against per-eval criteria.
 //
-// Auth: uses COPILOT_GITHUB_TOKEN, GH_TOKEN, or GITHUB_TOKEN if set;
-// falls back to the logged-in VS Code / gh CLI user automatically (UseLoggedInUser default).
+// Auth: requires COPILOT_GITHUB_TOKEN, GH_TOKEN, or GITHUB_TOKEN.
+// Without an explicit token the Copilot CLI reads auth from shared XDG config
+// dirs, routing sessions through VS Code and loading smaqit-adk's workspace
+// context — which invalidates results. Use 'make evals' to auto-detect a token
+// via gh auth token.
 //
 // Usage:
 //
@@ -111,14 +114,11 @@ func main() {
 
 	token := resolveToken()
 	if token == "" {
-		fmt.Fprintln(os.Stderr, "error: no GitHub token found")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Set one of: COPILOT_GITHUB_TOKEN, GH_TOKEN, or GITHUB_TOKEN")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "  GH_TOKEN=$(gh auth token) make evals   # if using gh CLI")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "A token is required to avoid routing sessions through the VS Code")
-		fmt.Fprintln(os.Stderr, "Copilot extension, which would inject your open project as workspace context.")
+		fmt.Fprintln(os.Stderr, "error: no GitHub token found.")
+		fmt.Fprintln(os.Stderr, "  The Copilot CLI reads auth from shared XDG config dirs, so without an")
+		fmt.Fprintln(os.Stderr, "  explicit token eval sessions will load smaqit-adk's VS Code context,")
+		fmt.Fprintln(os.Stderr, "  invalidating results. Run via 'make evals' (auto-detects gh auth token)")
+		fmt.Fprintln(os.Stderr, "  or set GH_TOKEN explicitly.")
 		os.Exit(1)
 	}
 

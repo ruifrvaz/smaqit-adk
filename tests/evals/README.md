@@ -19,22 +19,38 @@ evals/
 ## Running
 
 ```sh
-# Local development (gh CLI)
-cd installer && GH_TOKEN=$(gh auth token) make evals
-
-# CI
-cd installer && make evals COPILOT_GITHUB_TOKEN=<token>
+cd installer && make evals
 ```
+
+`make evals` auto-detects a token via `gh auth token`. An explicit token is required to prevent
+eval sessions from routing through VS Code and loading smaqit-adk's workspace context.
+
+To override explicitly:
+
+```sh
+GH_TOKEN=$(gh auth token) make evals   # local dev (same effect, explicit)
+make evals COPILOT_GITHUB_TOKEN=<token> # CI
+```
+
+### Why a token is required
+
+The Copilot CLI (without a token) reads auth from the user's shared XDG config dirs. That token
+belongs to whichever VS Code window last refreshed it — typically smaqit-adk, the active project.
+There is no per-window token isolation; the shared config always wins. Switching VS Code windows does
+not help.
+
+With an explicit token the SDK passes `--no-auto-login` to the CLI and never touches VS Code or XDG
+config. Sessions are fully isolated from any open VS Code instance.
 
 ## Auth
 
-An explicit token is **required**. Set one of:
+The runner checks environment variables in order:
 
-1. `COPILOT_GITHUB_TOKEN` environment variable
-2. `GH_TOKEN` environment variable
-3. `GITHUB_TOKEN` environment variable
+1. `COPILOT_GITHUB_TOKEN`
+2. `GH_TOKEN`
+3. `GITHUB_TOKEN`
 
-**Why a token is required:** Without an explicit token, the Copilot Go SDK falls back to `UseLoggedInUser`, which routes sessions through the VS Code Copilot extension. This injects the currently open VS Code workspace (smaqit-adk) as context into every eval session, contaminating the isolated scaffold. With an explicit token, the SDK talks directly to the GitHub Copilot API and VS Code is not involved.
+If none are set and `gh auth token` fails, the runner exits with an error.
 
 ## Eval file format
 
