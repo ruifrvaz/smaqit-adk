@@ -10,7 +10,12 @@
 | 013 | CLI create-principle and validate Commands | Not Started | Deferred from Task 011; create-principle depends on Task 006; validate needs design decision |
 | 014 | CLI create-agent / create-skill Fix | Not Started | Fix wrong agent context, remove timeout + ticker; local changes already made, need commit + release |
 | 015 | Full Compilation Chain CLI (L0→L1→L2) | Not Started | New `compile` command or `--full` flag; three SDK sessions file-chained in Go; ADK stays in binary |
-| 017 | CLI Tier Subcommands — Replace `init` with `lite` and `advanced` | Not Started | **HIGH PRIORITY** — Replace `init` with explicit `lite`/`advanced` subcommands; breaking change; depends on Task 015 |
+
+## Completed
+
+| ID | Title | Completed | Notes |
+|----|-------|-----------|-------|
+| 017 | CLI Tier Subcommands — Replace `init` with `lite` and `advanced` | 2026-04-03 | All 7/7 criteria met; breaking change; version bump required at release |
 
 ## Completed
 

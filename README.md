@@ -50,7 +50,7 @@ make build
 1. **Initialize ADK in your project:**
 
 ```bash
-smaqit-adk init
+smaqit-adk lite
 ```
 
 This installs two agents and two routing skills:
@@ -131,11 +131,12 @@ Then it compiles and writes `.github/skills/[name]/SKILL.md`.
 
 | Command | Description |
 |---------|-------------|
-| `smaqit-adk init [dir]` | Install lite-tier agents and skills into `.github/` |
+| `smaqit-adk lite [dir]` | Install lite-tier agents and skills into `.github/` |
+| `smaqit-adk advanced [dir]` | Install full ADK (framework, templates, Level agents) into `.smaqit/` |
 | `smaqit-adk create-agent [--output <dir>]` | Create a new agent interactively (isolated CLI context) |
 | `smaqit-adk create-skill [--output <dir>]` | Create a new skill interactively (isolated CLI context) |
 | `smaqit-adk help` | Show detailed command help |
-| `smaqit-adk uninstall` | Remove smaqit-adk agents and skills from project |
+| `smaqit-adk uninstall [lite\|advanced]` | Remove smaqit-adk agents and skills from project |
 | `smaqit-adk version` | Show ADK version |
 
 ## Agents and Skills

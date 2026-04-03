@@ -191,12 +191,12 @@ main() {
     info "Installation complete!"
     echo ""
     echo "Get started:"
-    echo "  smaqit-adk init       # Initialize ADK in your project"
+    echo "  smaqit-adk lite       # Initialize lite tier in your project"
     echo "  smaqit-adk --help     # View available commands"
     echo ""
     echo "Next steps:"
     echo "  1. Run 'smaqit-adk create-agent' to create a new agent from the CLI"
-    echo "  2. Or run 'smaqit-adk init' in a project, then say 'create a new agent' in VS Code Copilot chat"
+    echo "  2. Or run 'smaqit-adk lite' in a project, then say 'create a new agent' in VS Code Copilot chat"
     echo ""
 }
 
