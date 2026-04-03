@@ -5,6 +5,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -28,22 +29,45 @@ var adkCreateAgentSkillFile []byte
 //go:embed skills/smaqit.create-skill/SKILL.md
 var adkCreateSkillSkillFile []byte
 
+//go:embed framework
+var adkFrameworkFS embed.FS
+
+//go:embed templates
+var adkTemplatesFS embed.FS
+
+//go:embed skills/smaqit.new-agent/SKILL.md
+var adkNewAgentSkillFile []byte
+
+//go:embed skills/smaqit.new-skill/SKILL.md
+var adkNewSkillSkillFile []byte
+
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
 var Version = "0.3.2"
 
 func main() {
-if len(os.Args) < 2 {
-printUsage()
-os.Exit(1)
-}
+	if len(os.Args) < 2 {
+		printUsage()
+		os.Exit(1)
+	}
 
-switch os.Args[1] {
-	case "init":
+	switch os.Args[1] {
+	case "lite":
 		targetDir := "."
 		if len(os.Args) > 2 {
 			targetDir = os.Args[2]
 		}
-		cmdInit(targetDir)
+		cmdLite(targetDir)
+	case "advanced":
+		targetDir := "."
+		if len(os.Args) > 2 {
+			targetDir = os.Args[2]
+		}
+		cmdAdvanced(targetDir)
+	case "init":
+		fmt.Println("'smaqit-adk init' has been replaced by explicit tier subcommands.")
+		fmt.Println("  smaqit-adk lite      Install lite-tier agents and skills into .github/")
+		fmt.Println("  smaqit-adk advanced  Install full ADK (framework, templates, Level agents) into .smaqit/")
+		os.Exit(1)
 	case "create-agent":
 		outputDir := ""
 		if len(os.Args) > 2 && os.Args[2] == "--output" && len(os.Args) > 3 {
@@ -59,7 +83,11 @@ switch os.Args[1] {
 	case "help", "--help", "-h":
 		cmdHelp()
 	case "uninstall":
-		cmdUninstall()
+		tier := ""
+		if len(os.Args) > 2 {
+			tier = os.Args[2]
+		}
+		cmdUninstall(tier)
 	case "version", "--version", "-v":
 		fmt.Printf("smaqit-adk %s\n", Version)
 	default:
@@ -74,11 +102,12 @@ func printUsage() {
 Usage: smaqit-adk <command>
 
 Commands:
-  init [dir]                     Install lite-tier agents and skills into .github/
+  lite [dir]                     Install lite-tier agents and skills into .github/
+  advanced [dir]                 Install full ADK (framework, templates, Level agents) into .smaqit/
   create-agent [--output <dir>]  Create a new agent interactively
   create-skill [--output <dir>]  Create a new skill interactively
   help                           Show detailed command help
-  uninstall                      Remove smaqit-adk agents and skills from project
+  uninstall [lite|advanced]      Remove smaqit-adk agents and skills from project
   version                        Show smaqit-adk version`)
 }
 
@@ -87,8 +116,14 @@ func cmdHelp() {
 	fmt.Printf("Version: %s\n\n", Version)
 
 	fmt.Println("CLI Commands:")
-	fmt.Println("  smaqit-adk init [dir]")
+	fmt.Println("  smaqit-adk lite [dir]")
 	fmt.Println("      Install lite-tier agents and skills into .github/agents/ and .github/skills/")
+	fmt.Println("      Optional: specify target directory (created if needed)")
+	fmt.Println()
+	fmt.Println("  smaqit-adk advanced [dir]")
+	fmt.Println("      Install full ADK into .smaqit/: framework files, templates, L0/L1/L2 agents,")
+	fmt.Println("      and advanced-tier skills (smaqit.new-agent, smaqit.new-skill).")
+	fmt.Println("      Enables the full compilation chain locally.")
 	fmt.Println("      Optional: specify target directory (created if needed)")
 	fmt.Println()
 	fmt.Println("  smaqit-adk create-agent [--output <dir>]")
@@ -103,13 +138,16 @@ func cmdHelp() {
 	fmt.Println()
 	fmt.Println("  smaqit-adk help       Show this help message")
 	fmt.Println()
-	fmt.Println("  smaqit-adk uninstall  Remove smaqit-adk agents and skills from project")
-	fmt.Println("                        Removes agents and routing skills from .github/agents/")
-	fmt.Println("                        and .github/skills/")
+	fmt.Println("  smaqit-adk uninstall [lite|advanced]")
+	fmt.Println("                        Remove smaqit-adk agents and skills from project")
+	fmt.Println("                        Without argument: removes all installed tiers")
+	fmt.Println("                        lite:     removes .github/agents/ and .github/skills/ entries")
+	fmt.Println("                        advanced: removes .smaqit/agents/, .smaqit/framework/,")
+	fmt.Println("                                  .smaqit/templates/, .smaqit/skills/")
 	fmt.Println()
 	fmt.Println("  smaqit-adk version    Show smaqit-adk version")
 	fmt.Println()
-	fmt.Println("VS Code Lite Tier (install with 'init'):")
+	fmt.Println("VS Code Lite Tier (install with 'lite'):")
 	fmt.Println("  Say 'create a new agent' or 'create a new skill' in Copilot chat.")
 	fmt.Println("  Or use the slash commands: /smaqit.create-agent, /smaqit.create-skill")
 	fmt.Println("  Copilot activates the skill, which invokes the agent as a subagent (isolated context).")
@@ -120,7 +158,7 @@ func cmdHelp() {
 	fmt.Println("Documentation: https://github.com/ruifrvaz/smaqit-adk")
 }
 
-func cmdInit(targetDir string) {
+func cmdLite(targetDir string) {
 	// Create target directory if it doesn't exist
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
 		fmt.Printf("Error creating directory %s: %v\n", targetDir, err)
@@ -137,11 +175,11 @@ func cmdInit(targetDir string) {
 	agentDir := filepath.Join(".github", "agents")
 	if _, err := os.Stat(filepath.Join(agentDir, "smaqit.create-agent.agent.md")); err == nil {
 		fmt.Println("Error: smaqit-adk agents already installed in .github/agents/")
-		fmt.Println("Run 'smaqit-adk uninstall' first to remove existing installation")
+		fmt.Println("Run 'smaqit-adk uninstall lite' first to remove existing installation")
 		os.Exit(1)
 	}
 
-	fmt.Printf("Initializing smaqit-adk in %s...\n", targetDir)
+	fmt.Printf("Installing smaqit-adk lite tier in %s...\n", targetDir)
 
 	// Create .github/agents/ directory
 	if err := os.MkdirAll(agentDir, 0755); err != nil {
@@ -190,7 +228,7 @@ func cmdInit(targetDir string) {
 
 	fmt.Println("✓ Installed smaqit.create-agent into .github/agents/ and .github/skills/")
 	fmt.Println("✓ Installed smaqit.create-skill into .github/agents/ and .github/skills/")
-	fmt.Printf("✓ smaqit-adk %s ready\n\n", Version)
+	fmt.Printf("✓ smaqit-adk %s lite tier ready\n\n", Version)
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Open GitHub Copilot chat in VS Code")
 	fmt.Println("  2. Say 'create a new agent' or 'create a new skill'")
@@ -198,42 +236,189 @@ func cmdInit(targetDir string) {
 	fmt.Println("  Copilot activates the skill, which runs the agent in an isolated context.")
 }
 
+func cmdAdvanced(targetDir string) {
+	// Create target directory if it doesn't exist
+	if err := os.MkdirAll(targetDir, 0755); err != nil {
+		fmt.Printf("Error creating directory %s: %v\n", targetDir, err)
+		os.Exit(1)
+	}
+
+	// Change to target directory
+	if err := os.Chdir(targetDir); err != nil {
+		fmt.Printf("Error changing to directory %s: %v\n", targetDir, err)
+		os.Exit(1)
+	}
+
+	// Check if already installed
+	if _, err := os.Stat(filepath.Join(".smaqit", "agents", "smaqit.L0.agent.md")); err == nil {
+		fmt.Println("Error: smaqit-adk advanced tier already installed in .smaqit/")
+		fmt.Println("Run 'smaqit-adk uninstall advanced' first to remove existing installation")
+		os.Exit(1)
+	}
+
+	fmt.Printf("Installing smaqit-adk advanced tier in %s...\n", targetDir)
+
+	// Install L0/L1/L2 agents to .smaqit/agents/
+	agentDir := filepath.Join(".smaqit", "agents")
+	if err := os.MkdirAll(agentDir, 0755); err != nil {
+		fmt.Printf("Error creating directory %s: %v\n", agentDir, err)
+		os.Exit(1)
+	}
+	levelAgents := []string{
+		"smaqit.L0.agent.md",
+		"smaqit.L1.agent.md",
+		"smaqit.L2.agent.md",
+	}
+	for _, name := range levelAgents {
+		content, err := adkAgentFiles.ReadFile("agents/" + name)
+		if err != nil {
+			fmt.Printf("Error reading %s: %v\n", name, err)
+			os.Exit(1)
+		}
+		dstPath := filepath.Join(agentDir, name)
+		if err := os.WriteFile(dstPath, content, 0644); err != nil {
+			fmt.Printf("Error writing %s: %v\n", dstPath, err)
+			os.Exit(1)
+		}
+	}
+
+	// Install framework to .smaqit/framework/
+	frameworkDst := filepath.Join(".smaqit", "framework")
+	if err := copyEmbedDir(adkFrameworkFS, "framework", frameworkDst); err != nil {
+		fmt.Printf("Error installing framework: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Install templates to .smaqit/templates/
+	templatesDst := filepath.Join(".smaqit", "templates")
+	if err := copyEmbedDir(adkTemplatesFS, "templates", templatesDst); err != nil {
+		fmt.Printf("Error installing templates: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Install advanced skills to .smaqit/skills/
+	type skillEntry struct {
+		dir     string
+		content []byte
+	}
+	skillEntries := []skillEntry{
+		{filepath.Join(".smaqit", "skills", "smaqit.new-agent"), adkNewAgentSkillFile},
+		{filepath.Join(".smaqit", "skills", "smaqit.new-skill"), adkNewSkillSkillFile},
+	}
+	for _, se := range skillEntries {
+		if err := os.MkdirAll(se.dir, 0755); err != nil {
+			fmt.Printf("Error creating directory %s: %v\n", se.dir, err)
+			os.Exit(1)
+		}
+		dstPath := filepath.Join(se.dir, "SKILL.md")
+		if err := os.WriteFile(dstPath, se.content, 0644); err != nil {
+			fmt.Printf("Error writing %s: %v\n", dstPath, err)
+			os.Exit(1)
+		}
+	}
+
+	fmt.Println("✓ Installed L0/L1/L2 agents into .smaqit/agents/")
+	fmt.Println("✓ Installed framework files into .smaqit/framework/")
+	fmt.Println("✓ Installed templates into .smaqit/templates/")
+	fmt.Println("✓ Installed smaqit.new-agent and smaqit.new-skill into .smaqit/skills/")
+	fmt.Printf("✓ smaqit-adk %s advanced tier ready\n\n", Version)
+	fmt.Println("Next steps:")
+	fmt.Println("  The full ADK compilation chain is now available in .smaqit/")
+	fmt.Println("  Use smaqit.L0, smaqit.L1, smaqit.L2 agents for framework extension and compilation.")
+	fmt.Println("  Use /smaqit.new-agent and /smaqit.new-skill to create agents and skills via the full chain.")
+}
+
+// copyEmbedDir copies all files from an embed.FS rooted at src into the dst directory on disk.
+func copyEmbedDir(fsys embed.FS, src, dst string) error {
+	return fs.WalkDir(fsys, src, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		relPath, err := filepath.Rel(src, path)
+		if err != nil {
+			return fmt.Errorf("resolving relative path for %s: %w", path, err)
+		}
+		dstPath := filepath.Join(dst, relPath)
+		if d.IsDir() {
+			if mkErr := os.MkdirAll(dstPath, 0755); mkErr != nil {
+				return fmt.Errorf("creating directory %s: %w", dstPath, mkErr)
+			}
+			return nil
+		}
+		content, err := fsys.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("reading embedded file %s: %w", path, err)
+		}
+		if writeErr := os.WriteFile(dstPath, content, 0644); writeErr != nil {
+			return fmt.Errorf("writing file %s: %w", dstPath, writeErr)
+		}
+		return nil
+	})
+}
 
 
-func cmdUninstall() {
+
+func cmdUninstall(tier string) {
+	if tier != "" && tier != "lite" && tier != "advanced" {
+		fmt.Printf("Unknown tier %q — use 'lite', 'advanced', or omit to remove all installed tiers.\n", tier)
+		os.Exit(1)
+	}
+
+	// Lite-tier paths
 	agentDir := filepath.Join(".github", "agents")
 	agentNames := []string{
 		"smaqit.create-agent.agent.md",
 		"smaqit.create-skill.agent.md",
 	}
-
 	skillsDir := filepath.Join(".github", "skills")
 	skillDirs := []string{
 		filepath.Join(skillsDir, "smaqit.create-agent"),
 		filepath.Join(skillsDir, "smaqit.create-skill"),
 	}
 
-	// Check if at least one agent is installed
-	found := false
+	// Advanced-tier paths
+	advancedDirs := []string{
+		filepath.Join(".smaqit", "agents"),
+		filepath.Join(".smaqit", "framework"),
+		filepath.Join(".smaqit", "templates"),
+		filepath.Join(".smaqit", "skills"),
+	}
+
+	// Detect what is installed
+	liteInstalled := false
 	for _, name := range agentNames {
 		if _, err := os.Stat(filepath.Join(agentDir, name)); err == nil {
-			found = true
+			liteInstalled = true
 			break
 		}
 	}
+	advancedInstalled := false
+	if _, err := os.Stat(filepath.Join(".smaqit", "agents", "smaqit.L0.agent.md")); err == nil {
+		advancedInstalled = true
+	}
 
-	if !found {
+	removeLite := (tier == "" || tier == "lite") && liteInstalled
+	removeAdvanced := (tier == "" || tier == "advanced") && advancedInstalled
+
+	if !removeLite && !removeAdvanced {
 		fmt.Println("No smaqit-adk installation found in this directory")
 		os.Exit(0)
 	}
 
-	// Prompt for confirmation
+	// List what will be removed
 	fmt.Println("This will remove:")
-	for _, name := range agentNames {
-		fmt.Printf("  \u2022 .github/agents/%s\n", name)
+	if removeLite {
+		for _, name := range agentNames {
+			fmt.Printf("  \u2022 .github/agents/%s\n", name)
+		}
+		for _, dir := range skillDirs {
+			fmt.Printf("  \u2022 %s/SKILL.md\n", dir)
+		}
 	}
-	for _, dir := range skillDirs {
-		fmt.Printf("  \u2022 %s/SKILL.md\n", dir)
+	if removeAdvanced {
+		for _, dir := range advancedDirs {
+			fmt.Printf("  \u2022 %s/\n", dir)
+		}
 	}
 	fmt.Print("\nContinue? [y/N]: ")
 
@@ -247,51 +432,65 @@ func cmdUninstall() {
 	}
 
 	errors := 0
-	for _, name := range agentNames {
-		path := filepath.Join(agentDir, name)
-		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-			fmt.Printf("Error removing %s: %v\n", path, err)
-			errors++
-		} else {
-			fmt.Printf("\u2713 Removed %s\n", path)
-		}
-	}
 
-	for _, dir := range skillDirs {
-		skillPath := filepath.Join(dir, "SKILL.md")
-		if err := os.Remove(skillPath); err != nil && !os.IsNotExist(err) {
-			fmt.Printf("Error removing %s: %v\n", skillPath, err)
-			errors++
-		} else {
-			fmt.Printf("\u2713 Removed %s\n", skillPath)
+	if removeLite {
+		for _, name := range agentNames {
+			path := filepath.Join(agentDir, name)
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				fmt.Printf("Error removing %s: %v\n", path, err)
+				errors++
+			} else {
+				fmt.Printf("\u2713 Removed %s\n", path)
+			}
 		}
-		// Remove the skill subdirectory if now empty
-		if entries, err := os.ReadDir(dir); err == nil && len(entries) == 0 {
-			if err := os.Remove(dir); err == nil {
-				fmt.Printf("\u2713 Removed empty %s\n", dir)
+
+		for _, dir := range skillDirs {
+			skillPath := filepath.Join(dir, "SKILL.md")
+			if err := os.Remove(skillPath); err != nil && !os.IsNotExist(err) {
+				fmt.Printf("Error removing %s: %v\n", skillPath, err)
+				errors++
+			} else {
+				fmt.Printf("\u2713 Removed %s\n", skillPath)
+			}
+			// Remove the skill subdirectory if now empty
+			if entries, err := os.ReadDir(dir); err == nil && len(entries) == 0 {
+				if err := os.Remove(dir); err == nil {
+					fmt.Printf("\u2713 Removed empty %s\n", dir)
+				}
+			}
+		}
+
+		// Remove .github/agents/ only if now empty
+		if entries, err := os.ReadDir(agentDir); err == nil && len(entries) == 0 {
+			if err := os.Remove(agentDir); err == nil {
+				fmt.Println("\u2713 Removed empty .github/agents/")
+			}
+		}
+
+		// Remove .github/skills/ only if now empty
+		if entries, err := os.ReadDir(skillsDir); err == nil && len(entries) == 0 {
+			if err := os.Remove(skillsDir); err == nil {
+				fmt.Println("\u2713 Removed empty .github/skills/")
+			}
+		}
+
+		// Remove .github/ only if now empty
+		githubDir := ".github"
+		if entries, err := os.ReadDir(githubDir); err == nil && len(entries) == 0 {
+			if err := os.Remove(githubDir); err == nil {
+				fmt.Println("\u2713 Removed empty .github/")
 			}
 		}
 	}
 
-	// Remove .github/agents/ only if now empty
-	if entries, err := os.ReadDir(agentDir); err == nil && len(entries) == 0 {
-		if err := os.Remove(agentDir); err == nil {
-			fmt.Println("\u2713 Removed empty .github/agents/")
-		}
-	}
-
-	// Remove .github/skills/ only if now empty
-	if entries, err := os.ReadDir(skillsDir); err == nil && len(entries) == 0 {
-		if err := os.Remove(skillsDir); err == nil {
-			fmt.Println("\u2713 Removed empty .github/skills/")
-		}
-	}
-
-	// Remove .github/ only if now empty
-	githubDir := ".github"
-	if entries, err := os.ReadDir(githubDir); err == nil && len(entries) == 0 {
-		if err := os.Remove(githubDir); err == nil {
-			fmt.Println("\u2713 Removed empty .github/")
+	if removeAdvanced {
+		for _, dir := range advancedDirs {
+			if err := os.RemoveAll(dir); err != nil && !os.IsNotExist(err) {
+				fmt.Printf("Error removing %s: %v\n", dir, err)
+				errors++
+			} else {
+				fmt.Printf("\u2713 Removed %s\n", dir)
+			}
 		}
 	}
 

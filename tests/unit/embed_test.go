@@ -23,10 +23,10 @@ var sourceDirMap = []struct {
 	{".github/agents", "../../agents"},
 }
 
-// TestEmbedCompleteness verifies that every expected file is present after init.
+// TestEmbedCompleteness verifies that every expected file is present after lite.
 func TestEmbedCompleteness(t *testing.T) {
 	dir := t.TempDir()
-	mustInit(t, dir)
+	mustLite(t, dir)
 
 	for _, f := range expectedFiles {
 		if _, err := os.Stat(filepath.Join(dir, f)); err != nil {
@@ -40,7 +40,7 @@ func TestEmbedCompleteness(t *testing.T) {
 // drift between make prepare output and the source artifacts.
 func TestEmbedContentMatchesSource(t *testing.T) {
 	dir := t.TempDir()
-	mustInit(t, dir)
+	mustLite(t, dir)
 
 	for _, mapping := range sourceDirMap {
 		installedAbs := filepath.Join(dir, mapping.installedDir)
