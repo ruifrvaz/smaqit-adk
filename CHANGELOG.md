@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-03
+
+### Added
+
+- `smaqit.create-agent` routing skill — lite-tier entry point installed by `init`; activates via natural language ("create a new agent") or `/smaqit.create-agent` slash command; delegates to the `smaqit.create-agent` agent as a subagent
+- `smaqit.create-skill` routing skill — lite-tier entry point installed by `init`; activates via natural language ("create a new skill") or `/smaqit.create-skill` slash command; delegates to the `smaqit.create-skill` agent as a subagent
+
+### Changed
+
+- `smaqit-adk init` now installs 4 files into `.github/`: 2 agents (`smaqit.create-agent`, `smaqit.create-skill`) + 2 routing skills (`smaqit.create-agent/SKILL.md`, `smaqit.create-skill/SKILL.md`)
+- `smaqit-adk uninstall` now removes routing skill files and directories in addition to agents
+- README Quick Start updated — natural language entry point ("say 'create a new agent'") is now the primary UX, replacing direct agent context switch
+- `install.sh` next steps updated to reflect natural language invocation
+
 ## [0.3.2] - 2026-04-02
 
 ### Fixed
