@@ -6,14 +6,17 @@
 |----|-------|--------|-------|
 | 006 | Create smaqit.new-principle Skill | Not Started | Depends on Task 009 (done) — use smaqit.new-skill; unblocks Task 013 create-principle |
 | 011 | Interactive CLI Product (Advanced Tier) | In Progress | create-agent + create-skill implemented; create-principle + validate deferred to Task 013 |
+
 | 013 | CLI create-principle and validate Commands | Not Started | Deferred from Task 011; create-principle depends on Task 006; validate needs design decision |
 | 014 | CLI create-agent / create-skill Fix | Not Started | Fix wrong agent context, remove timeout + ticker; local changes already made, need commit + release |
 | 015 | Full Compilation Chain CLI (L0→L1→L2) | Not Started | New `compile` command or `--full` flag; three SDK sessions file-chained in Go; ADK stays in binary |
+| 017 | CLI Tier Subcommands — Replace `init` with `lite` and `advanced` | Not Started | **HIGH PRIORITY** — Replace `init` with explicit `lite`/`advanced` subcommands; breaking change; depends on Task 015 |
 
 ## Completed
 
 | ID | Title | Completed | Notes |
 |----|-------|-----------|-------|
+| 016 | Lite Tier — Routing Skills for Natural Language Entry Points | 2026-04-03 | All 8/8 criteria met; user testing passed; natural language entry point working |
 | 012 | Lite Tier — Compiled Standalone Agents | 2026-03-29 | smaqit.create-agent + smaqit.create-skill compiled via L2; init repurposed to drop only these two files; no boilerplate |
 | 010 | Test Framework | 2026-03-29 | Three-layer test suite complete: embed bug fix, Go unit/structural tests, Copilot SDK eval runner; 1/7 evals passing on last run |
 | 009 | Create smaqit.new-skill Skill | 2026-03-29 | All criteria met; architectural correction: skill compilation moved from L1 → L2; reference chain constraint clarified |
