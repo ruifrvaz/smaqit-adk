@@ -22,6 +22,12 @@ var adkCreateAgentFile []byte
 //go:embed agents/smaqit.create-skill.agent.md
 var adkCreateSkillFile []byte
 
+//go:embed skills/smaqit.create-agent/SKILL.md
+var adkCreateAgentSkillFile []byte
+
+//go:embed skills/smaqit.create-skill/SKILL.md
+var adkCreateSkillSkillFile []byte
+
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
 var Version = "0.3.2"
 
@@ -68,11 +74,11 @@ func printUsage() {
 Usage: smaqit-adk <command>
 
 Commands:
-  init [dir]                     Install smaqit.create-agent and smaqit.create-skill into .github/agents/
+  init [dir]                     Install lite-tier agents and skills into .github/
   create-agent [--output <dir>]  Create a new agent interactively
   create-skill [--output <dir>]  Create a new skill interactively
   help                           Show detailed command help
-  uninstall                      Remove smaqit-adk agents from project
+  uninstall                      Remove smaqit-adk agents and skills from project
   version                        Show smaqit-adk version`)
 }
 
@@ -82,7 +88,7 @@ func cmdHelp() {
 
 	fmt.Println("CLI Commands:")
 	fmt.Println("  smaqit-adk init [dir]")
-	fmt.Println("      Install smaqit.create-agent and smaqit.create-skill into .github/agents/")
+	fmt.Println("      Install lite-tier agents and skills into .github/agents/ and .github/skills/")
 	fmt.Println("      Optional: specify target directory (created if needed)")
 	fmt.Println()
 	fmt.Println("  smaqit-adk create-agent [--output <dir>]")
@@ -97,15 +103,16 @@ func cmdHelp() {
 	fmt.Println()
 	fmt.Println("  smaqit-adk help       Show this help message")
 	fmt.Println()
-	fmt.Println("  smaqit-adk uninstall  Remove smaqit-adk agents from project")
-	fmt.Println("                        Removes smaqit.create-agent.agent.md and")
-	fmt.Println("                        smaqit.create-skill.agent.md from .github/agents/")
+	fmt.Println("  smaqit-adk uninstall  Remove smaqit-adk agents and skills from project")
+	fmt.Println("                        Removes agents and routing skills from .github/agents/")
+	fmt.Println("                        and .github/skills/")
 	fmt.Println()
 	fmt.Println("  smaqit-adk version    Show smaqit-adk version")
 	fmt.Println()
-	fmt.Println("VS Code Agents (lite tier — install with 'init', invoke as subagents):")
-	fmt.Println("  @smaqit.create-agent  Interactively gather specs and compile a new .agent.md")
-	fmt.Println("  @smaqit.create-skill  Interactively gather specs and compile a new SKILL.md")
+	fmt.Println("VS Code Lite Tier (install with 'init'):")
+	fmt.Println("  Say 'create a new agent' or 'create a new skill' in Copilot chat.")
+	fmt.Println("  Or use the slash commands: /smaqit.create-agent, /smaqit.create-skill")
+	fmt.Println("  Copilot activates the skill, which invokes the agent as a subagent (isolated context).")
 	fmt.Println()
 	fmt.Println("Auth: set COPILOT_GITHUB_TOKEN, GH_TOKEN, or GITHUB_TOKEN,")
 	fmt.Println("      or log in with 'gh auth login' / VS Code GitHub Copilot extension.")
@@ -160,14 +167,35 @@ func cmdInit(targetDir string) {
 		}
 	}
 
-	fmt.Println("✓ Installed smaqit.create-agent into .github/agents/")
-	fmt.Println("✓ Installed smaqit.create-skill into .github/agents/")
+	// Copy the two lite-tier routing skills
+	type skillEntry struct {
+		dir     string
+		content []byte
+	}
+	skillEntries := []skillEntry{
+		{filepath.Join(".github", "skills", "smaqit.create-agent"), adkCreateAgentSkillFile},
+		{filepath.Join(".github", "skills", "smaqit.create-skill"), adkCreateSkillSkillFile},
+	}
+	for _, se := range skillEntries {
+		if err := os.MkdirAll(se.dir, 0755); err != nil {
+			fmt.Printf("Error creating directory %s: %v\n", se.dir, err)
+			os.Exit(1)
+		}
+		dstPath := filepath.Join(se.dir, "SKILL.md")
+		if err := os.WriteFile(dstPath, se.content, 0644); err != nil {
+			fmt.Printf("Error writing %s: %v\n", dstPath, err)
+			os.Exit(1)
+		}
+	}
+
+	fmt.Println("✓ Installed smaqit.create-agent into .github/agents/ and .github/skills/")
+	fmt.Println("✓ Installed smaqit.create-skill into .github/agents/ and .github/skills/")
 	fmt.Printf("✓ smaqit-adk %s ready\n\n", Version)
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Open GitHub Copilot chat in VS Code")
-	fmt.Println("  2. Start a new chat and select @smaqit.create-agent to create a new agent,")
-	fmt.Println("     or @smaqit.create-skill to create a new skill")
-	fmt.Println("  Tip: run these as subagents for a clean, isolated context")
+	fmt.Println("  2. Say 'create a new agent' or 'create a new skill'")
+	fmt.Println("     or use /smaqit.create-agent and /smaqit.create-skill")
+	fmt.Println("  Copilot activates the skill, which runs the agent in an isolated context.")
 }
 
 
@@ -177,6 +205,12 @@ func cmdUninstall() {
 	agentNames := []string{
 		"smaqit.create-agent.agent.md",
 		"smaqit.create-skill.agent.md",
+	}
+
+	skillsDir := filepath.Join(".github", "skills")
+	skillDirs := []string{
+		filepath.Join(skillsDir, "smaqit.create-agent"),
+		filepath.Join(skillsDir, "smaqit.create-skill"),
 	}
 
 	// Check if at least one agent is installed
@@ -197,6 +231,9 @@ func cmdUninstall() {
 	fmt.Println("This will remove:")
 	for _, name := range agentNames {
 		fmt.Printf("  \u2022 .github/agents/%s\n", name)
+	}
+	for _, dir := range skillDirs {
+		fmt.Printf("  \u2022 %s/SKILL.md\n", dir)
 	}
 	fmt.Print("\nContinue? [y/N]: ")
 
@@ -220,10 +257,33 @@ func cmdUninstall() {
 		}
 	}
 
+	for _, dir := range skillDirs {
+		skillPath := filepath.Join(dir, "SKILL.md")
+		if err := os.Remove(skillPath); err != nil && !os.IsNotExist(err) {
+			fmt.Printf("Error removing %s: %v\n", skillPath, err)
+			errors++
+		} else {
+			fmt.Printf("\u2713 Removed %s\n", skillPath)
+		}
+		// Remove the skill subdirectory if now empty
+		if entries, err := os.ReadDir(dir); err == nil && len(entries) == 0 {
+			if err := os.Remove(dir); err == nil {
+				fmt.Printf("\u2713 Removed empty %s\n", dir)
+			}
+		}
+	}
+
 	// Remove .github/agents/ only if now empty
 	if entries, err := os.ReadDir(agentDir); err == nil && len(entries) == 0 {
 		if err := os.Remove(agentDir); err == nil {
 			fmt.Println("\u2713 Removed empty .github/agents/")
+		}
+	}
+
+	// Remove .github/skills/ only if now empty
+	if entries, err := os.ReadDir(skillsDir); err == nil && len(entries) == 0 {
+		if err := os.Remove(skillsDir); err == nil {
+			fmt.Println("\u2713 Removed empty .github/skills/")
 		}
 	}
 

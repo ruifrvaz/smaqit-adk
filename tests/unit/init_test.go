@@ -48,10 +48,12 @@ func TestCmdInit(t *testing.T) {
 		t.Errorf("expected directory .github/agents/ after init")
 	}
 
-	// Only the two lite-tier agents are installed.
+	// Only the two lite-tier agents and two routing skills are installed.
 	files := []string{
 		".github/agents/smaqit.create-agent.agent.md",
 		".github/agents/smaqit.create-skill.agent.md",
+		".github/skills/smaqit.create-agent/SKILL.md",
+		".github/skills/smaqit.create-skill/SKILL.md",
 	}
 	for _, f := range files {
 		if _, err := os.Stat(filepath.Join(dir, f)); err != nil {
@@ -59,10 +61,9 @@ func TestCmdInit(t *testing.T) {
 		}
 	}
 
-	// Framework, templates, skills, and Level agents are NOT installed.
+	// Framework, templates, and Level agents are NOT installed.
 	notPresent := []string{
 		".smaqit",
-		".github/skills",
 		".github/agents/smaqit.L0.agent.md",
 		".github/agents/smaqit.L1.agent.md",
 		".github/agents/smaqit.L2.agent.md",
@@ -83,6 +84,8 @@ func TestCmdInit_Idempotent(t *testing.T) {
 	probes := []string{
 		".github/agents/smaqit.create-agent.agent.md",
 		".github/agents/smaqit.create-skill.agent.md",
+		".github/skills/smaqit.create-agent/SKILL.md",
+		".github/skills/smaqit.create-skill/SKILL.md",
 	}
 	for _, f := range probes {
 		c1, err1 := os.ReadFile(filepath.Join(dir1, f))
@@ -112,6 +115,8 @@ func TestCmdInit_AlreadyExists(t *testing.T) {
 	for _, f := range []string{
 		".github/agents/smaqit.create-agent.agent.md",
 		".github/agents/smaqit.create-skill.agent.md",
+		".github/skills/smaqit.create-agent/SKILL.md",
+		".github/skills/smaqit.create-skill/SKILL.md",
 	} {
 		if _, err := os.Stat(filepath.Join(dir, f)); err != nil {
 			t.Errorf("file %s removed by failed second init: %v", f, err)
@@ -134,7 +139,11 @@ func TestCmdUninstall(t *testing.T) {
 	for _, removed := range []string{
 		".github/agents/smaqit.create-agent.agent.md",
 		".github/agents/smaqit.create-skill.agent.md",
+		".github/skills/smaqit.create-agent/SKILL.md",
+		".github/skills/smaqit.create-skill/SKILL.md",
 		".github/agents",
+		".github/skills/smaqit.create-agent",
+		".github/skills/smaqit.create-skill",
 	} {
 		if _, err := os.Stat(filepath.Join(dir, removed)); !os.IsNotExist(err) {
 			t.Errorf("expected %s to be removed after uninstall", removed)

@@ -22,6 +22,9 @@ prepare:
 	@rm -rf skills && mkdir -p skills/smaqit.new-agent && mkdir -p skills/smaqit.new-skill
 	@cp ../skills/smaqit.new-agent/SKILL.md skills/smaqit.new-agent/
 	@cp ../skills/smaqit.new-skill/SKILL.md skills/smaqit.new-skill/
+	@mkdir -p skills/smaqit.create-agent && mkdir -p skills/smaqit.create-skill
+	@cp ../skills/smaqit.create-agent/SKILL.md skills/smaqit.create-agent/
+	@cp ../skills/smaqit.create-skill/SKILL.md skills/smaqit.create-skill/
 	@rm -rf templates/skills && mkdir -p templates/skills/compiled
 	@cp ../templates/skills/base-skill.template.md templates/skills/
 	@cp ../templates/skills/compiled/skill.rules.md templates/skills/compiled/
@@ -86,8 +89,9 @@ test: build
 	@cd $(REPO_ROOT)/tests && SMAQIT_ADK_BIN=$(CURDIR)/$(DIST_DIR)/$(DEV_BINARY_NAME) go test ./unit/... ./structural/...
 
 # Layer 3: behavioral evaluations
-# Auto-detects a GitHub token via gh auth token; override with GH_TOKEN=<token>.
-# An explicit token is required to isolate sessions from VS Code.
+# Auto-detects an OAuth token via gh auth token; override with GH_TOKEN=<token>.
+# Classic PATs are rejected by the Copilot agent API. Use gh auth token, GITHUB_TOKEN (CI),
+# or a fine-grained PAT with the copilot scope.
 .PHONY: evals
 evals: build
 	@cd $(REPO_ROOT)/tests && \
