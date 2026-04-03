@@ -72,13 +72,11 @@ REPO_ROOT = ..
 test-scaffold: build
 	@echo "Testing ADK installation..."
 	@mkdir -p test-project
-	@cd test-project && ../$(DIST_DIR)/$(DEV_BINARY_NAME) init
+	@cd test-project && ../$(DIST_DIR)/$(DEV_BINARY_NAME) lite
 	@echo "✓ Test installation complete"
 	@echo "Validating structure..."
-	@test -d test-project/.smaqit/framework || (echo "✗ Missing .smaqit/framework" && exit 1)
-	@test -d test-project/.smaqit/templates/agents || (echo "✗ Missing .smaqit/templates/agents" && exit 1)
 	@test -d test-project/.github/agents || (echo "✗ Missing .github/agents" && exit 1)
-	@test -d test-project/.github/skills/smaqit.new-agent || (echo "✗ Missing .github/skills/smaqit.new-agent" && exit 1)
+	@test -d test-project/.github/skills/smaqit.create-agent || (echo "✗ Missing .github/skills/smaqit.create-agent" && exit 1)
 	@echo "✓ Structure validation passed"
 	@rm -rf test-project
 	@echo "✓ Test complete"
