@@ -196,7 +196,7 @@ main() {
     echo ""
     echo "Next steps:"
     echo "  1. Run 'smaqit-adk create-agent' to create a new agent from the CLI"
-    echo "  2. Or run 'smaqit-adk init' in a project, then use @smaqit.create-agent in VS Code Copilot chat"
+    echo "  2. Or run 'smaqit-adk init' in a project, then say 'create a new agent' in VS Code Copilot chat"
     echo ""
 }
 

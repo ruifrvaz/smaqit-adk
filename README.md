@@ -6,10 +6,12 @@ smaQit-adk is an **Agent Development Kit** for GitHub Copilot. It ships everythi
 
 smaQit-adk has two tiers:
 
-**Lite tier** — Zero-config VS Code integration. Run `smaqit-adk init` once in your project to install two self-contained Copilot agents. No framework files, no templates, no Level agents required.
+**Lite tier** — Zero-config VS Code integration. Run `smaqit-adk init` once in your project to install two agents and two routing skills. No framework files, no templates, no Level agents required.
 
-- **`@smaqit.create-agent`** — Interactively gathers specs and writes a `.agent.md` into `.github/agents/`
-- **`@smaqit.create-skill`** — Interactively gathers specs and writes a `SKILL.md` into `.github/skills/`
+- **`smaqit.create-agent`** — Interactively gathers specs and writes a `.agent.md` into `.github/agents/`
+- **`smaqit.create-skill`** — Interactively gathers specs and writes a `SKILL.md` into `.github/skills/`
+
+Activate either by saying "create a new agent" (or skill) in Copilot chat — no `@`-switching required.
 
 **Advanced tier** — A globally installed CLI that creates agents and skills from any project directory, with no VS Code required. Each command runs in a fully isolated LLM context — no project agent instructions, no session history, no contamination.
 
@@ -51,26 +53,29 @@ make build
 smaqit-adk init
 ```
 
-This installs two agents into `.github/agents/`:
+This installs two agents and two routing skills:
 ```
 .github/
-└── agents/
-    ├── smaqit.create-agent.agent.md
-    └── smaqit.create-skill.agent.md
+├── agents/
+│   ├── smaqit.create-agent.agent.md
+│   └── smaqit.create-skill.agent.md
+└── skills/
+    ├── smaqit.create-agent/
+    │   └── SKILL.md
+    └── smaqit.create-skill/
+        └── SKILL.md
 ```
 
-That's it — no framework files, no templates, no skills directory.
+That's it — no framework files, no templates, no Level agents.
 
 2. **Create a new agent:**
 
-Open GitHub Copilot chat and ask:
+Open GitHub Copilot chat and say:
 ```
 Create a new agent for [your purpose]
 ```
 
-Copilot will invoke `@smaqit.create-agent` as a subagent to gather your specs and compile the agent file.
-
-> **Tip — Clean context via subagent:** For the best results, let Copilot invoke these agents as subagents rather than switching to them directly. Running as a subagent provides a clean LLM context free of the current session's loaded agents, conversation history, and open file context. This is how the ADK is designed to be used.
+Copilot activates the `smaqit.create-agent` skill, which invokes `@smaqit.create-agent` as a subagent to gather your specs and compile the agent file — in a clean, isolated context.
 
 ## Creating Agents and Skills
 
@@ -81,8 +86,10 @@ create a new agent for [purpose]
 ```
 or explicitly:
 ```
-@smaqit.create-agent
+/smaqit.create-agent
 ```
+
+Copilot activates the skill and invokes `@smaqit.create-agent` as a subagent.
 
 `smaqit.create-agent` gathers 8 specification sections interactively:
 1. Identity (name, description, tools)
@@ -105,8 +112,10 @@ create a new skill for [purpose]
 ```
 or explicitly:
 ```
-@smaqit.create-skill
+/smaqit.create-skill
 ```
+
+Copilot activates the skill and invokes `@smaqit.create-skill` as a subagent.
 
 `smaqit.create-skill` gathers 6 specification sections:
 1. Identity (name, description, version)
@@ -122,19 +131,21 @@ Then it compiles and writes `.github/skills/[name]/SKILL.md`.
 
 | Command | Description |
 |---------|-------------|
-| `smaqit-adk init [dir]` | Install lite-tier agents into `.github/agents/` |
+| `smaqit-adk init [dir]` | Install lite-tier agents and skills into `.github/` |
 | `smaqit-adk create-agent [--output <dir>]` | Create a new agent interactively (isolated CLI context) |
 | `smaqit-adk create-skill [--output <dir>]` | Create a new skill interactively (isolated CLI context) |
 | `smaqit-adk help` | Show detailed command help |
-| `smaqit-adk uninstall` | Remove smaqit-adk agents from project |
+| `smaqit-adk uninstall` | Remove smaqit-adk agents and skills from project |
 | `smaqit-adk version` | Show ADK version |
 
-## Agents
+## Agents and Skills
 
-| Agent | Invocation | Purpose |
-|-------|------------|---------| 
-| `smaqit.create-agent` | `@smaqit.create-agent` or "create a new agent" | Gather specs and compile a new `.agent.md` |
-| `smaqit.create-skill` | `@smaqit.create-skill` or "create a new skill" | Gather specs and compile a new `SKILL.md` |
+| Artifact | Invocation | Purpose |
+|----------|------------|---------|
+| `smaqit.create-agent` (skill) | "create a new agent" or `/smaqit.create-agent` | Routes to the subagent |
+| `smaqit.create-skill` (skill) | "create a new skill" or `/smaqit.create-skill` | Routes to the subagent |
+| `smaqit.create-agent` (agent) | Invoked as subagent by the skill | Gather specs and compile `.agent.md` |
+| `smaqit.create-skill` (agent) | Invoked as subagent by the skill | Gather specs and compile `SKILL.md` |
 
 ## CLI (Advanced Tier)
 
