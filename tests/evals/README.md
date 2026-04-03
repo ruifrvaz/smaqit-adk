@@ -25,12 +25,8 @@ cd installer && make evals
 `make evals` auto-detects a token via `gh auth token`. An explicit token is required to prevent
 eval sessions from routing through VS Code and loading smaqit-adk's workspace context.
 
-To override explicitly:
-
-```sh
-GH_TOKEN=$(gh auth token) make evals   # local dev (same effect, explicit)
-make evals COPILOT_GITHUB_TOKEN=<token> # CI
-```
+> **Note:** Classic PATs are rejected by the Copilot agent API with a 400 error. Use the output of
+> `gh auth token`, the `GITHUB_TOKEN` secret in CI, or a fine-grained PAT with the `copilot` scope.
 
 ### Why a token is required
 
@@ -44,13 +40,12 @@ config. Sessions are fully isolated from any open VS Code instance.
 
 ## Auth
 
-The runner checks environment variables in order:
+The runner checks, in order:
 
-1. `COPILOT_GITHUB_TOKEN`
-2. `GH_TOKEN`
-3. `GITHUB_TOKEN`
+1. `GH_TOKEN` — set automatically by `make evals` via `gh auth token`
+2. `GITHUB_TOKEN` — auto-provisioned by GitHub Actions in CI
 
-If none are set and `gh auth token` fails, the runner exits with an error.
+If neither is set and `gh auth token` fails, the runner exits with an error.
 
 ## Eval file format
 

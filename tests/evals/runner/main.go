@@ -2,11 +2,12 @@
 // Drives Copilot SDK sessions against ADK artifacts (skills and agents),
 // then grades the resulting transcript against per-eval criteria.
 //
-// Auth: requires COPILOT_GITHUB_TOKEN, GH_TOKEN, or GITHUB_TOKEN.
+// Auth: requires an OAuth token in GH_TOKEN (local) or GITHUB_TOKEN (CI).
 // Without an explicit token the Copilot CLI reads auth from shared XDG config
 // dirs, routing sessions through VS Code and loading smaqit-adk's workspace
 // context — which invalidates results. Use 'make evals' to auto-detect a token
-// via gh auth token.
+// via gh auth token. Classic PATs are rejected; fine-grained PATs with the
+// copilot scope also work.
 //
 // Usage:
 //
@@ -611,12 +612,12 @@ func collectEvalFiles(dir string) ([]string, error) {
 }
 
 func resolveToken() string {
-	for _, env := range []string{"COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"} {
+	for _, env := range []string{"GH_TOKEN", "GITHUB_TOKEN"} {
 		if v := os.Getenv(env); v != "" {
 			return v
 		}
 	}
-	return "" // UseLoggedInUser (SDK default) handles local Copilot auth
+	return ""
 }
 
 func printResultLine(r EvalResult) {
