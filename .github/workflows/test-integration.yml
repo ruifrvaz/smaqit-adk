@@ -33,11 +33,15 @@ jobs:
       - name: Validate ADK structure
         working-directory: installer/test-project
         run: |
-          # Lite-tier agents (2) — the only files installed by init
+          # Lite-tier agents (2)
           test -f .github/agents/smaqit.create-agent.agent.md || (echo "Error: smaqit.create-agent.agent.md not found" && exit 1)
           test -f .github/agents/smaqit.create-skill.agent.md || (echo "Error: smaqit.create-skill.agent.md not found" && exit 1)
           
-          echo "✓ All 2 ADK files validated"
+          # Lite-tier routing skills (2)
+          test -f .github/skills/smaqit.create-agent/SKILL.md || (echo "Error: smaqit.create-agent/SKILL.md not found" && exit 1)
+          test -f .github/skills/smaqit.create-skill/SKILL.md || (echo "Error: smaqit.create-skill/SKILL.md not found" && exit 1)
+          
+          echo "✓ All 4 ADK files validated"
 
       - name: Verify lite-tier install boundaries
         working-directory: installer/test-project
@@ -52,8 +56,5 @@ jobs:
           
           # Prompts directory must NOT be created
           test ! -d .github/prompts || (echo "Error: .github/prompts/ should not be created by init" && exit 1)
-          
-          # Skills directory must NOT be created
-          test ! -d .github/skills || (echo "Error: .github/skills/ should not be created by init" && exit 1)
           
           echo "✓ Lite-tier install boundaries verified"
