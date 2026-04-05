@@ -1,6 +1,6 @@
 # CLI Tier Subcommands — Replace `init` with `lite` and `advanced`
 
-**Status:** Completed  
+**Status:** In Progress  
 **Created:** 2026-04-03
 
 ## Description
@@ -31,6 +31,9 @@ Replace the `smaqit-adk init` subcommand with two explicit tier subcommands. Ins
 - [x] Unit tests: advanced install and uninstall cases pass
 - [x] Build clean
 - [x] `README.md` Quick Start uses `smaqit-adk lite`
+- [x] All unit tests pass (`cd tests && go test ./unit/...`)
+- [x] All structural tests pass (`cd tests && go test ./structural/...`)
+- [ ] Changes committed
 
 ## Notes
 

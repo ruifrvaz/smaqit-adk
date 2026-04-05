@@ -1,7 +1,9 @@
 # Full Compilation Chain CLI (L0→L1→L2)
 
-**Status:** Not Started  
-**Created:** 2026-03-31
+**Status:** Deferred  
+**Created:** 2026-03-31  
+**Deferred:** 2026-04-05  
+**Reason:** CLI work paused in favor of VS Code-native skill approach. Cross-level compilation will be handled by `smaqit.compile` skills (Task 019), which supersedes this on the VS Code surface. CLI chain may be revisited for CI/CD use cases independently.
 
 ## Description
 

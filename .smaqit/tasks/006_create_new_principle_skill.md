@@ -1,7 +1,9 @@
 # Create smaqit.new-principle Skill
 
-**Status:** In Progress
+**Status:** Abandoned
 **Created:** 2026-02-27
+**Closed:** 2026-04-05
+**Reason:** Absorbed into Task 018 (Level Skills Completion). All acceptance criteria from this task are included in Task 018.
 
 ## Description
 

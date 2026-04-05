@@ -4,22 +4,17 @@
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
-| 006 | Create smaqit.new-principle Skill | Not Started | Depends on Task 009 (done) — use smaqit.new-skill; unblocks Task 013 create-principle |
-
-| 013 | CLI create-principle and validate Commands | Not Started | Deferred from Task 011; create-principle depends on Task 006; validate needs design decision |
 | 014 | CLI create-agent / create-skill Fix | Not Started | Fix wrong agent context, remove timeout + ticker; local changes already made, need commit + release |
-| 015 | Full Compilation Chain CLI (L0→L1→L2) | Not Started | New `compile` command or `--full` flag; three SDK sessions file-chained in Go; ADK stays in binary |
+| 018 | Level Skills Completion | Not Started | Author smaqit.new-principle, smaqit.new-template, smaqit.new-rules; update L0 definition file pattern; installer update; absorbs Task 006 |
+| 019 | Cross-Level Compilation (smaqit.compile) | Not Started | smaqit.compile.principle/template/agent skills; L0→L1→L2 chain via subagents; depends on Task 018 |
+| 020 | Lite-Tier Behavioral Evals | Not Started | Evals for smaqit.create-agent + smaqit.create-skill (skill + agent); independent of advanced tier |
+| 021 | Advanced-Tier Behavioral Evals | Not Started | Review existing 7 evals; add L0, L1, new-principle, new-template, new-rules evals; depends on Task 018 |
 
 ## Completed
 
 | ID | Title | Completed | Notes |
 |----|-------|-----------|-------|
 | 017 | CLI Tier Subcommands — Replace `init` with `lite` and `advanced` | 2026-04-03 | All 7/7 criteria met; breaking change; version bump required at release |
-
-## Completed
-
-| ID | Title | Completed | Notes |
-|----|-------|-----------|-------|
 | 011 | Interactive CLI Product (Advanced Tier) | 2026-04-03 | create-agent + create-skill complete; create-principle + validate deferred to Task 013 |
 | 016 | Lite Tier — Routing Skills for Natural Language Entry Points | 2026-04-03 | All 8/8 criteria met; user testing passed; natural language entry point working |
 | 012 | Lite Tier — Compiled Standalone Agents | 2026-03-29 | smaqit.create-agent + smaqit.create-skill compiled via L2; init repurposed to drop only these two files; no boilerplate |
@@ -37,8 +32,11 @@
 
 | ID | Title | Date | Reason |
 |----|-------|------|--------|
+| 006 | Create smaqit.new-principle Skill | 2026-04-05 | Absorbed into Task 018 (Level Skills Completion) |
 
 ## Future
 
 | ID | Title | Notes |
 |----|-------|-------|
+| 013 | CLI create-principle and validate Commands | Deferred — CLI work paused; create-principle covered by smaqit.new-principle (Task 018); validate needs design decision |
+| 015 | Full Compilation Chain CLI (L0→L1→L2) | Deferred — VS Code-native approach taken via smaqit.compile skills (Task 019); CLI chain may be revisited for CI/CD |
