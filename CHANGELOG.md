@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-05
+
+### Added
+
+- `smaqit-adk lite` — new CLI subcommand; installs lite-tier artifacts (2 agents + 2 routing skills) into `.github/`
+- `smaqit-adk advanced` — new CLI subcommand; installs full ADK into `.smaqit/` (Level agents L0/L1/L2, framework files, templates, and advanced skills)
+
+### Changed
+
+- `smaqit-adk init` deprecated with migration message directing users to `smaqit-adk lite`
+- CI workflow updated to test both `lite` and `advanced` subcommands independently
+- README Quick Start updated to use `smaqit-adk lite`
+- `install.sh` next steps updated to reference `smaqit-adk lite`
+- `smaqit.create-agent` and `smaqit.create-skill` skill error tables: stale `smaqit-adk init` references updated to `smaqit-adk lite`
+- ADK wiki structure section: corrected lite-tier output tree; added advanced-tier output tree
+
 ## [0.4.0] - 2026-04-03
 
 ### Added
@@ -106,7 +122,10 @@ smaqit-adk is a **generic agent development toolkit**, not tied to any specific 
 
 The [smaQit product](https://github.com/ruifrvaz/smaqit) demonstrates one possible use case (five-layer specification system), but ADK users can create entirely different architectures.
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.3.1...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.5.0...HEAD
+[0.5.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.4.0...adk-v0.5.0
+[0.4.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.3.2...adk-v0.4.0
+[0.3.2]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.3.1...adk-v0.3.2
 [0.3.1]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.3.0...adk-v0.3.1
 [0.3.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.2.0...adk-v0.3.0
 [0.2.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.1.0...adk-v0.2.0
