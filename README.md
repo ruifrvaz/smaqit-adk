@@ -6,7 +6,7 @@ smaQit-adk is an **Agent Development Kit** for GitHub Copilot. It ships everythi
 
 smaQit-adk has two tiers:
 
-**Lite tier** — Zero-config VS Code integration. Run `smaqit-adk init` once in your project to install two agents and two routing skills. No framework files, no templates, no Level agents required.
+**Lite tier** — Zero-config VS Code integration. Run `smaqit-adk lite` once in your project to install two agents and two routing skills. No framework files, no templates, no Level agents required.
 
 - **`smaqit.create-agent`** — Interactively gathers specs and writes a `.agent.md` into `.github/agents/`
 - **`smaqit.create-skill`** — Interactively gathers specs and writes a `SKILL.md` into `.github/skills/`
@@ -174,7 +174,7 @@ For framework extension, specification agents, implementation agents, or direct 
 - **`smaqit.new-agent`** — Gather agent specs interactively in VS Code, write a definition file to `.smaqit/definitions/`, and invoke L2 to compile. Produces a full audit trail (definition file + compilation log).
 - **`smaqit.new-skill`** — Same workflow for skills.
 
-These skills require the full ADK stack at runtime (L2, framework files, templates). They are not installed by `smaqit-adk init` and are intended for ADK contributors and expert users operating the full compilation chain.
+These skills require the full ADK stack at runtime (L2, framework files, templates). They are not installed by `smaqit-adk lite` and are intended for ADK contributors and expert users operating the full compilation chain.
 
 See the ADK source at `agents/`, `skills/`, `framework/`, and `templates/` for the full L0 → L1 → L2 compilation chain.
 

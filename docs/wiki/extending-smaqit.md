@@ -30,37 +30,52 @@ Use **smaQit** (product) when building applications with existing pre-compiled a
 curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit-adk/main/install.sh | bash
 
 # Initialize ADK project
-smaqit-adk init
+smaqit-adk lite
 ```
 
 ## ADK Project Structure
 
-After `smaqit-adk init`, you'll have:
+After `smaqit-adk lite`, you'll have:
+
+```
+.github/
+├── agents/
+│   ├── smaqit.create-agent.agent.md
+│   └── smaqit.create-skill.agent.md
+└── skills/
+    ├── smaqit.create-agent/
+    │   └── SKILL.md
+    └── smaqit.create-skill/
+        └── SKILL.md
+```
+
+After `smaqit-adk advanced`, you'll have:
 
 ```
 .smaqit/
+├── agents/
+│   ├── smaqit.L0.agent.md
+│   ├── smaqit.L1.agent.md
+│   └── smaqit.L2.agent.md
 ├── framework/                    # 5 framework principle files
-│   ├── SMAQIT.md                # Core principles index
-│   ├── AGENTS.md                # Agent behaviors
-│   ├── ARTIFACTS.md             # Artifact rules
-│   ├── TEMPLATES.md             # Template structure rules
-│   └── SKILLS.md                # Skill architecture
-└── templates/
-    └── agents/                   # 3 generic agent templates
-        ├── base-agent.template.md
-        ├── specification-agent.template.md
-        ├── implementation-agent.template.md
-        └── compiled/             # L0→L1 compilation rules
-            ├── base.rules.md
-            ├── specification.rules.md
-            └── implementation.rules.md
-.github/
-├── agents/                       # 3 Level meta-agents
-│   ├── smaqit.L0.agent.md       # Principle documentation
-│   ├── smaqit.L1.agent.md       # Template compilation
-│   └── smaqit.L2.agent.md       # Agent compilation
+│   ├── SMAQIT.md
+│   ├── AGENTS.md
+│   ├── ARTIFACTS.md
+│   ├── TEMPLATES.md
+│   └── SKILLS.md
+├── templates/
+│   └── agents/
+│       ├── base-agent.template.md
+│       ├── specification-agent.template.md
+│       ├── implementation-agent.template.md
+│       └── compiled/
+│           ├── base.rules.md
+│           ├── specification.rules.md
+│           └── implementation.rules.md
 └── skills/
-    └── smaqit.new-agent/         # Agent creation skill
+    ├── smaqit.new-agent/
+    │   └── SKILL.md
+    └── smaqit.new-skill/
         └── SKILL.md
 ```
 

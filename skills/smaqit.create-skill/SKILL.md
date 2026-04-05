@@ -37,7 +37,7 @@ Out of scope:
 
 | Situation | Action |
 |-----------|--------|
-| `smaqit.create-skill` agent not installed | Instruct the user to run `smaqit-adk init`, or install the agent manually into `.github/agents/` |
+| `smaqit.create-skill` agent not installed | Instruct the user to run `smaqit-adk lite`, or install the agent manually into `.github/agents/` |
 | Subagent invocation fails | Report the failure with context; do not silently retry |
 | User wants to create an agent instead | Stop; redirect to the `smaqit.create-agent` skill |
 | User abandons creation midway | The subagent handles this case; this skill does not intervene |
