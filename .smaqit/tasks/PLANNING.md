@@ -4,7 +4,7 @@
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
-| 014 | CLI create-agent / create-skill Fix | Not Started | Fix wrong agent context, remove timeout + ticker; local changes already made, need commit + release |
+
 | 018 | Level Skills Completion | Not Started | Author smaqit.new-principle, smaqit.new-template, smaqit.new-rules; update L0 definition file pattern; installer update; absorbs Task 006 |
 | 019 | Cross-Level Compilation (smaqit.compile) | Not Started | smaqit.compile.principle/template/agent skills; L0→L1→L2 chain via subagents; depends on Task 018 |
 | 020 | Lite-Tier Behavioral Evals | Not Started | Evals for smaqit.create-agent + smaqit.create-skill (skill + agent); independent of advanced tier |
@@ -14,7 +14,8 @@
 
 | ID | Title | Completed | Notes |
 |----|-------|-----------|-------|
-| 017 | CLI Tier Subcommands — Replace `init` with `lite` and `advanced` | 2026-04-03 | All 7/7 criteria met; breaking change; version bump required at release |
+| 014 | CLI create-agent / create-skill Fix | 2026-04-09 | All criteria met; shipped in adk-v0.5.0 (commit 9fe9d37) |
+| 017 | CLI Tier Subcommands — Replace `init` with `lite` and `advanced` | 2026-04-05 | All criteria met; breaking change; released as adk-v0.5.0 |
 | 011 | Interactive CLI Product (Advanced Tier) | 2026-04-03 | create-agent + create-skill complete; create-principle + validate deferred to Task 013 |
 | 016 | Lite Tier — Routing Skills for Natural Language Entry Points | 2026-04-03 | All 8/8 criteria met; user testing passed; natural language entry point working |
 | 012 | Lite Tier — Compiled Standalone Agents | 2026-03-29 | smaqit.create-agent + smaqit.create-skill compiled via L2; init repurposed to drop only these two files; no boilerplate |

@@ -1,6 +1,7 @@
 # CLI Tier Subcommands — Replace `init` with `lite` and `advanced`
 
-**Status:** In Progress  
+**Status:** Completed  
+**Completed:** 2026-04-05  
 **Created:** 2026-04-03
 
 ## Description
@@ -33,7 +34,7 @@ Replace the `smaqit-adk init` subcommand with two explicit tier subcommands. Ins
 - [x] `README.md` Quick Start uses `smaqit-adk lite`
 - [x] All unit tests pass (`cd tests && go test ./unit/...`)
 - [x] All structural tests pass (`cd tests && go test ./structural/...`)
-- [ ] Changes committed
+- [x] Changes committed
 
 ## Notes
 

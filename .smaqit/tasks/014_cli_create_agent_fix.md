@@ -1,7 +1,10 @@
 # CLI create-agent / create-skill Fix
 
-**Status:** Not Started  
-**Created:** 2026-03-31
+**Status:** Completed  
+**Mode:** Assisted  
+**Created:** 2026-03-31  
+**Started:** 2026-04-09  
+**Completed:** 2026-04-09
 
 ## Description
 
@@ -19,14 +22,14 @@ The original problem with L2 + new-agent: the skill's compilation step invokes L
 
 ## Acceptance Criteria
 
-- [ ] `smaqit-adk create-agent` uses `smaqit.create-agent.agent.md` as system context
-- [ ] `smaqit-adk create-skill` uses `smaqit.create-skill.agent.md` as system context
-- [ ] No session timeout — user can take as long as needed
-- [ ] No progress ticker output during the session
-- [ ] Agent scans repo before asking questions; asks only name + description/purpose explicitly; infers remaining sections from stated purpose and repo context; presents full draft for one confirmation pass before compiling
-- [ ] Output file is written to `.github/agents/[name].agent.md`
-- [ ] `make build` passes cleanly
-- [ ] Changes committed and released (patch version bump)
+- [x] `smaqit-adk create-agent` uses `smaqit.create-agent.agent.md` as system context
+- [x] `smaqit-adk create-skill` uses `smaqit.create-skill.agent.md` as system context
+- [x] No session timeout — user can take as long as needed
+- [x] No progress ticker output during the session
+- [x] Agent scans repo before asking questions; asks only name + description/purpose explicitly; infers remaining sections from stated purpose and repo context; presents full draft for one confirmation pass before compiling
+- [x] Output file is written to `.github/agents/[name].agent.md`
+- [x] `make build` passes cleanly
+- [x] Changes committed and released (patch version bump)
 
 ## Notes
 
