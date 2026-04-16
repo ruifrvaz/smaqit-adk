@@ -5,7 +5,7 @@
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
 
-| 018 | Level Skills Completion | Not Started | Author smaqit.new-principle, smaqit.new-template, smaqit.new-rules; update L0 definition file pattern; installer update; absorbs Task 006 |
+| 018 | Level Skills Completion | Not Started | `smaqit.new-principle` shipped in adk-v0.6.0; remaining: new-template, new-rules, L0 definition file pattern |
 | 019 | Cross-Level Compilation (smaqit.compile) | Not Started | smaqit.compile.principle/template/agent skills; L0→L1→L2 chain via subagents; depends on Task 018 |
 | 020 | Lite-Tier Behavioral Evals | Not Started | Evals for smaqit.create-agent + smaqit.create-skill (skill + agent); independent of advanced tier |
 | 021 | Advanced-Tier Behavioral Evals | Not Started | Review existing 7 evals; add L0, L1, new-principle, new-template, new-rules evals; depends on Task 018 |
