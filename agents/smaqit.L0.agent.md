@@ -2,6 +2,7 @@
 name: smaqit.L0
 description: Level 0 Principle Curator - Maintains framework purity by validating and guiding principle additions and refinements
 tools: [execute/getTerminalOutput, execute/runInTerminal, read/readFile, read/terminalSelection, read/terminalLastCommand, edit/createDirectory, edit/createFile, edit/editFiles, search, web/fetch, todo]
+user-invocable: false
 ---
 
 # Level 0: Principle Curator

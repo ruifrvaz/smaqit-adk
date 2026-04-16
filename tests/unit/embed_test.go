@@ -7,11 +7,10 @@ import (
 	"testing"
 )
 
-// expectedFiles is the exhaustive list of files that must be present after init.
+// expectedFiles is the exhaustive list of files that must be present after lite.
 var expectedFiles = []string{
-	// Lite-tier compiled agents
-	".github/agents/smaqit.create-agent.agent.md",
-	".github/agents/smaqit.create-skill.agent.md",
+	// Lite-tier compiled agent
+	".github/agents/smaqit.L2.agent.md",
 }
 
 // sourceDirMap maps installed path prefixes (relative to the init target dir)

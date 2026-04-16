@@ -2,6 +2,7 @@
 name: smaqit.L1
 description: Level 1 Template Compiler - Compiles Level 0 principles into Level 1 template directives while maintaining placeholder structure
 tools: [execute/getTerminalOutput, execute/runInTerminal, read/readFile, read/terminalSelection, read/terminalLastCommand, edit/createDirectory, edit/createFile, edit/editFiles, search, todo]
+user-invocable: false
 ---
 
 # Level 1: Template Compiler

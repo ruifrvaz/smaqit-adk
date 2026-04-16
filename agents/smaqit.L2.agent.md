@@ -2,6 +2,7 @@
 name: smaqit.L2
 description: Level 2 Compiler - Compiles Level 1 template directives and definition files into concrete agent and skill implementations
 tools: [execute/getTerminalOutput, execute/awaitTerminal, execute/runInTerminal, read/readFile, agent, edit, search, todo]
+user-invocable: false
 ---
 
 # Level 2: Agent and Skill Compiler
@@ -22,28 +23,28 @@ You are the **Level 2 Agent and Skill Compiler**. Your goal is to create agents 
 
 **L1 Template files:**
 
-**Agent templates** (`templates/agents/`):
-- `templates/agents/base-agent.template.md` (Foundation structure shared by all agents)
-- `templates/agents/specification-agent.template.md` (Specification workflow agents)
-- `templates/agents/implementation-agent.template.md` (Implementation workflow agents)
+**Agent templates** (`.smaqit/templates/agents/`):
+- `.smaqit/templates/agents/base-agent.template.md` (Foundation structure shared by all agents)
+- `.smaqit/templates/agents/specification-agent.template.md` (Specification workflow agents)
+- `.smaqit/templates/agents/implementation-agent.template.md` (Implementation workflow agents)
 
-**Compilation files** (`templates/agents/compiled/`):
-- `templates/agents/compiled/base.rules.md` (Base directives shared by all agents)
-- `templates/agents/compiled/specification.rules.md` (Specification-extension directives)
-- `templates/agents/compiled/implementation.rules.md` (Implementation-extension directives)
-- `templates/agents/compiled/[domain].rules.md` (User-created domain-specific directives, when applicable)
+**Compilation files** (`.smaqit/templates/agents/compiled/`):
+- `.smaqit/templates/agents/compiled/base.rules.md` (Base directives shared by all agents)
+- `.smaqit/templates/agents/compiled/specification.rules.md` (Specification-extension directives)
+- `.smaqit/templates/agents/compiled/implementation.rules.md` (Implementation-extension directives)
+- `.smaqit/templates/agents/compiled/[domain].rules.md` (User-created domain-specific directives, when applicable)
 
 **Agent definition files** (`.smaqit/definitions/agents/`):
-- `[name].md` — Agent specification written by the `smaqit.new-agent` skill or by an expert user directly. Primary input for base agent compilation.
+- `[name].md` — Agent specification written by the `smaqit.create-agent` skill or by an expert user directly. Primary input for base agent compilation.
 
-**Skill templates** (`templates/skills/`):
-- `templates/skills/base-skill.template.md` (Foundation structure for all skills)
+**Skill templates** (`.smaqit/templates/skills/`):
+- `.smaqit/templates/skills/base-skill.template.md` (Foundation structure for all skills)
 
-**Skill compilation files** (`templates/skills/compiled/`):
-- `templates/skills/compiled/skill.rules.md` (Compilation directives: degrees of freedom, conciseness, reference structure)
+**Skill compilation files** (`.smaqit/templates/skills/compiled/`):
+- `.smaqit/templates/skills/compiled/skill.rules.md` (Compilation directives: degrees of freedom, conciseness, reference structure)
 
 **Skill definition files** (`.smaqit/definitions/skills/`):
-- `[name].md` — Skill specification written by the `smaqit.new-skill` skill or by an expert user directly. Primary input for skill compilation.
+- `[name].md` — Skill specification written by the `smaqit.create-skill` skill or by an expert user directly. Primary input for skill compilation.
 
 **Agent files (Level 2):**
 
@@ -111,7 +112,6 @@ You are the **Level 2 Agent and Skill Compiler**. Your goal is to create agents 
 - Modify L0 framework files (`framework/*.md`)
 - Modify L1 templates (`templates/**/*.template.md`)
 - Modify development agents (`.github/agents/`)
-- Modify ADK-shipped meta-skills (`skills/smaqit.new-agent/SKILL.md`, `skills/smaqit.new-skill/SKILL.md`) without explicit user instruction — these drive the compilation workflow
 - Perform L0→L1 compilation (that is Agent-L1's responsibility)
 
 ### SHOULD
@@ -131,7 +131,7 @@ You are the **Level 2 Agent and Skill Compiler**. Your goal is to create agents 
 smaQit-adk supports three agent compilation patterns, enabling extensibility for any agent type:
 
 **Pattern 1: Base Agent Compilation (3-way merge)**
-- **Sources:** base-agent.template.md + base.rules.md + user specification (via new-agent prompt)
+- **Sources:** base-agent.template.md + base.rules.md + user specification (via definition file)
 - **Use case:** Q&A agents, helper agents, orchestrators, custom utilities, any general-purpose agent
 - **Hierarchy:** Foundation only (no workflow extensions)
 

@@ -10,8 +10,8 @@ When reasoning about or modifying the ADK, work exclusively with root-level arti
 
 | Path | Purpose |
 |------|---------|
-| `agents/` | Shipped agents: Level agents (L0, L1, L2) + compiled product agents (smaqit.create-agent, smaqit.create-skill) |
-| `skills/` | Advanced-tier skills (smaqit.new-agent, smaqit.new-skill) — require full ADK at runtime, not installed by `init` |
+| `agents/` | Shipped agents: Level agents (L0, L1, L2) |
+| `skills/` | ADK skills: create-agent, create-skill (lite tier); new-principle (advanced tier) |
 | `framework/` | L0 principle files |
 | `templates/` | L1 templates and compilation rules (agents and skills) |
 | `installer/` | Go CLI that packages and distributes the above |
@@ -35,8 +35,8 @@ The `.github/agents/` and `.github/skills/` directories in this repository conta
 
 ```
 smaqit-adk (this repo, root)
-├── agents/          ← ADK ships these (L0, L1, L2, smaqit.create-agent, smaqit.create-skill)
-├── skills/          ← ADK ships these (smaqit.new-agent, smaqit.new-skill) — expert/advanced tier
+├── agents/          ← ADK ships these (L0, L1, L2)
+├── skills/          ← ADK ships these (create-agent, create-skill, new-principle)
 ├── framework/       ← ADK ships these (principle files)
 ├── templates/       ← ADK ships these (compilation templates)
 └── installer/       ← packages all of the above into a binary
@@ -119,18 +119,17 @@ Agents declare their tool requirements in frontmatter. Tool sets vary by role:
 
 Skills live in `skills/` at the ADK root. Two tiers:
 
-**Lite-tier routing skills** (`smaqit.create-agent`, `smaqit.create-skill`) — installed by `smaqit-adk init` into `.github/skills/`. These are thin entry points that invoke the corresponding agents as subagents. They require no framework files or templates at runtime.
+**Lite-tier skills** (`smaqit.create-agent`, `smaqit.create-skill`) — installed by `smaqit-adk lite` into `.github/skills/`. These gather name and purpose from the user, scan the repository for context, infer a complete specification, write a definition file to `.smaqit/definitions/`, and invoke `smaqit.L2` to compile the agent or skill. Templates are required at runtime and are installed to `.smaqit/templates/`.
 
-**Advanced-tier skills** (`smaqit.new-agent`, `smaqit.new-skill`) — not installed by `init`. Require L2, framework files, and templates at runtime. Intended for ADK contributors and expert users operating the full compilation chain.
+**Advanced-tier skill** (`smaqit.new-principle`) — not installed by `lite`. Requires L0, L1, framework files at runtime (installed to `.smaqit/framework/` by `smaqit-adk advanced`).
 
 ### ADK-Shipped Skills
 
-| Skill | Tier | Installed by `init` | Purpose |
+| Skill | Tier | Installed by `lite` | Purpose |
 |-------|------|---------------------|---------|
-| `smaqit.create-agent` | Lite | Yes | Invoke the `smaqit.create-agent` agent as a subagent to create a new agent |
-| `smaqit.create-skill` | Lite | Yes | Invoke the `smaqit.create-skill` agent as a subagent to create a new skill |
-| `smaqit.new-agent` | Advanced | No | Gather agent specs interactively, write a definition file, and invoke L2 as a subagent to compile the agent |
-| `smaqit.new-skill` | Advanced | No | Gather skill specs interactively, write a definition file, and invoke L2 as a subagent to compile the skill |
+| `smaqit.create-agent` | Lite | Yes | Gather name+purpose, infer spec, write definition file, invoke L2 to compile agent |
+| `smaqit.create-skill` | Lite | Yes | Gather name+purpose, infer spec, write definition file, invoke L2 to compile skill |
+| `smaqit.new-principle` | Advanced | No | Add or refine a principle in the ADK framework files |
 
 ### Skill Format
 

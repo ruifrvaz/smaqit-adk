@@ -28,10 +28,9 @@ func TestCmdLite(t *testing.T) {
 		t.Errorf("expected directory .github/agents/ after lite")
 	}
 
-	// Only the two lite-tier agents and two routing skills are installed.
+	// L2 agent and routing skills are installed.
 	files := []string{
-		".github/agents/smaqit.create-agent.agent.md",
-		".github/agents/smaqit.create-skill.agent.md",
+		".github/agents/smaqit.L2.agent.md",
 		".github/skills/smaqit.create-agent/SKILL.md",
 		".github/skills/smaqit.create-skill/SKILL.md",
 	}
@@ -41,13 +40,17 @@ func TestCmdLite(t *testing.T) {
 		}
 	}
 
-	// Framework, templates, and Level agents are NOT installed.
+	// Templates installed into .smaqit/templates/
+	templatesDir := filepath.Join(dir, ".smaqit", "templates")
+	if info, err := os.Stat(templatesDir); err != nil || !info.IsDir() {
+		t.Errorf("expected directory .smaqit/templates/ after lite")
+	}
+
+	// L0/L1 agents and framework are NOT installed.
 	notPresent := []string{
-		".smaqit/agents/smaqit.L0.agent.md",
-		".smaqit/agents/smaqit.L1.agent.md",
-		".smaqit/agents/smaqit.L2.agent.md",
+		".github/agents/smaqit.L0.agent.md",
+		".github/agents/smaqit.L1.agent.md",
 		".smaqit/framework",
-		".smaqit/templates",
 	}
 	for _, f := range notPresent {
 		if _, err := os.Stat(filepath.Join(dir, f)); !os.IsNotExist(err) {
@@ -63,8 +66,7 @@ func TestCmdLite_Idempotent(t *testing.T) {
 	mustLite(t, dir2)
 
 	probes := []string{
-		".github/agents/smaqit.create-agent.agent.md",
-		".github/agents/smaqit.create-skill.agent.md",
+		".github/agents/smaqit.L2.agent.md",
 		".github/skills/smaqit.create-agent/SKILL.md",
 		".github/skills/smaqit.create-skill/SKILL.md",
 	}
@@ -94,8 +96,7 @@ func TestCmdLite_AlreadyExists(t *testing.T) {
 	}
 	// Non-destructive: existing installation must still be intact.
 	for _, f := range []string{
-		".github/agents/smaqit.create-agent.agent.md",
-		".github/agents/smaqit.create-skill.agent.md",
+		".github/agents/smaqit.L2.agent.md",
 		".github/skills/smaqit.create-agent/SKILL.md",
 		".github/skills/smaqit.create-skill/SKILL.md",
 	} {
@@ -118,13 +119,10 @@ func TestCmdUninstall_Lite(t *testing.T) {
 	}
 
 	for _, removed := range []string{
-		".github/agents/smaqit.create-agent.agent.md",
-		".github/agents/smaqit.create-skill.agent.md",
-		".github/skills/smaqit.create-agent/SKILL.md",
-		".github/skills/smaqit.create-skill/SKILL.md",
-		".github/agents",
+		".github/agents/smaqit.L2.agent.md",
 		".github/skills/smaqit.create-agent",
 		".github/skills/smaqit.create-skill",
+		".smaqit",
 	} {
 		if _, err := os.Stat(filepath.Join(dir, removed)); !os.IsNotExist(err) {
 			t.Errorf("expected %s to be removed after uninstall lite", removed)
@@ -139,11 +137,11 @@ func TestCmdAdvanced(t *testing.T) {
 		t.Fatalf("advanced failed (exit %d):\n%s", code, out)
 	}
 
-	// Level agents installed into .smaqit/agents/
+	// All agents installed: L2 (via lite), L0+L1 (via advanced)
 	agentFiles := []string{
-		".smaqit/agents/smaqit.L0.agent.md",
-		".smaqit/agents/smaqit.L1.agent.md",
-		".smaqit/agents/smaqit.L2.agent.md",
+		".github/agents/smaqit.L2.agent.md",
+		".github/agents/smaqit.L0.agent.md",
+		".github/agents/smaqit.L1.agent.md",
 	}
 	for _, f := range agentFiles {
 		if _, err := os.Stat(filepath.Join(dir, f)); err != nil {
@@ -163,25 +161,15 @@ func TestCmdAdvanced(t *testing.T) {
 		t.Errorf("expected directory .smaqit/templates/ after advanced")
 	}
 
-	// Advanced skills installed into .smaqit/skills/
+	// All skills installed
 	skillFiles := []string{
-		".smaqit/skills/smaqit.new-agent/SKILL.md",
-		".smaqit/skills/smaqit.new-skill/SKILL.md",
+		".github/skills/smaqit.create-agent/SKILL.md",
+		".github/skills/smaqit.create-skill/SKILL.md",
+		".github/skills/smaqit.new-principle/SKILL.md",
 	}
 	for _, f := range skillFiles {
 		if _, err := os.Stat(filepath.Join(dir, f)); err != nil {
 			t.Errorf("expected file %s after advanced: %v", f, err)
-		}
-	}
-
-	// Lite-tier .github/ content is NOT installed by advanced
-	notPresent := []string{
-		".github/agents/smaqit.create-agent.agent.md",
-		".github/agents/smaqit.create-skill.agent.md",
-	}
-	for _, f := range notPresent {
-		if _, err := os.Stat(filepath.Join(dir, f)); !os.IsNotExist(err) {
-			t.Errorf("expected %s to NOT be present after advanced-only install", f)
 		}
 	}
 }
@@ -197,11 +185,12 @@ func TestCmdAdvanced_Idempotent(t *testing.T) {
 	}
 
 	probes := []string{
-		".smaqit/agents/smaqit.L0.agent.md",
-		".smaqit/agents/smaqit.L1.agent.md",
-		".smaqit/agents/smaqit.L2.agent.md",
-		".smaqit/skills/smaqit.new-agent/SKILL.md",
-		".smaqit/skills/smaqit.new-skill/SKILL.md",
+		".github/agents/smaqit.L0.agent.md",
+		".github/agents/smaqit.L1.agent.md",
+		".github/agents/smaqit.L2.agent.md",
+		".github/skills/smaqit.create-agent/SKILL.md",
+		".github/skills/smaqit.create-skill/SKILL.md",
+		".github/skills/smaqit.new-principle/SKILL.md",
 	}
 	for _, f := range probes {
 		c1, err1 := os.ReadFile(filepath.Join(dir1, f))
@@ -232,8 +221,8 @@ func TestCmdAdvanced_AlreadyExists(t *testing.T) {
 	}
 	// Non-destructive: existing installation must still be intact.
 	for _, f := range []string{
-		".smaqit/agents/smaqit.L0.agent.md",
-		".smaqit/skills/smaqit.new-agent/SKILL.md",
+		".github/agents/smaqit.L0.agent.md",
+		".github/skills/smaqit.new-principle/SKILL.md",
 	} {
 		if _, err := os.Stat(filepath.Join(dir, f)); err != nil {
 			t.Errorf("file %s removed by failed second advanced: %v", f, err)
@@ -256,14 +245,27 @@ func TestCmdUninstall_Advanced(t *testing.T) {
 		t.Fatalf("uninstall advanced failed:\n%s", string(out2))
 	}
 
+	// Advanced-specific components removed
 	for _, removed := range []string{
-		".smaqit/agents",
+		".github/agents/smaqit.L0.agent.md",
+		".github/agents/smaqit.L1.agent.md",
+		".github/skills/smaqit.new-principle",
 		".smaqit/framework",
-		".smaqit/templates",
-		".smaqit/skills",
 	} {
 		if _, err := os.Stat(filepath.Join(dir, removed)); !os.IsNotExist(err) {
 			t.Errorf("expected %s to be removed after uninstall advanced", removed)
+		}
+	}
+
+	// Lite-tier components remain
+	for _, kept := range []string{
+		".github/agents/smaqit.L2.agent.md",
+		".github/skills/smaqit.create-agent/SKILL.md",
+		".github/skills/smaqit.create-skill/SKILL.md",
+		".smaqit/templates",
+	} {
+		if _, err := os.Stat(filepath.Join(dir, kept)); err != nil {
+			t.Errorf("expected %s to still be present after uninstall advanced: %v", kept, err)
 		}
 	}
 }
