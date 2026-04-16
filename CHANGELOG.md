@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-16
+
+### Added
+
+- `smaqit.new-principle` skill — advanced-tier entry point for adding or refining principles in the ADK framework; installed by `smaqit-adk advanced`
+- Inference-first creation flow for `smaqit.create-agent` and `smaqit.create-skill`: scans repo, infers full specification from name and purpose, writes a definition file to `.smaqit/definitions/`, invokes `smaqit.L2` to compile — no draft, no confirmation step
+
+### Changed
+
+- `smaqit-adk lite` now installs `smaqit.L2` agent + templates (`.smaqit/templates/`) + `smaqit.create-agent` / `smaqit.create-skill` skills; no longer installs compiled product agents
+- `smaqit-adk advanced` now installs lite tier as a superset, then adds L0/L1 agents + framework + `smaqit.new-principle`
+- `smaqit-adk uninstall lite` now removes entire `.smaqit/` directory (templates + user definition files)
+- `smaqit-adk uninstall advanced` removes advanced-only components (L0/L1, new-principle, `.smaqit/framework/`) while preserving lite tier
+- `smaqit.create-agent` and `smaqit.create-skill` skills rewritten to inference-first pattern (v2.0.0)
+- Copilot SDK dependency removed from installer; `go.mod` cleaned up
+
+### Removed
+
+- `smaqit.create-agent` and `smaqit.create-skill` compiled agents (L2 is now the compiler)
+- `smaqit.new-agent` and `smaqit.new-skill` skills (replaced by rewritten `smaqit.create-*` skills)
+
 ## [0.5.0] - 2026-04-05
 
 ### Added
@@ -122,7 +143,8 @@ smaqit-adk is a **generic agent development toolkit**, not tied to any specific 
 
 The [smaQit product](https://github.com/ruifrvaz/smaqit) demonstrates one possible use case (five-layer specification system), but ADK users can create entirely different architectures.
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.5.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.6.0...HEAD
+[0.6.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.5.0...adk-v0.6.0
 [0.5.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.4.0...adk-v0.5.0
 [0.4.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.3.2...adk-v0.4.0
 [0.3.2]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.3.1...adk-v0.3.2
