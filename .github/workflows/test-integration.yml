@@ -33,26 +33,27 @@ jobs:
       - name: Validate lite-tier ADK structure
         working-directory: installer/test-project-lite
         run: |
-          # Lite-tier agents (2)
-          test -f .github/agents/smaqit.create-agent.agent.md || (echo "Error: smaqit.create-agent.agent.md not found" && exit 1)
-          test -f .github/agents/smaqit.create-skill.agent.md || (echo "Error: smaqit.create-skill.agent.md not found" && exit 1)
+          # L2 compiler agent
+          test -f .github/agents/smaqit.L2.agent.md || (echo "Error: smaqit.L2.agent.md not found" && exit 1)
 
           # Lite-tier routing skills (2)
           test -f .github/skills/smaqit.create-agent/SKILL.md || (echo "Error: smaqit.create-agent/SKILL.md not found" && exit 1)
           test -f .github/skills/smaqit.create-skill/SKILL.md || (echo "Error: smaqit.create-skill/SKILL.md not found" && exit 1)
 
-          echo "✓ All 4 ADK files validated"
+          # Compilation templates
+          test -d .smaqit/templates || (echo "Error: .smaqit/templates/ not found" && exit 1)
+
+          echo "✓ All lite-tier ADK files validated"
 
       - name: Verify lite-tier install boundaries
         working-directory: installer/test-project-lite
         run: |
-          # Framework and templates must NOT be distributed by lite
-          test ! -d .smaqit || (echo "Error: .smaqit/ should not be created by lite" && exit 1)
-
-          # Level agents must NOT be installed by lite
+          # Level 0 and 1 agents must NOT be installed by lite
           test ! -f .github/agents/smaqit.L0.agent.md || (echo "Error: L0 agent should not be installed by lite" && exit 1)
           test ! -f .github/agents/smaqit.L1.agent.md || (echo "Error: L1 agent should not be installed by lite" && exit 1)
-          test ! -f .github/agents/smaqit.L2.agent.md || (echo "Error: L2 agent should not be installed by lite" && exit 1)
+
+          # new-principle skill must NOT be installed by lite
+          test ! -f .github/skills/smaqit.new-principle/SKILL.md || (echo "Error: new-principle skill should not be installed by lite" && exit 1)
 
           # Prompts directory must NOT be created by lite
           test ! -d .github/prompts || (echo "Error: .github/prompts/ should not be created by lite" && exit 1)
@@ -69,10 +70,10 @@ jobs:
       - name: Validate advanced-tier ADK structure
         working-directory: installer/test-project-advanced
         run: |
-          # Level agents
-          test -f .smaqit/agents/smaqit.L0.agent.md || (echo "Error: smaqit.L0.agent.md not found" && exit 1)
-          test -f .smaqit/agents/smaqit.L1.agent.md || (echo "Error: smaqit.L1.agent.md not found" && exit 1)
-          test -f .smaqit/agents/smaqit.L2.agent.md || (echo "Error: smaqit.L2.agent.md not found" && exit 1)
+          # Level agents (installed to .github/agents/)
+          test -f .github/agents/smaqit.L0.agent.md || (echo "Error: smaqit.L0.agent.md not found" && exit 1)
+          test -f .github/agents/smaqit.L1.agent.md || (echo "Error: smaqit.L1.agent.md not found" && exit 1)
+          test -f .github/agents/smaqit.L2.agent.md || (echo "Error: smaqit.L2.agent.md not found" && exit 1)
 
           # Framework
           test -d .smaqit/framework || (echo "Error: .smaqit/framework/ not found" && exit 1)
@@ -82,17 +83,18 @@ jobs:
           test -d .smaqit/templates || (echo "Error: .smaqit/templates/ not found" && exit 1)
           test -f .smaqit/templates/agents/base-agent.template.md || (echo "Error: base-agent.template.md not found" && exit 1)
 
-          # Advanced skills
-          test -f .smaqit/skills/smaqit.new-agent/SKILL.md || (echo "Error: smaqit.new-agent/SKILL.md not found" && exit 1)
-          test -f .smaqit/skills/smaqit.new-skill/SKILL.md || (echo "Error: smaqit.new-skill/SKILL.md not found" && exit 1)
+          # Advanced skills (installed to .github/skills/)
+          test -f .github/skills/smaqit.new-principle/SKILL.md || (echo "Error: smaqit.new-principle/SKILL.md not found" && exit 1)
 
           echo "✓ Advanced-tier ADK structure validated"
 
       - name: Verify advanced-tier boundaries
         working-directory: installer/test-project-advanced
         run: |
-          # Lite-tier .github/ content must NOT be installed by advanced
-          test ! -f .github/agents/smaqit.create-agent.agent.md || (echo "Error: lite agent should not be installed by advanced" && exit 1)
-          test ! -f .github/agents/smaqit.create-skill.agent.md || (echo "Error: lite agent should not be installed by advanced" && exit 1)
+          # Lite-tier .github/ content must NOT be re-installed by advanced separately
+          # (they are installed via installLiteComponents, so they will exist — just not duplicated)
+
+          # Prompts directory must NOT be created by advanced
+          test ! -d .github/prompts || (echo "Error: .github/prompts/ should not be created by advanced" && exit 1)
 
           echo "✓ Advanced-tier install boundaries verified"
