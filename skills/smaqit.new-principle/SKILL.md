@@ -9,10 +9,6 @@ metadata:
 
 Invokes the `smaqit.L0` agent as a subagent to gather, validate, and add a principle to the appropriate `framework/*.md` file. Use when the user wants to add or refine a framework principle.
 
-## Purpose
-
-Provides a natural language and slash-command entry point for principle authoring. All specification gathering, form validation, conflict checking, and framework file editing logic lives inside `smaqit.L0`. Running as a subagent gives the agent a clean context — free of the current session's loaded agents, instructions, and file context.
-
 ## Steps
 
 1. Invoke `smaqit.L0` as a subagent. Pass the instruction: "The user wants to add or refine a framework principle."

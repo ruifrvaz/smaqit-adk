@@ -74,7 +74,6 @@ The following placeholders appear in `templates/skills/base-skill.template.md`. 
 | `[SKILL_DESCRIPTION]` | Activation signal in YAML frontmatter `description` field. Third person. What + when. |
 | `[SKILL_VERSION]` | Semantic version string in `metadata.version` field. Start at `"1.0.0"`. |
 | `[SKILL_TITLE]` | Display heading for the compiled skill document. |
-| `[PURPOSE_CONTENT]` | 2–3 sentences: what the skill does, what it produces, and what triggers it. |
 | `[STEPS_CONTENT]` | Ordered procedure the agent follows. Each step written at the appropriate degree of freedom (see Degrees of Freedom below). |
 | `[OUTPUT_CONTENT]` | Artifact produced, its path, and the subagent invoked (if any). |
 | `[SCOPE_CONTENT]` | What this skill does NOT handle. Redirections to other agents or skills where applicable. |
@@ -134,15 +133,14 @@ Insert the following as the foundation of `[FAILURE_HANDLING_CONTENT]`:
 When compiling a skill from a definition file:
 
 1. **Read definition file** (`.smaqit/definitions/skills/[name].md`) for skill specifications
-2. **Confirm definition is complete** — all required sections present (identity, purpose, steps, output, scope, completion, failure handling). If any section is missing, stop and request it before proceeding.
+2. **Confirm definition is complete** — all required sections present (identity, steps, output, scope, completion, failure handling). If any section is missing, stop and request it before proceeding.
 3. **Read base skill template** (`templates/skills/base-skill.template.md`) for structure
 4. **Read this rules file** for directives and placeholder catalog
 5. **Compile:**
    - Fill `[SKILL_NAME]` from definition identity
-   - Fill `[SKILL_DESCRIPTION]` from definition purpose — third person, what + when
+   - Fill `[SKILL_DESCRIPTION]` from definition identity — third person, what + when; if not explicitly provided, infer from skill name and project context
    - Fill `[SKILL_VERSION]` from definition identity (default `"1.0.0"` if not specified)
    - Fill `[SKILL_TITLE]` as a readable title derived from the skill name
-   - Fill `[PURPOSE_CONTENT]` from definition purpose section
    - Fill `[STEPS_CONTENT]` from definition steps — apply degrees of freedom per step fragility
    - Fill `[OUTPUT_CONTENT]` from definition output section
    - Fill `[SCOPE_CONTENT]` from definition scope section

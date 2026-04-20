@@ -7,17 +7,11 @@ metadata:
 
 # Create Agent
 
-## Purpose
-
-Creates a new agent by inferring a complete specification from minimal input and project context, writing a definition file, and invoking `smaqit.L2` to compile the agent.
-
 ## Steps
 
 ### 1. Gather
 
-Ask the user for two things in a single message:
-- **Name** — lowercase, hyphens allowed (e.g., `my-reviewer`)
-- **Purpose** — what the agent does and what it produces
+Ask the user for the agent **name** in a single message (lowercase, hyphens allowed, e.g., `my-reviewer`). The description will be inferred from the name and scanned context.
 
 ### 2. Scan
 
@@ -30,7 +24,7 @@ Also extract any relevant detail the user has already provided in the conversati
 
 ### 3. Infer and write definition file
 
-Using name, purpose, and scanned context, infer a complete agent specification. Do not ask further questions.
+Using the name and scanned context, infer a complete agent specification. Do not ask further questions.
 
 Write the inferred specification to `.smaqit/definitions/agents/[name].md`. Create the directory if it does not exist.
 
@@ -69,7 +63,7 @@ Does not create skills, framework files, templates, or Level agents. Does not mo
 
 ## Completion
 
-- [ ] Name and purpose obtained from user
+- [ ] Name obtained from user
 - [ ] Repository scanned for context
 - [ ] Definition file written to `.smaqit/definitions/agents/[name].md`
 - [ ] `smaqit.L2` invoked and compilation completed
@@ -79,7 +73,7 @@ Does not create skills, framework files, templates, or Level agents. Does not mo
 
 | Situation | Action |
 |-----------|--------|
-| Name or purpose not provided | Request before proceeding |
+| Name not provided | Request before proceeding |
 | `.smaqit/templates/` not present | Inform the user that ADK templates are required — run `smaqit-adk lite` in this repository first |
 | Output artifact already exists | Report the conflict; do not overwrite without user confirmation |
 | L2 invocation fails | Report the error and include the path to the definition file so the user can inspect or correct it |

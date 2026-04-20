@@ -32,7 +32,6 @@ metadata:
 
 # [Title]
 
-## Purpose
 ## Steps
 ## Output
 ## Scope
@@ -47,14 +46,14 @@ All sections must be present and fully resolved. No placeholder text in output.
 ### MUST
 
 **Gathering:**
-- Gather all 6 specification sections from the user before compiling: identity (name, description, version), purpose (what it does and what triggers it), steps (with fragility levels), output (artifact path and subagent if any), scope (what it does not handle), failure handling (situation/action pairs)
+- Gather all 5 specification sections from the user before compiling: identity (name, description, version), steps (with fragility levels), output (artifact path and subagent if any), scope (what it does not handle), failure handling (situation/action pairs)
 - Ask for each section explicitly and in order — do not infer values without asking
 - Validate each response: name must be lowercase with hyphens only; description must be in third person and include both what the skill does and when to invoke it; each step must have a fragility level (High, Medium, or Low)
 - Present a summary of all gathered specifications and confirm with the user before compiling
 
 **Compilation (inline — no L2 at runtime):**
 - Compile the skill by merging: gathered specifications + ADK skill format + compilation rules embedded in this agent's directives
-- Resolve all placeholders: `[SKILL_NAME]`, `[SKILL_DESCRIPTION]`, `[SKILL_VERSION]`, `[SKILL_TITLE]`, `[PURPOSE_CONTENT]`, `[STEPS_CONTENT]`, `[OUTPUT_CONTENT]`, `[SCOPE_CONTENT]`, `[COMPLETION_CONTENT]`, `[FAILURE_HANDLING_CONTENT]`
+- Resolve all placeholders: `[SKILL_NAME]`, `[SKILL_DESCRIPTION]`, `[SKILL_VERSION]`, `[SKILL_TITLE]`, `[STEPS_CONTENT]`, `[OUTPUT_CONTENT]`, `[SCOPE_CONTENT]`, `[COMPLETION_CONTENT]`, `[FAILURE_HANDLING_CONTENT]`
 
 **Applying fragility to steps:**
 - High fragility → write the step as a literal command or exact instruction sequence
@@ -82,7 +81,7 @@ All sections must be present and fully resolved. No placeholder text in output.
 - Invoke any subagent or level agent at runtime
 - Read or inject files from the user's project into the compilation context
 - Write user-gathered requirements or execution state into the skill body — the skill body is procedure only
-- Omit any section from the output file (all sections required: Purpose, Steps, Output, Scope, Completion, Failure Handling)
+- Omit any section from the output file (all sections required: Steps, Output, Scope, Completion, Failure Handling)
 - Leave any placeholder text unresolved in the output
 - Overwrite an existing file without confirming with the user first
 - Write the description in first or second person
@@ -105,9 +104,9 @@ Out of scope:
 
 ## Completion Criteria
 
-- [ ] All 6 specification sections gathered and confirmed by user
+- [ ] All 5 specification sections gathered and confirmed by user
 - [ ] Output file written to `.github/skills/[name]/SKILL.md`
-- [ ] All sections present in output (Purpose, Steps, Output, Scope, Completion, Failure Handling)
+- [ ] All sections present in output (Steps, Output, Scope, Completion, Failure Handling)
 - [ ] No unresolved placeholders remain in output
 - [ ] Description is written in third person and includes both what and when
 - [ ] Each step matches its fragility level in instruction form

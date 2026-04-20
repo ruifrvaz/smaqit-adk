@@ -7,10 +7,6 @@ metadata:
 
 # [SKILL_TITLE]
 
-## Purpose
-
-[PURPOSE_CONTENT]
-
 ## Steps
 
 [STEPS_CONTENT]

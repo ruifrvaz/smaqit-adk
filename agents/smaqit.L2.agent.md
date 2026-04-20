@@ -220,12 +220,11 @@ smaQit-adk supports three agent compilation patterns, enabling extensibility for
 ### For Skills:
 
 1. **Read definition file** (`.smaqit/definitions/skills/[name].md`) for skill specifications
-2. **Confirm definition is complete** — all sections present (identity, purpose, steps with fragility levels, output, scope, completion, failure handling). If any section is missing, stop and request it before proceeding.
+2. **Confirm definition is complete** — all sections present (identity, steps with fragility levels, output, scope, completion, failure handling). If any section is missing, stop and request it before proceeding.
 3. **Read skill template** (`templates/skills/base-skill.template.md`) for structure
 4. **Read skill rules** (`templates/skills/compiled/skill.rules.md`) for compilation directives — degrees of freedom per step fragility, conciseness requirements, reference structure constraints
 5. **Compile (3-way merge):**
    - Fill `[SKILL_NAME]`, `[SKILL_DESCRIPTION]`, `[SKILL_VERSION]`, `[SKILL_TITLE]` from definition identity
-   - Fill `[PURPOSE_CONTENT]` from definition purpose
    - Fill `[STEPS_CONTENT]` from definition steps — apply degrees-of-freedom: high fragility → exact instructions, medium → template or pseudocode, low → prose guidance
    - Fill `[OUTPUT_CONTENT]` from definition output section
    - Fill `[SCOPE_CONTENT]` from definition scope section
