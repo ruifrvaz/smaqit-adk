@@ -130,7 +130,7 @@ func findSection(body, heading string) (bool, []string) {
 
 func TestSkillRequiredSections(t *testing.T) {
 	required := []string{
-		"## Purpose", "## Steps", "## Output",
+		"## Steps", "## Output",
 		"## Scope", "## Completion", "## Failure Handling",
 	}
 	for _, path := range findFiles(t, filepath.Join(sourceRoot, "skills"), "SKILL.md") {

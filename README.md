@@ -117,13 +117,12 @@ or explicitly:
 
 Copilot activates the skill and invokes `@smaqit.create-skill` as a subagent.
 
-`smaqit.create-skill` gathers 6 specification sections:
+`smaqit.create-skill` gathers 5 specification sections:
 1. Identity (name, description, version)
-2. Purpose
-3. Steps with fragility levels
-4. Output
-5. Scope
-6. Failure handling
+2. Steps with fragility levels
+3. Output
+4. Scope
+5. Failure handling
 
 Then it compiles and writes `.github/skills/[name]/SKILL.md`.
 
