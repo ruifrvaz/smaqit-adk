@@ -4,7 +4,7 @@
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
-
+| 022 | Skill Format Spec Alignment | Not Started | Align create-skill, base template, and skill.rules.md with agentskills.io spec; add gotchas, examples, allowed-tools, compatibility, progressive disclosure |
 | 018 | Level Skills Completion | Not Started | `smaqit.new-principle` shipped in adk-v0.6.0; remaining: new-template, new-rules, L0 definition file pattern |
 | 019 | Cross-Level Compilation (smaqit.compile) | Not Started | smaqit.compile.principle/template/agent skills; L0→L1→L2 chain via subagents; depends on Task 018 |
 | 020 | Lite-Tier Behavioral Evals | Not Started | Evals for smaqit.create-agent + smaqit.create-skill (skill + agent); independent of advanced tier |
