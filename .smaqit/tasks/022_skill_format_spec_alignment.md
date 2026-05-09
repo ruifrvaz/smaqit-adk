@@ -1,7 +1,9 @@
 # Skill Format Spec Alignment
 
-**Status:** Not Started  
-**Created:** 2026-05-09
+**Status:** In Progress  
+**Mode:** Autonomous  
+**Created:** 2026-05-09  
+**Started:** 2026-05-09
 
 ## Description
 
