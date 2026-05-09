@@ -4,7 +4,6 @@
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
-| 022 | Skill Format Spec Alignment | In Progress | Align create-skill, base template, and skill.rules.md with agentskills.io spec; add gotchas, examples, allowed-tools, compatibility, progressive disclosure |
 | 018 | Level Skills Completion | Not Started | `smaqit.new-principle` shipped in adk-v0.6.0; remaining: new-template, new-rules, L0 definition file pattern |
 | 019 | Cross-Level Compilation (smaqit.compile) | Not Started | smaqit.compile.principle/template/agent skills; L0→L1→L2 chain via subagents; depends on Task 018 |
 | 020 | Lite-Tier Behavioral Evals | Not Started | Evals for smaqit.create-agent + smaqit.create-skill (skill + agent); independent of advanced tier |
@@ -14,6 +13,7 @@
 
 | ID | Title | Completed | Notes |
 |----|-------|-----------|-------|
+| 022 | Skill Format Spec Alignment | 2026-05-09 | All criteria met; create-skill, base template, skill.rules.md aligned with agentskills.io spec |
 | 014 | CLI create-agent / create-skill Fix | 2026-04-09 | All criteria met; shipped in adk-v0.5.0 (commit 9fe9d37) |
 | 017 | CLI Tier Subcommands — Replace `init` with `lite` and `advanced` | 2026-04-05 | All criteria met; breaking change; released as adk-v0.5.0 |
 | 011 | Interactive CLI Product (Advanced Tier) | 2026-04-03 | create-agent + create-skill complete; create-principle + validate deferred to Task 013 |

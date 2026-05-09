@@ -31,7 +31,7 @@ Skills are expressed as YAML frontmatter followed by a markdown body.
 | Field | Constraint |
 |-------|------------|
 | `name` | Skill identifier. Maximum 64 characters. Lowercase letters, numbers, and hyphens only. Loaded at discovery alongside `description`. |
-| `description` | Activation signal. Maximum 1024 characters. Must be written in third person. Must explain what the skill does and when to use it. The sole content used to determine whether the skill matches a task. |
+| `description` | Activation signal. Maximum 1024 characters. Must use imperative phrasing directed at the agent: "Use this skill when..." or "Use when...". Must describe user intent (what the user is trying to achieve) not implementation mechanics. Must state what the skill produces. Should cover indirect trigger contexts — situations where the skill is relevant even if the user doesn't use the exact domain keyword. |
 | `metadata.version` | Semantic version string for the skill. |
 
 **Body:** Markdown prose containing the skill's procedure. The body is read-only at runtime — unchanged between executions.
@@ -49,6 +49,8 @@ Skills are expressed as YAML frontmatter followed by a markdown body.
 Discovery is cheap by design — the full body never loads unless the skill is relevant. The description carries the activation decision; the body carries the execution instructions.
 
 **Structural growth:** When a skill requires supporting reference content, that content lives in files bundled within the skill directory — including in subdirectories (`scripts/`, `references/`, `assets/`). All such files MUST be referenced directly from `SKILL.md`. Reference files longer than 100 lines MUST include a table of contents at the top. Reference chains must not be nested: a file referenced by `SKILL.md` cannot itself reference another file.
+
+**Progressive disclosure directive:** When compiling a skill whose body would exceed 400 lines, Agent-L2 MUST extract detailed reference content into a `references/` subdirectory and link from `SKILL.md` with explicit load conditions. Example: "Read `references/api-errors.md` if the API returns a non-200 status." The main `SKILL.md` body must remain under 400 lines after extraction.
 
 ---
 
@@ -71,14 +73,18 @@ The following placeholders appear in `templates/skills/base-skill.template.md`. 
 | Placeholder | Description |
 |-------------|-------------|
 | `[SKILL_NAME]` | Skill identifier in YAML frontmatter `name` field. Lowercase, hyphens only. |
-| `[SKILL_DESCRIPTION]` | Activation signal in YAML frontmatter `description` field. Third person. What + when. |
+| `[SKILL_DESCRIPTION]` | Activation signal in YAML frontmatter `description` field. Maximum 1024 characters. Must use imperative phrasing ("Use when..." or "Use this skill when..."). Must describe the user's intent and what the skill produces. Should include indirect trigger contexts. Must not describe internal implementation mechanics. |
 | `[SKILL_VERSION]` | Semantic version string in `metadata.version` field. Start at `"1.0.0"`. |
 | `[SKILL_TITLE]` | Display heading for the compiled skill document. |
 | `[STEPS_CONTENT]` | Ordered procedure the agent follows. Each step written at the appropriate degree of freedom (see Degrees of Freedom below). |
 | `[OUTPUT_CONTENT]` | Artifact produced, its path, and the subagent invoked (if any). |
 | `[SCOPE_CONTENT]` | What this skill does NOT handle. Redirections to other agents or skills where applicable. |
+| `[EXAMPLES_CONTENT]` | At least one concrete example: a representative triggering request and the output produced. |
+| `[GOTCHAS_CONTENT]` | Environment-specific facts the agent must know before executing. Non-obvious corrections to mistakes it would make without instruction. Proactive, not reactive. If none apply, write "None identified." |
 | `[COMPLETION_CONTENT]` | How the agent knows the skill is done. Checklist of verifiable conditions. |
 | `[FAILURE_HANDLING_CONTENT]` | Situation/action table for failure modes. |
+| `[COMPATIBILITY]` | Optional. Environment requirements for this skill (agent product, system packages, network). Omit from compiled output if not specified. |
+| `[ALLOWED_TOOLS]` | Optional. Space-separated pre-approved tools (e.g., `Bash(git:*) Read`). Omit from compiled output if not specified. |
 
 ---
 
@@ -92,9 +98,10 @@ The following placeholders appear in `templates/skills/base-skill.template.md`. 
 - MUST NOT write execution records or state into the skill body
 
 **Description-Driven Activation:**
-- MUST write `[SKILL_DESCRIPTION]` in third person
-- MUST include both what the skill does and when to invoke it in the description
-- MUST NOT use first person ("I can...") or second person ("You can use this to...")
+- MUST write `[SKILL_DESCRIPTION]` using imperative phrasing directed at the agent: "Use this skill when..." or "Use when..."
+- MUST describe the user's intent and what the skill produces — not internal implementation mechanics
+- SHOULD cover indirect trigger contexts where the skill is relevant even if the user doesn't use the exact domain keyword
+- MUST NOT use first person ("I can...") or declarative third-person opening ("Creates a...", "Packages a...")
 - MUST write the description with enough precision to distinguish the skill from adjacent skills
 
 **Degrees of Freedom:**
@@ -138,14 +145,19 @@ When compiling a skill from a definition file:
 4. **Read this rules file** for directives and placeholder catalog
 5. **Compile:**
    - Fill `[SKILL_NAME]` from definition identity
-   - Fill `[SKILL_DESCRIPTION]` from definition identity — third person, what + when; if not explicitly provided, infer from skill name and project context
+   - Fill `[SKILL_DESCRIPTION]` from definition identity — imperative phrasing, user intent + output; if not explicitly provided, infer from skill name and project context
    - Fill `[SKILL_VERSION]` from definition identity (default `"1.0.0"` if not specified)
    - Fill `[SKILL_TITLE]` as a readable title derived from the skill name
    - Fill `[STEPS_CONTENT]` from definition steps — apply degrees of freedom per step fragility
    - Fill `[OUTPUT_CONTENT]` from definition output section
    - Fill `[SCOPE_CONTENT]` from definition scope section
+   - Fill `[EXAMPLES_CONTENT]` from definition examples — at least one concrete triggering request and the output produced
+   - Fill `[GOTCHAS_CONTENT]` from definition gotchas — proactive environment-specific facts; write "None identified." if none apply
    - Fill `[COMPLETION_CONTENT]` from definition completion section
    - Fill `[FAILURE_HANDLING_CONTENT]` with base failure handling pattern + definition failure scenarios
-6. **Apply conciseness filter** — review every sentence in the compiled body against the conciseness directive before writing
-7. **Write output** to `skills/[SKILL_NAME]/SKILL.md`
-8. **Validate:** No unresolved placeholders remain; description is third person; all sections present
+   - Include `compatibility: [COMPATIBILITY]` frontmatter field ONLY if the definition specifies a value; omit entirely otherwise
+   - Include `allowed-tools: [ALLOWED_TOOLS]` frontmatter field ONLY if the definition specifies a value; omit entirely otherwise
+6. **Apply progressive disclosure** — if the compiled skill body would exceed 400 lines, extract detailed reference content into a `references/` subdirectory and link from `SKILL.md` with explicit load conditions. The main `SKILL.md` body must remain under 400 lines after extraction.
+7. **Apply conciseness filter** — review every sentence in the compiled body against the conciseness directive before writing
+8. **Write output** to `skills/[SKILL_NAME]/SKILL.md`
+9. **Validate:** No unresolved placeholders remain; description uses imperative phrasing; all sections present; optional frontmatter fields omitted when not needed
