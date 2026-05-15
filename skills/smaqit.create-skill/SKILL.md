@@ -1,6 +1,6 @@
 ---
 name: smaqit.create-skill
-description: Creates a new skill for this project. Use when the user asks to create, define, or build a new skill.
+description: Use when the user wants to create, define, build, or package a new skill — including when they ask to turn a workflow into a reusable command, wrap domain knowledge into a slash-command, or describe a repeatable procedure they want Copilot to follow. Gathers name and purpose, infers a complete specification, writes a definition file, and invokes smaqit.L2 to compile a SKILL.md file.
 metadata:
   version: "2.0.0"
 ---
@@ -37,11 +37,15 @@ The definition file must cover:
 - Scope (what is out of scope)
 - Completion criteria (testable, checkbox-style)
 - Failure handling (likely failure modes and responses)
+- Gotchas — environment-specific facts the agent must know before executing; non-obvious corrections to mistakes it would make without being told. Distinct from failure handling (which is reactive). Include any project conventions, unexpected API behaviors, naming quirks, or platform constraints that apply to this skill.
+- Examples — at least one concrete example of what triggers the skill and what it produces. Input: a representative user request. Output: the artifact or response produced.
+- Allowed tools (optional) — if the skill requires specific tools to run (e.g., git, bash scripts), list them as `allowed-tools` values using the format `Bash(git:*)`, `Read`, etc.
+- Compatibility (optional) — if the skill has environment requirements (specific agent product, system packages, network access), note them here.
 
 ### 4. Compile
 
 Invoke `smaqit.L2` as a subagent with:
-> "Compile the skill definition at `.smaqit/definitions/skills/[name].md`. Write the compiled skill to `.github/skills/[name]/SKILL.md`. After compilation, list any fields annotated with `[?]` and suggest a resolution for each."
+> "Compile the skill definition at `.smaqit/definitions/skills/[name].md`. Write the compiled skill to `.github/skills/[name]/SKILL.md`. After compilation, list any fields annotated with `[?]` and suggest a resolution for each. If the compiled skill body would exceed 400 lines, move detailed reference content to a `references/` subdirectory and link from SKILL.md with explicit load conditions ("Read references/[file].md if [condition]"). The main SKILL.md body must remain under 400 lines after extraction."
 
 ### 5. Report
 
