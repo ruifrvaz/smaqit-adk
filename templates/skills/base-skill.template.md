@@ -3,6 +3,9 @@ name: [SKILL_NAME]
 description: [SKILL_DESCRIPTION]
 metadata:
   version: "[SKILL_VERSION]"
+# Optional fields — omit entirely if not specified in the definition file:
+# compatibility: [COMPATIBILITY]
+# allowed-tools: [ALLOWED_TOOLS]
 ---
 
 # [SKILL_TITLE]
@@ -18,6 +21,14 @@ metadata:
 ## Scope
 
 [SCOPE_CONTENT]
+
+## Examples
+
+[EXAMPLES_CONTENT]
+
+## Gotchas
+
+[GOTCHAS_CONTENT]
 
 ## Completion
 

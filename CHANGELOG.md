@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-05-15
+
+### Changed
+
+- `smaqit.create-skill` description rewritten to imperative phrasing with broader trigger scope and explicit output description; covers indirect intent ("package a workflow as a reusable command", "wrap domain knowledge into a slash-command")
+- `smaqit.create-skill` Step 3 definition file spec now includes `gotchas` (proactive environment facts), `examples` (concrete triggering request + output), and optional `allowed-tools` / `compatibility` sections
+- `smaqit.create-skill` Step 4 compile instruction now includes progressive disclosure guidance: skills exceeding 400 lines must extract reference content to a `references/` subdirectory
+- `base-skill.template.md` updated with `## Examples` and `## Gotchas` sections and optional `compatibility` / `allowed-tools` frontmatter fields (omitted when not specified)
+- `skill.rules.md` description field directive updated to imperative/intent-focused phrasing; placeholder catalog extended with `[EXAMPLES_CONTENT]`, `[GOTCHAS_CONTENT]`, `[COMPATIBILITY]`, `[ALLOWED_TOOLS]`; progressive disclosure directive added with 400-line threshold
+
 ## [0.6.0] - 2026-04-16
 
 ### Added
@@ -143,7 +153,8 @@ smaqit-adk is a **generic agent development toolkit**, not tied to any specific 
 
 The [smaQit product](https://github.com/ruifrvaz/smaqit) demonstrates one possible use case (five-layer specification system), but ADK users can create entirely different architectures.
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.6.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.0...HEAD
+[0.7.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.6.0...adk-v0.7.0
 [0.6.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.5.0...adk-v0.6.0
 [0.5.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.4.0...adk-v0.5.0
 [0.4.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.3.2...adk-v0.4.0

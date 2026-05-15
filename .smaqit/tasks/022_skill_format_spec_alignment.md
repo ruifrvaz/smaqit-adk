@@ -1,7 +1,10 @@
 # Skill Format Spec Alignment
 
-**Status:** Not Started  
-**Created:** 2026-05-09
+**Status:** Completed  
+**Mode:** Autonomous  
+**Created:** 2026-05-09  
+**Started:** 2026-05-09  
+**Completed:** 2026-05-09
 
 ## Description
 
@@ -226,18 +229,18 @@ Update to:
 
 ## Acceptance Criteria
 
-- [ ] `smaqit.create-skill/SKILL.md` description is imperative, mentions compiled `SKILL.md` output, and covers indirect trigger contexts
-- [ ] `smaqit.create-skill/SKILL.md` Step 3 definition file spec includes `gotchas` and `examples` sections
-- [ ] `smaqit.create-skill/SKILL.md` Step 3 definition file spec mentions optional `allowed-tools` and `compatibility` fields
-- [ ] `smaqit.create-skill/SKILL.md` Step 4 compile instruction includes progressive disclosure guidance for long skills
-- [ ] `base-skill.template.md` includes `## Examples` and `## Gotchas` sections with correct placeholder names
-- [ ] `base-skill.template.md` includes optional `compatibility` and `allowed-tools` frontmatter fields with L2 omission note
-- [ ] `skill.rules.md` placeholder catalog includes `[EXAMPLES_CONTENT]`, `[GOTCHAS_CONTENT]`, `[COMPATIBILITY]`, `[ALLOWED_TOOLS]`
-- [ ] `skill.rules.md` description field directive updated to imperative phrasing + intent-focused language
-- [ ] `skill.rules.md` includes progressive disclosure directive with 400-line threshold
-- [ ] `cd installer && make build` exits 0
-- [ ] `cd tests && go test ./...` exits 0 (all structural and unit tests pass)
-- [ ] The ADK's own skills (`smaqit.create-skill`, `smaqit.create-agent`, `smaqit.new-principle`) are NOT retroactively modified to add the new sections — this task only changes the template and compilation chain going forward
+- [x] `smaqit.create-skill/SKILL.md` description is imperative, mentions compiled `SKILL.md` output, and covers indirect trigger contexts
+- [x] `smaqit.create-skill/SKILL.md` Step 3 definition file spec includes `gotchas` and `examples` sections
+- [x] `smaqit.create-skill/SKILL.md` Step 3 definition file spec mentions optional `allowed-tools` and `compatibility` fields
+- [x] `smaqit.create-skill/SKILL.md` Step 4 compile instruction includes progressive disclosure guidance for long skills
+- [x] `base-skill.template.md` includes `## Examples` and `## Gotchas` sections with correct placeholder names
+- [x] `base-skill.template.md` includes optional `compatibility` and `allowed-tools` frontmatter fields with L2 omission note
+- [x] `skill.rules.md` placeholder catalog includes `[EXAMPLES_CONTENT]`, `[GOTCHAS_CONTENT]`, `[COMPATIBILITY]`, `[ALLOWED_TOOLS]`
+- [x] `skill.rules.md` description field directive updated to imperative phrasing + intent-focused language
+- [x] `skill.rules.md` includes progressive disclosure directive with 400-line threshold
+- [x] `cd installer && make build` exits 0
+- [x] `cd tests && go test ./...` exits 0 (all structural and unit tests pass)
+- [x] The ADK's own skills (`smaqit.create-skill`, `smaqit.create-agent`, `smaqit.new-principle`) are NOT retroactively modified to add the new sections — this task only changes the template and compilation chain going forward
 
 ## Notes
 
