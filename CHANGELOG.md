@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-05-15
+
+### Added
+
+- Post-merge release workflow (`.github/workflows/post-merge-release.yml`) — automatically creates git tag, builds multi-platform binaries, and publishes GitHub Release when a release PR is merged to `main`
+
 ## [0.7.0] - 2026-05-15
 
 ### Changed
@@ -153,7 +159,8 @@ smaqit-adk is a **generic agent development toolkit**, not tied to any specific 
 
 The [smaQit product](https://github.com/ruifrvaz/smaqit) demonstrates one possible use case (five-layer specification system), but ADK users can create entirely different architectures.
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.1...HEAD
+[0.7.1]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.0...adk-v0.7.1
 [0.7.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.6.0...adk-v0.7.0
 [0.6.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.5.0...adk-v0.6.0
 [0.5.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.4.0...adk-v0.5.0
