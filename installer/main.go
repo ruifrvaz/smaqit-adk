@@ -28,7 +28,7 @@ var adkFrameworkFS embed.FS
 var adkTemplatesFS embed.FS
 
 // Version is set via ldflags during build: -X main.Version=$(VERSION)
-var Version = "0.7.1"
+var Version = "0.7.2"
 
 func main() {
 	if len(os.Args) < 2 {
