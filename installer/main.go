@@ -15,8 +15,8 @@ var adkAgentFiles embed.FS
 //go:embed skills/smaqit.create-agent/SKILL.md
 var adkCreateAgentSkillFile []byte
 
-//go:embed skills/smaqit.create-skill/SKILL.md
-var adkCreateSkillSkillFile []byte
+//go:embed skills/smaqit.create-skill
+var adkCreateSkillFS embed.FS
 
 //go:embed skills/smaqit.new-principle/SKILL.md
 var adkNewPrincipleSkillFile []byte
@@ -137,24 +137,21 @@ func installLiteComponents() {
 	}
 
 	// Install lite-tier skills
-	type skillEntry struct {
-		dir     string
-		content []byte
+	// smaqit.create-agent: SKILL.md only
+	createAgentDir := filepath.Join(".github", "skills", "smaqit.create-agent")
+	if err := os.MkdirAll(createAgentDir, 0755); err != nil {
+		fmt.Printf("Error creating directory %s: %v\n", createAgentDir, err)
+		os.Exit(1)
 	}
-	skillEntries := []skillEntry{
-		{filepath.Join(".github", "skills", "smaqit.create-agent"), adkCreateAgentSkillFile},
-		{filepath.Join(".github", "skills", "smaqit.create-skill"), adkCreateSkillSkillFile},
+	if err := os.WriteFile(filepath.Join(createAgentDir, "SKILL.md"), adkCreateAgentSkillFile, 0644); err != nil {
+		fmt.Printf("Error writing smaqit.create-agent/SKILL.md: %v\n", err)
+		os.Exit(1)
 	}
-	for _, se := range skillEntries {
-		if err := os.MkdirAll(se.dir, 0755); err != nil {
-			fmt.Printf("Error creating directory %s: %v\n", se.dir, err)
-			os.Exit(1)
-		}
-		dstPath := filepath.Join(se.dir, "SKILL.md")
-		if err := os.WriteFile(dstPath, se.content, 0644); err != nil {
-			fmt.Printf("Error writing %s: %v\n", dstPath, err)
-			os.Exit(1)
-		}
+	// smaqit.create-skill: full directory (SKILL.md + scripts/)
+	createSkillDst := filepath.Join(".github", "skills", "smaqit.create-skill")
+	if err := copyEmbedDir(adkCreateSkillFS, "skills/smaqit.create-skill", createSkillDst); err != nil {
+		fmt.Printf("Error installing smaqit.create-skill: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Install templates to .smaqit/templates/

@@ -2,7 +2,8 @@
 name: smaqit.create-skill
 description: Generates a compiled SKILL.md file from a name and project context — infers a complete specification covering steps, output, scope, failure handling, and examples; writes a definition file; and invokes smaqit.L2 to produce the final skill artifact. Applies to new skill creation, workflow packaging, domain knowledge encapsulation, and repeatable procedure authoring.
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
+allowed-tools: Bash
 ---
 
 # Create Skill
@@ -47,7 +48,19 @@ The definition file must cover:
 Invoke `smaqit.L2` as a subagent with:
 > "Compile the skill definition at `.smaqit/definitions/skills/[name].md`. Write the compiled skill to `.github/skills/[name]/SKILL.md`. After compilation, list any fields annotated with `[?]` and suggest a resolution for each. If the compiled skill body would exceed 400 lines, move detailed reference content to a `references/` subdirectory and link from SKILL.md with explicit load conditions ("Read references/[file].md if [condition]"). The main SKILL.md body must remain under 400 lines after extraction."
 
-### 5. Report
+### 5. Validate
+
+Read `scripts/validate-skill.go` before running this step.
+
+Run the validation script against the compiled skill:
+
+```bash
+go run .github/skills/smaqit.create-skill/scripts/validate-skill.go .github/skills/[name]/SKILL.md
+```
+
+If violations are reported, surface them to the user and ask them to adjust the definition file (`.smaqit/definitions/skills/[name].md`) before re-running Step 4. Do not proceed to Step 6 while violations remain.
+
+### 6. Report
 
 After L2 completes, report to the user:
 - Path of the compiled skill file
@@ -70,6 +83,7 @@ Does not create agents, framework files, or templates.
 - [ ] Definition file written to `.smaqit/definitions/skills/[name].md`
 - [ ] `smaqit.L2` invoked and compilation completed
 - [ ] Compiled skill exists at `.github/skills/[name]/SKILL.md`
+- [ ] Validation script passes with no violations
 
 ## Failure Handling
 
@@ -79,3 +93,4 @@ Does not create agents, framework files, or templates.
 | `.smaqit/templates/` not present | Inform the user that ADK templates are required — run `smaqit-adk lite` in this repository first |
 | Output artifact already exists | Report the conflict; do not overwrite without user confirmation |
 | L2 invocation fails | Report the error and include the path to the definition file so the user can inspect or correct it |
+| Validation script reports violations | Surface the violations to the user; ask them to update the definition file and re-compile before proceeding |
