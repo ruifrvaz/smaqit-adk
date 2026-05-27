@@ -58,7 +58,14 @@ Run the validation script against the compiled skill:
 go run .github/skills/smaqit.create-skill/scripts/validate-skill.go .github/skills/[name]/SKILL.md
 ```
 
-If violations are reported, surface them to the user and ask them to adjust the definition file (`.smaqit/definitions/skills/[name].md`) before re-running Step 4. Do not proceed to Step 6 while violations remain.
+If violations are reported:
+1. Surface the violations to the user.
+2. Automatically analyse each violation and apply the minimal fix to the definition file (`.smaqit/definitions/skills/[name].md`) that resolves it — do not ask the user to fix them manually.
+3. Re-run Step 4 (Compile) to regenerate the compiled skill from the updated definition.
+4. Re-run the validation script.
+5. Repeat steps 2–4 up to **3 times** in total. If violations still remain after the third attempt, stop, surface the remaining violations to the user, and ask them to update the definition file before re-invoking the skill.
+
+Do not proceed to Step 6 while violations remain.
 
 ### 6. Report
 
@@ -93,4 +100,4 @@ Does not create agents, framework files, or templates.
 | `.smaqit/templates/` not present | Inform the user that ADK templates are required — run `smaqit-adk lite` in this repository first |
 | Output artifact already exists | Report the conflict; do not overwrite without user confirmation |
 | L2 invocation fails | Report the error and include the path to the definition file so the user can inspect or correct it |
-| Validation script reports violations | Surface the violations to the user; ask them to update the definition file and re-compile before proceeding |
+| Validation script reports violations | Surface violations to the user; auto-fix the definition file and re-run Steps 4–5 up to 3 times; if violations persist after 3 attempts, ask the user to update the definition file before re-invoking |
