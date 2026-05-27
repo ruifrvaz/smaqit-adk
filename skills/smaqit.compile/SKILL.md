@@ -1,6 +1,6 @@
 ---
 name: smaqit.compile
-description: Use when a framework principle, template rule, or agent definition has changed and must propagate to downstream levels. Orchestrates the full or partial ADK compilation chain (L0→L1→L2) by invoking smaqit.orchestrate as a subagent.
+description: Orchestrates the full or partial ADK compilation chain (L0→L1→L2) — collects target type, name, and execution mode, then delegates to smaqit.orchestrate to propagate principle, template, or agent definition changes downstream through sequential level-agent subagent invocations.
 metadata:
   version: "1.0.0"
 ---

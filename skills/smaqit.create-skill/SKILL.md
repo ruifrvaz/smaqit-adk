@@ -1,8 +1,9 @@
 ---
 name: smaqit.create-skill
-description: Use when the user wants to create, define, build, or package a new skill — including when they ask to turn a workflow into a reusable command, wrap domain knowledge into a slash-command, or describe a repeatable procedure they want Copilot to follow. Gathers name and purpose, infers a complete specification, writes a definition file, and invokes smaqit.L2 to compile a SKILL.md file.
+description: Generates a compiled SKILL.md file from a name and project context — infers a complete specification covering steps, output, scope, failure handling, and examples; writes a definition file; and invokes smaqit.L2 to produce the final skill artifact. Applies to new skill creation, workflow packaging, domain knowledge encapsulation, and repeatable procedure authoring.
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
+allowed-tools: Bash
 ---
 
 # Create Skill
@@ -47,7 +48,26 @@ The definition file must cover:
 Invoke `smaqit.L2` as a subagent with:
 > "Compile the skill definition at `.smaqit/definitions/skills/[name].md`. Write the compiled skill to `.github/skills/[name]/SKILL.md`. After compilation, list any fields annotated with `[?]` and suggest a resolution for each. If the compiled skill body would exceed 400 lines, move detailed reference content to a `references/` subdirectory and link from SKILL.md with explicit load conditions ("Read references/[file].md if [condition]"). The main SKILL.md body must remain under 400 lines after extraction."
 
-### 5. Report
+### 5. Validate
+
+Read `scripts/validate-skill.go` before running this step.
+
+Run the validation script against the compiled skill:
+
+```bash
+go run .github/skills/smaqit.create-skill/scripts/validate-skill.go .github/skills/[name]/SKILL.md
+```
+
+If violations are reported:
+1. Surface the violations to the user.
+2. Automatically analyse each violation and apply the minimal fix to the definition file (`.smaqit/definitions/skills/[name].md`) that resolves it — do not ask the user to fix them manually.
+3. Re-run Step 4 (Compile) to regenerate the compiled skill from the updated definition.
+4. Re-run the validation script.
+5. Repeat steps 2–4 up to **3 times** in total. If violations still remain after the third attempt, stop, surface the remaining violations to the user, and ask them to update the definition file before re-invoking the skill.
+
+Do not proceed to Step 6 while violations remain.
+
+### 6. Report
 
 After L2 completes, report to the user:
 - Path of the compiled skill file
@@ -70,6 +90,7 @@ Does not create agents, framework files, or templates.
 - [ ] Definition file written to `.smaqit/definitions/skills/[name].md`
 - [ ] `smaqit.L2` invoked and compilation completed
 - [ ] Compiled skill exists at `.github/skills/[name]/SKILL.md`
+- [ ] Validation script passes with no violations
 
 ## Failure Handling
 
@@ -79,3 +100,4 @@ Does not create agents, framework files, or templates.
 | `.smaqit/templates/` not present | Inform the user that ADK templates are required — run `smaqit-adk lite` in this repository first |
 | Output artifact already exists | Report the conflict; do not overwrite without user confirmation |
 | L2 invocation fails | Report the error and include the path to the definition file so the user can inspect or correct it |
+| Validation script reports violations | Surface violations to the user; auto-fix the definition file and re-run Steps 4–5 up to 3 times; if violations persist after 3 attempts, ask the user to update the definition file before re-invoking |
