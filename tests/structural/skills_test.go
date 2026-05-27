@@ -58,6 +58,8 @@ func findFiles(t *testing.T, dir, suffix string) []string {
 func TestSkillFrontmatter(t *testing.T) {
 	nameRe := regexp.MustCompile(`^[a-z][a-z0-9.-]*$`)
 	firstPersonRe := regexp.MustCompile(`(?i)^(I |You can)`)
+	// Anti-patterns: conversational or user-centric gating that impedes autonomous planner routing.
+	antiPatternRe := regexp.MustCompile(`(?i)(Use when|Use this skill when|when the user|helps users|allow.*user to|This skill (can|will|may))`)
 	for _, path := range findFiles(t, filepath.Join(sourceRoot, "skills"), "SKILL.md") {
 		t.Run(filepath.Base(filepath.Dir(path)), func(t *testing.T) {
 			fm, _ := parseMarkdownFM(t, path)
@@ -74,11 +76,10 @@ func TestSkillFrontmatter(t *testing.T) {
 					t.Errorf("description length %d exceeds 1024 characters", len(desc))
 				}
 				if firstPersonRe.MatchString(desc) {
-					t.Errorf("description must be written in third person, got: %q", desc[:min(60, len(desc))])
+					t.Errorf("description must not use first-person phrasing, got: %q", desc[:min(60, len(desc))])
 				}
-				hasWhenSignal := strings.Contains(desc, "Use when") || strings.Contains(desc, "when the user")
-				if !hasWhenSignal {
-					t.Error("description missing when-signal: must contain \"Use when\" or \"when the user\"")
+				if m := antiPatternRe.FindString(desc); m != "" {
+					t.Errorf("description contains conversational/user-centric anti-pattern %q — use capability-oriented, declarative, present-tense phrasing instead", m)
 				}
 			}
 		})

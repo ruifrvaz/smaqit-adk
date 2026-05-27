@@ -1,6 +1,6 @@
 ---
 name: smaqit.create-skill
-description: Use when the user wants to create, define, build, or package a new skill — including when they ask to turn a workflow into a reusable command, wrap domain knowledge into a slash-command, or describe a repeatable procedure they want Copilot to follow. Gathers name and purpose, infers a complete specification, writes a definition file, and invokes smaqit.L2 to compile a SKILL.md file.
+description: Generates a compiled SKILL.md file from a name and project context — infers a complete specification covering steps, output, scope, failure handling, and examples; writes a definition file; and invokes smaqit.L2 to produce the final skill artifact. Applies to new skill creation, workflow packaging, domain knowledge encapsulation, and repeatable procedure authoring.
 metadata:
   version: "2.0.0"
 ---
