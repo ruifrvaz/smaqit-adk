@@ -58,11 +58,14 @@ The skill is a shared, version-controlled instruction. Making it the destination
 
 ### Description-Driven Activation
 
-**Skill descriptions are the sole activation signal. A description must explain what the skill does and when to use it — not just name it.**
+**Skill descriptions are the sole activation signal. A description must be capability-oriented, declarative, and planner-friendly — stating what the skill does, what it operates on, and what it produces.**
 
-At discovery, the agent reads only the name and description to determine whether a skill matches the current task. A label gives the agent a name but no context to evaluate fit. An explanation gives the agent enough context to distinguish the skill from adjacent ones and to decline false positives. The description is a decision surface, not a title — its length is determined by the precision needed to avoid false matches, not by a brevity target.
+At discovery, the agent reads only the name and description to determine whether a skill matches the current task. Descriptions act as semantic routing vectors, affordance descriptors, and applicability signals for autonomous planners. Conversational or user-centric phrasing ("When the user asks...", "Use when...") implicitly gates invocation on explicit user intent, which prevents autonomous planners from routing to the skill when it is operationally relevant. Capability-oriented descriptions align with the forms planners internally reason in: "need a way to...", "something that can...", "capability for...".
+
+The preferred description structure is: `[present-tense capability] + [inputs/context] + [transformation/outcome]`.
 
 **Invariants:**
-- A skill description explains what the skill does and when to invoke it — it does not merely label the skill.
-- The description is precise enough to distinguish the skill from adjacent skills that share trigger words.
+- A skill description states what the skill does and what it produces — it does not describe when a user might ask for it.
+- The description is precise enough to distinguish the skill from adjacent skills that share domain words.
 - Description length is determined by the precision needed to avoid false positives, not by a brevity convention.
+- Descriptions avoid conversational gating: no "when the user asks", "use when", "helps users", "allows the user to", or modal uncertainty ("can", "may", "might").

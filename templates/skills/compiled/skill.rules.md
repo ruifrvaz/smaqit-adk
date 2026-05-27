@@ -31,7 +31,7 @@ Skills are expressed as YAML frontmatter followed by a markdown body.
 | Field | Constraint |
 |-------|------------|
 | `name` | Skill identifier. Maximum 64 characters. Lowercase letters, numbers, and hyphens only. Loaded at discovery alongside `description`. |
-| `description` | Activation signal. Maximum 1024 characters. Must use imperative phrasing directed at the agent: "Use this skill when..." or "Use when...". Must describe user intent (what the user is trying to achieve) not implementation mechanics. Must state what the skill produces. Should cover indirect trigger contexts — situations where the skill is relevant even if the user doesn't use the exact domain keyword. |
+| `description` | Activation signal. Maximum 1024 characters. Must be capability-oriented, declarative, and present-tense. Preferred structure: `[present-tense capability] + [inputs/context] + [transformation/outcome]`. Must state what the skill does and what it produces. Must not use conversational or user-centric gating ("Use when...", "When the user asks...", "Helps users...", "Allows the user to..."). Must not use modal uncertainty ("can", "may", "might") or future tense ("will"). |
 | `metadata.version` | Semantic version string for the skill. |
 
 **Body:** Markdown prose containing the skill's procedure. The body is read-only at runtime — unchanged between executions.
@@ -73,7 +73,7 @@ The following placeholders appear in `templates/skills/base-skill.template.md`. 
 | Placeholder | Description |
 |-------------|-------------|
 | `[SKILL_NAME]` | Skill identifier in YAML frontmatter `name` field. Lowercase, hyphens only. |
-| `[SKILL_DESCRIPTION]` | Activation signal in YAML frontmatter `description` field. Maximum 1024 characters. Must use imperative phrasing ("Use when..." or "Use this skill when..."). Must describe the user's intent and what the skill produces. Should include indirect trigger contexts. Must not describe internal implementation mechanics. |
+| `[SKILL_DESCRIPTION]` | Activation signal in YAML frontmatter `description` field. Maximum 1024 characters. Must be capability-oriented, declarative, and present-tense. Preferred structure: `[present-tense capability] + [inputs/context] + [transformation/outcome]`. Must state what the skill produces. Must not use conversational or user-centric gating ("Use when...", "When the user asks...", "Helps users..."). Must not describe internal implementation mechanics. |
 | `[SKILL_VERSION]` | Semantic version string in `metadata.version` field. Start at `"1.0.0"`. |
 | `[SKILL_TITLE]` | Display heading for the compiled skill document. |
 | `[STEPS_CONTENT]` | Ordered procedure the agent follows. Each step written at the appropriate degree of freedom (see Degrees of Freedom below). |
@@ -98,10 +98,10 @@ The following placeholders appear in `templates/skills/base-skill.template.md`. 
 - MUST NOT write execution records or state into the skill body
 
 **Description-Driven Activation:**
-- MUST write `[SKILL_DESCRIPTION]` using imperative phrasing directed at the agent: "Use this skill when..." or "Use when..."
-- MUST describe the user's intent and what the skill produces — not internal implementation mechanics
-- SHOULD cover indirect trigger contexts where the skill is relevant even if the user doesn't use the exact domain keyword
-- MUST NOT use first person ("I can...") or declarative third-person opening ("Creates a...", "Packages a...")
+- MUST write `[SKILL_DESCRIPTION]` as a capability-oriented, declarative, present-tense statement: `[present-tense capability] + [inputs/context] + [transformation/outcome]`
+- MUST state what the skill does and what it produces — not when a user might ask for it
+- MUST NOT use conversational or user-centric gating: "Use when...", "When the user asks...", "Helps users...", "Allows the user to..."
+- MUST NOT use first person ("I can...") or modal uncertainty ("can", "may", "might") or future tense ("will")
 - MUST write the description with enough precision to distinguish the skill from adjacent skills
 
 **Degrees of Freedom:**
@@ -145,7 +145,7 @@ When compiling a skill from a definition file:
 4. **Read this rules file** for directives and placeholder catalog
 5. **Compile:**
    - Fill `[SKILL_NAME]` from definition identity
-   - Fill `[SKILL_DESCRIPTION]` from definition identity — imperative phrasing, user intent + output; if not explicitly provided, infer from skill name and project context
+   - Fill `[SKILL_DESCRIPTION]` from definition identity — capability-oriented, declarative, present-tense; if not explicitly provided, infer from skill name and project context
    - Fill `[SKILL_VERSION]` from definition identity (default `"1.0.0"` if not specified)
    - Fill `[SKILL_TITLE]` as a readable title derived from the skill name
    - Fill `[STEPS_CONTENT]` from definition steps — apply degrees of freedom per step fragility
@@ -160,4 +160,4 @@ When compiling a skill from a definition file:
 6. **Apply progressive disclosure** — if the compiled skill body would exceed 400 lines, extract detailed reference content into a `references/` subdirectory and link from `SKILL.md` with explicit load conditions. The main `SKILL.md` body must remain under 400 lines after extraction.
 7. **Apply conciseness filter** — review every sentence in the compiled body against the conciseness directive before writing
 8. **Write output** to `skills/[SKILL_NAME]/SKILL.md`
-9. **Validate:** No unresolved placeholders remain; description uses imperative phrasing; all sections present; optional frontmatter fields omitted when not needed
+9. **Validate:** No unresolved placeholders remain; description is capability-oriented and free of conversational gating; all sections present; optional frontmatter fields omitted when not needed
