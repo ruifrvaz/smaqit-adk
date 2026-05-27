@@ -21,6 +21,9 @@ var adkCreateSkillSkillFile []byte
 //go:embed skills/smaqit.new-principle/SKILL.md
 var adkNewPrincipleSkillFile []byte
 
+//go:embed skills/smaqit.compile/SKILL.md
+var adkCompileSkillFile []byte
+
 //go:embed framework
 var adkFrameworkFS embed.FS
 
@@ -98,12 +101,14 @@ func cmdHelp() {
 	fmt.Println("      Install advanced tier (includes lite, plus):")
 	fmt.Println("        .github/agents/smaqit.L0.agent.md         (principle curator)")
 	fmt.Println("        .github/agents/smaqit.L1.agent.md         (template compiler)")
+	fmt.Println("        .github/agents/smaqit.orchestrate.agent.md (compilation chain orchestrator)")
 	fmt.Println("        .github/skills/smaqit.new-principle/      (framework authoring skill)")
+	fmt.Println("        .github/skills/smaqit.compile/            (compilation chain skill)")
 	fmt.Println("        .smaqit/framework/                        (framework principle files)")
 	fmt.Println()
 	fmt.Println("  smaqit-adk uninstall [lite|advanced]")
 	fmt.Println("      lite:     removes L2 agent, create skills, .smaqit/ entirely")
-	fmt.Println("      advanced: removes L0/L1 agents, new-principle skill, .smaqit/framework/")
+	fmt.Println("      advanced: removes L0/L1/orchestrate agents, new-principle/compile skills, .smaqit/framework/")
 	fmt.Println("      (no arg): removes everything installed")
 	fmt.Println()
 	fmt.Println("  smaqit-adk version   Show smaqit-adk version")
@@ -214,7 +219,7 @@ func cmdAdvanced(targetDir string) {
 		fmt.Printf("Error creating directory %s: %v\n", agentDir, err)
 		os.Exit(1)
 	}
-	for _, name := range []string{"smaqit.L0.agent.md", "smaqit.L1.agent.md"} {
+	for _, name := range []string{"smaqit.L0.agent.md", "smaqit.L1.agent.md", "smaqit.orchestrate.agent.md"} {
 		content, err := adkAgentFiles.ReadFile("agents/" + name)
 		if err != nil {
 			fmt.Printf("Error reading %s: %v\n", name, err)
@@ -238,6 +243,17 @@ func cmdAdvanced(targetDir string) {
 		os.Exit(1)
 	}
 
+	// Install compile skill to .github/skills/
+	compileDir := filepath.Join(".github", "skills", "smaqit.compile")
+	if err := os.MkdirAll(compileDir, 0755); err != nil {
+		fmt.Printf("Error creating directory %s: %v\n", compileDir, err)
+		os.Exit(1)
+	}
+	if err := os.WriteFile(filepath.Join(compileDir, "SKILL.md"), adkCompileSkillFile, 0644); err != nil {
+		fmt.Printf("Error writing compile skill: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Install framework to .smaqit/framework/
 	frameworkDst := filepath.Join(".smaqit", "framework")
 	if err := copyEmbedDir(adkFrameworkFS, "framework", frameworkDst); err != nil {
@@ -246,7 +262,7 @@ func cmdAdvanced(targetDir string) {
 	}
 
 	fmt.Printf("✓ smaqit-adk %s advanced installed\n", Version)
-	fmt.Println("Use /smaqit.create-agent, /smaqit.create-skill, and /smaqit.new-principle in Copilot chat.")
+	fmt.Println("Use /smaqit.create-agent, /smaqit.create-skill, /smaqit.new-principle, and /smaqit.compile in Copilot chat.")
 }
 
 // copyEmbedDir copies all files from an embed.FS rooted at src into the dst directory on disk.
@@ -306,7 +322,9 @@ func cmdUninstall(tier string) {
 	if removeAdvanced {
 		fmt.Println("  \u2022 .github/agents/smaqit.L0.agent.md")
 		fmt.Println("  \u2022 .github/agents/smaqit.L1.agent.md")
+		fmt.Println("  \u2022 .github/agents/smaqit.orchestrate.agent.md")
 		fmt.Println("  \u2022 .github/skills/smaqit.new-principle/")
+		fmt.Println("  \u2022 .github/skills/smaqit.compile/")
 		fmt.Println("  \u2022 .smaqit/framework/")
 	}
 	if removeLite {
@@ -329,8 +347,8 @@ func cmdUninstall(tier string) {
 	errors := 0
 
 	if removeAdvanced {
-		// Remove L0/L1 agents
-		for _, name := range []string{"smaqit.L0.agent.md", "smaqit.L1.agent.md"} {
+		// Remove L0/L1/orchestrate agents
+		for _, name := range []string{"smaqit.L0.agent.md", "smaqit.L1.agent.md", "smaqit.orchestrate.agent.md"} {
 			path := filepath.Join(".github", "agents", name)
 			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 				fmt.Printf("Error removing %s: %v\n", path, err)
@@ -346,6 +364,14 @@ func cmdUninstall(tier string) {
 			errors++
 		} else {
 			fmt.Printf("\u2713 Removed %s\n", newPrincipleDir)
+		}
+		// Remove compile skill dir
+		compileDir := filepath.Join(".github", "skills", "smaqit.compile")
+		if err := os.RemoveAll(compileDir); err != nil && !os.IsNotExist(err) {
+			fmt.Printf("Error removing %s: %v\n", compileDir, err)
+			errors++
+		} else {
+			fmt.Printf("\u2713 Removed %s\n", compileDir)
 		}
 		// Remove framework
 		frameworkDir := filepath.Join(".smaqit", "framework")

@@ -27,13 +27,14 @@ These two dimensions are independent:
 
 ## ADK Level Agents
 
-L0, L1, and L2 are set to `user-invocable: false`. They do not appear in the chat agents dropdown. They are only reachable as subagents when invoked by a skill that routes to them.
+L0, L1, L2, and the orchestrate agent are set to `user-invocable: false`. They do not appear in the chat agents dropdown. They are only reachable as subagents when invoked by a skill that routes to them.
 
 This is intentional: level agents are compilation specialists. Direct invocation from the picker bypasses the skill routing layer and skips context setup. Use the corresponding skill instead:
 
 | Want to... | Use this skill |
 |---|---|
 | Add or refine a framework principle | `/smaqit.new-principle` |
+| Run the full L0→L1→L2 compilation chain | `/smaqit.compile` |
 | Create a new agent | `/smaqit.new-agent` |
 | Create a new skill | `/smaqit.new-skill` |
 

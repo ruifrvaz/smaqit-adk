@@ -146,6 +146,9 @@ Then it compiles and writes `.github/skills/[name]/SKILL.md`.
 | `smaqit.create-skill` (skill) | "create a new skill" or `/smaqit.create-skill` | Routes to the subagent |
 | `smaqit.create-agent` (agent) | Invoked as subagent by the skill | Gather specs and compile `.agent.md` |
 | `smaqit.create-skill` (agent) | Invoked as subagent by the skill | Gather specs and compile `SKILL.md` |
+| `smaqit.new-principle` (skill) | "add a principle" or `/smaqit.new-principle` | Invokes `smaqit.L0` to author a framework principle |
+| `smaqit.compile` (skill) | "compile the chain" or `/smaqit.compile` | Invokes `smaqit.orchestrate` to run the full L0→L1→L2 chain |
+| `smaqit.orchestrate` (agent) | Invoked as subagent by `smaqit.compile` | Chains L0, L1, and L2 as sequential subagents for full compilation |
 
 ## CLI (Advanced Tier)
 
