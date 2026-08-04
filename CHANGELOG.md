@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-05-17
+
+### Added
+
+- `smaqit.project-compendium` skill — manages a live Q&A knowledge manifest at `.smaqit/compendium.md`; supports list, fetch, upsert, and remove operations
+- `smaqit.project-glossary` skill — manages a per-project glossary at `.smaqit/glossary.md`; supports list, fetch, upsert, and remove operations
+- `smaqit.project-init` skill — bootstraps a new smaqit project by generating a structured `.github/copilot-instructions.md` from a template
+- `smaqit.project-recap` skill — generates a live project dashboard from the current codebase state and writes it to `.smaqit/project-recap.md`
+- `smaqit.project-research` skill — builds and maintains a documentation topology map; discovers section-level docs across GitHub, official docs, ReadTheDocs, pkg.go.dev, npm, PyPI, and more
+- `smaqit.session-recap` skill — summarizes session progress as a structured table of accomplished and pending steps
+- `smaqit.utils.read-pdf` skill — PDF content extraction utility for skills and agents that need to process PDF files
+- `smaqit.utils.triage-issues` skill — pre-implementation gate that searches upstream GitHub repositories for open bugs and regressions relevant to a task; classifies results as Blocking, Advisory, Historical, or Clear
+- `.smaqit/templates/` directory — ships PLANNING template, `copilot-instructions` template, and task template for project bootstrapping
+
+### Changed
+
+- `smaqit.release.local`, `smaqit.release.pr`, and `smaqit.user-testing` agent definitions updated to reflect current skill and workflow conventions
+- `smaqit.session-finish`, `smaqit.session-title`, and `smaqit.session-recap` skills enriched with `scripts/recap.py` helper for structured session documentation
+- `smaqit.task-create` skill updated with `assets/TASK_TEMPLATE.md` for consistent task scaffolding
+- `smaqit.task-complete`, `smaqit.task-start`, `smaqit.task-list`, `smaqit.test-start`, `smaqit.session-start` skill definitions updated with refined rules and references
+- `smaqit.release-analysis`, `smaqit.release-git-pr`, `smaqit.release-prepare-files` skill definitions updated with improved boundary-commit reconciliation guidance
+
+### Fixed
+
+- Release workflow consolidated: replaced `release.yml` with the improved `post-merge-release.yml`; eliminates duplicate trigger paths and ensures single authoritative post-merge automation
+
 ## [0.7.2] - 2026-05-17
 
 ### Changed
@@ -165,7 +191,8 @@ smaqit-adk is a **generic agent development toolkit**, not tied to any specific 
 
 The [smaQit product](https://github.com/ruifrvaz/smaqit) demonstrates one possible use case (five-layer specification system), but ADK users can create entirely different architectures.
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.2...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.3...HEAD
+[0.7.3]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.2...adk-v0.7.3
 [0.7.2]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.1...adk-v0.7.2
 [0.7.1]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.0...adk-v0.7.1
 [0.7.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.6.0...adk-v0.7.0

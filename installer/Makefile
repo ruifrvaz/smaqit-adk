@@ -21,9 +21,10 @@ prepare:
 	@cp ../agents/*.agent.md agents/
 	@rm -rf skills && mkdir -p skills/smaqit.new-principle
 	@cp ../skills/smaqit.new-principle/SKILL.md skills/smaqit.new-principle/
-	@mkdir -p skills/smaqit.create-agent && mkdir -p skills/smaqit.create-skill
+	@mkdir -p skills/smaqit.create-agent && mkdir -p skills/smaqit.create-skill/scripts
 	@cp ../skills/smaqit.create-agent/SKILL.md skills/smaqit.create-agent/
 	@cp ../skills/smaqit.create-skill/SKILL.md skills/smaqit.create-skill/
+	@cp ../skills/smaqit.create-skill/scripts/validate-skill.go skills/smaqit.create-skill/scripts/
 	@rm -rf templates/skills && mkdir -p templates/skills/compiled
 	@cp ../templates/skills/base-skill.template.md templates/skills/
 	@cp ../templates/skills/compiled/skill.rules.md templates/skills/compiled/

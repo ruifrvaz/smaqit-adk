@@ -1,6 +1,6 @@
 ---
 name: smaqit.new-principle
-description: Adds or refines a principle in the ADK framework. Use when the user wants to add, update, or consolidate a principle in a framework file.
+description: Adds or refines a principle in an ADK framework file — delegates gathering, validation, and authoring to smaqit.L0 to produce a compliant principle entry in the appropriate framework/*.md file.
 metadata:
   version: "0.1.0"
 ---

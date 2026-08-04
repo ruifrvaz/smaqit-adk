@@ -1,6 +1,6 @@
 ---
 name: smaqit.create-agent
-description: Creates a new agent for this project. Use when the user asks to create, define, or build a new custom agent.
+description: Generates a compiled custom agent definition file from a name and project context — infers a complete agent specification covering role, directives, scope, and failure handling; writes a definition file; and invokes smaqit.L2 to produce a ready-to-use .agent.md file.
 metadata:
   version: "2.0.0"
 ---
