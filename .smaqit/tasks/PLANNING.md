@@ -4,6 +4,9 @@
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
+| 023 | HarnessBench Phase 1 — `smaqit-adk bench` Subcommand | Not Started | A/B evaluation engine: variants, repetitions, deterministic graders, statistics, winner selection; in-process Copilot SDK; ships as a `bench` subcommand; independent of 018 |
+| 024 | Repair Broken Eval Artifact References | Not Started | 5 of 7 evals point at renamed `smaqit.new-agent`/`new-skill` files that no longer exist and cannot load; narrow repair ahead of Task 021 |
+| 025 | README Documents Non-Existent CLI Commands | Not Started | README documents `smaqit-adk create-agent`/`create-skill`; no such cases in the dispatch — confirm deliberate removal, then correct docs |
 | 018 | Level Skills Completion | Not Started | `smaqit.new-principle` shipped in adk-v0.6.0; remaining: new-template, new-rules, L0 definition file pattern |
 | 019 | Cross-Level Compilation (smaqit.compile) | Not Started | smaqit.compile.principle/template/agent skills; L0→L1→L2 chain via subagents; depends on Task 018 |
 | 020 | Lite-Tier Behavioral Evals | Not Started | Evals for smaqit.create-agent + smaqit.create-skill (skill + agent); independent of advanced tier |
