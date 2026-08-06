@@ -1,0 +1,17 @@
+{
+  "type": "skill",
+  "artifact_file": "skills/smaqit.create-skill/SKILL.md",
+  "description": "Verify the skill always runs scripts/validate-skill.go against its compiled output before reporting completion",
+  "turns": [
+    { "user_input": "Create a skill called smaqit.check-deps" },
+    { "user_input": "smaqit.check-deps", "trigger": "ask_user" }
+  ],
+  "expected_behavior": [
+    "Runs scripts/validate-skill.go against the compiled .github/skills/smaqit.check-deps/SKILL.md before reporting completion",
+    "Does not report the skill as complete before the validation step has run"
+  ],
+  "forbidden_behavior": [
+    "Reports the skill as complete without ever running scripts/validate-skill.go",
+    "Asks the user to manually inspect or fix the compiled SKILL.md instead of running the validator itself"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "type": "skill",
+  "artifact_file": "skills/smaqit.create-skill/SKILL.md",
+  "description": "Verify the skill asks only for the skill name, infers the remaining specification, compiles, and validates without further questions",
+  "turns": [
+    { "user_input": "I want to create a new skill for adding framework principles to the ADK" },
+    { "user_input": "smaqit.new-principle", "trigger": "ask_user" }
+  ],
+  "expected_behavior": [
+    "Asks for the skill name as its only interactive question",
+    "Does not ask a follow-up question about steps, output, scope, completion criteria, failure handling, gotchas, or examples",
+    "Writes a definition file to .smaqit/definitions/skills/smaqit.new-principle.md covering steps with fragility levels, output, scope, completion criteria, failure handling, gotchas, and examples",
+    "Invokes smaqit.L2 to compile the definition into .github/skills/smaqit.new-principle/SKILL.md",
+    "Runs the validation script against the compiled skill before reporting completion"
+  ],
+  "forbidden_behavior": [
+    "Asks the user to supply step fragility levels, output format, or any other specification field",
+    "Reports completion without running scripts/validate-skill.go against the compiled output"
+  ]
+}

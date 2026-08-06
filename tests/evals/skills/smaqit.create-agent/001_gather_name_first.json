@@ -1,0 +1,19 @@
+{
+  "type": "skill",
+  "artifact_file": "skills/smaqit.create-agent/SKILL.md",
+  "description": "Verify the skill asks only for the agent name and infers the remaining specification without further questions",
+  "turns": [
+    { "user_input": "I need to create a QA helper agent for this project" },
+    { "user_input": "qa-helper", "trigger": "ask_user" }
+  ],
+  "expected_behavior": [
+    "Asks for the agent name as its only interactive question",
+    "Does not ask a follow-up question about description, tools, input sources, output format, directives, scope, completion criteria, or failure scenarios",
+    "Writes a definition file to .smaqit/definitions/agents/qa-helper.md covering identity, purpose, input sources, output format, directives, scope boundaries, completion criteria, and failure scenarios",
+    "Invokes smaqit.L2 to compile the definition into .github/agents/qa-helper.agent.md"
+  ],
+  "forbidden_behavior": [
+    "Asks the user to supply tools, directives, scope boundaries, or any other specification field",
+    "Waits for a confirmation message before invoking smaqit.L2"
+  ]
+}

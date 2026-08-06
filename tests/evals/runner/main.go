@@ -235,6 +235,10 @@ func runEval(ctx context.Context, evalPath, evalsDir, repoRoot, runDir, token st
 		Cwd:         tmpDir,
 		GitHubToken: token, // empty → UseLoggedInUser (default true) handles local auth
 	})
+	// CreateSession lazily spawns and owns a real `copilot --headless` OS process
+	// (client.go: ensureConnected -> startCLIServer). Without an explicit Stop(),
+	// that process is never terminated and leaks for the life of the eval run.
+	defer client.Stop()
 
 	session, err := client.CreateSession(ctx, &copilot.SessionConfig{
 		SystemMessage: &copilot.SystemMessageConfig{
@@ -346,8 +350,8 @@ func runEval(ctx context.Context, evalPath, evalsDir, repoRoot, runDir, token st
 func collectWorkspaceFiles(dir string) string {
 	// Paths created by setupWorkspace — exclude from grader input.
 	skip := map[string]bool{
-		filepath.Join(dir, "templates"): true,
-		filepath.Join(dir, "framework"): true,
+		filepath.Join(dir, ".smaqit", "templates"): true,
+		filepath.Join(dir, ".smaqit", "framework"): true,
 		filepath.Join(dir, ".github", "agents", "smaqit.L2.agent.md"): true,
 	}
 
@@ -387,6 +391,9 @@ func grade(ctx context.Context, token, transcript, criterion string) (bool, stri
 	client := copilot.NewClient(&copilot.ClientOptions{
 		GitHubToken: token,
 	})
+	// Called once per criterion — without Stop(), each call leaks its own
+	// `copilot --headless` process for the remainder of the run.
+	defer client.Stop()
 	session, err := client.CreateSession(ctx, &copilot.SessionConfig{
 		OnPermissionRequest: func(_ copilot.PermissionRequest, _ copilot.PermissionInvocation) (copilot.PermissionRequestResult, error) {
 			return copilot.PermissionRequestResult{Kind: copilot.PermissionRequestResultKindApproved}, nil
@@ -551,8 +558,12 @@ func setupWorkspace(dir, repoRoot string) error {
 			return fmt.Errorf("copy %s: %w", filepath.Base(entry.src), err)
 		}
 	}
+	// Runtime skills/agents (smaqit.L2.agent.md, smaqit.create-agent, smaqit.create-skill)
+	// read templates and framework files from .smaqit/templates and .smaqit/framework —
+	// the "installed" layout smaqit-adk lite/advanced produce — not top-level templates/
+	// or framework/, which are the ADK source repo's own pre-install locations.
 	for _, tree := range []string{"templates", "framework"} {
-		if err := copyDir(filepath.Join(repoRoot, tree), filepath.Join(dir, tree)); err != nil {
+		if err := copyDir(filepath.Join(repoRoot, tree), filepath.Join(dir, ".smaqit", tree)); err != nil {
 			return fmt.Errorf("copy %s: %w", tree, err)
 		}
 	}

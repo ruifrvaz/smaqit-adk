@@ -1,7 +1,10 @@
 # Repair Broken Eval Artifact References
 
-**Status:** Not Started
+**Status:** Completed
 **Created:** 2026-08-05
+**Started:** 2026-08-05
+**Completed:** 2026-08-06
+**Mode:** Assisted
 
 ## Description
 
@@ -17,7 +20,7 @@ Verified state as of 2026-08-05:
 | `tests/evals/skills/smaqit.new-skill/` (2 evals) | `skills/smaqit.new-skill/SKILL.md` | **No** |
 | `tests/evals/agents/smaqit.L2/` (2 evals) | `agents/smaqit.L2.agent.md` | Yes |
 
-[Task 021](021_advanced_tier_behavioral_evals.md#L47) anticipates these evals being "stale" and needing review, but understates the situation — they are **broken**, not merely outdated. This task is the narrow repair; Task 021 remains the broader review-and-extend effort.
+[Task 021](021_advanced_tier_behavioral_evals.md#L47) anticipates these evals being "stale" and needing review, but understates the situation — they are **broken**, not merely outdated. This task is the narrow repair. The broader review-and-extend effort for these specific artifacts belongs to **Task 020** (Lite-Tier Behavioral Evals) — `create-agent`/`create-skill` are lite-tier artifacts, not advanced-tier, so Task 021 was the wrong cross-reference; corrected during implementation.
 
 ## Design Decisions
 
@@ -33,32 +36,48 @@ Verified state as of 2026-08-05:
 5. Record the run report path and the pass/fail tally in Findings.
 
 ## Known Issues Triage
+**Triaged:** 2026-08-05
+**Tools searched:** Copilot SDK (Go) — `github/copilot-sdk`, GitHub CLI — `cli/cli`
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Advisory Issues
+- [#1958 [.NET 1.0.6][FFI] CreateSessionAsync can hang after successful startup in Linux/Kubernetes](https://github.com/github/copilot-sdk/issues/1958) — `github/copilot-sdk` — opened 2026-07-09 — bug (matches platform "Linux" only; report is scoped to the .NET FFI binding, not the Go SDK the eval runner uses — noted defensively, not expected to reproduce here)
+
+### Historical (Closed)
+- [#2249 Fine-grained PAT authenticates on Windows but not Debian Linux](https://github.com/github/copilot-sdk/issues/2249) — `github/copilot-sdk` — closed 2026-08-04 — root-caused to a stripped Docker image missing `ca-certificates`, not an SDK defect; this dev machine already has working TLS (verified via `curl` this session), so not expected to apply
+
+### Unresolvable Tools
+- (none — both tools resolved)
 
 ## Acceptance Criteria
 
-- [ ] All 7 eval files reference an `artifact_file` that exists on disk
-- [ ] Eval directory names match the artifacts under test
-- [ ] `make -C installer evals` runs all 7 without any `read artifact` load error
-- [ ] Each repointed eval's criteria have been re-read against the current `SKILL.md` and corrected where the inference-first rework invalidated them
-- [ ] Pass/fail tally and run report path recorded in Findings (behavioral failures are acceptable and reported honestly, not tuned away)
+- [x] All 7 eval files reference an `artifact_file` that exists on disk
+- [x] Eval directory names match the artifacts under test
+- [x] `make -C installer evals` runs all 7 without any `read artifact` load error
+- [x] Each repointed eval's criteria have been re-read against the current `SKILL.md` and corrected where the inference-first rework invalidated them
+- [x] Pass/fail tally and run report path recorded in Findings (behavioral failures are acceptable and reported honestly, not tuned away)
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Repointed and renamed the 5 broken eval files (`smaqit.new-agent/` → `smaqit.create-agent/`, `smaqit.new-skill/` → `smaqit.create-skill/`) via `git mv`, then rewrote every turn/criterion in all 5 against the current inference-first (single-question) `create-agent`/`create-skill` `SKILL.md` text — the old files simulated a 10–15 turn interactive gathering flow that no longer exists.
+- Ran `make -C installer evals` repeatedly to validate. Along the way, root-caused and fixed two real bugs in the shared eval runner (`tests/evals/runner/main.go`) that were blocking any real tally: a process leak (`copilot.Client` never called `.Stop()`, leaking one `copilot --headless` OS process per session and per graded criterion — confirmed via the vendored SDK source's own documented `defer client.Stop()` pattern, and via 23 orphaned processes observed pre-fix) and a wrong template path (`setupWorkspace()` copied ADK templates to `dir/templates` instead of `dir/.smaqit/templates`, the path every current skill/agent actually reads — confirmed by inspecting the provisioned workspace on disk).
+- Obtained a final, clean, uninterrupted run after both fixes: 2/7 passed.
 
 **Decisions made:**
-- TBD
+- Corrected the task's own cross-reference from Task 021 (advanced-tier) to Task 020 (lite-tier), which actually owns `create-agent`/`create-skill` eval coverage; noted in both task files.
+- Fixed the two runner-infrastructure bugs in-session rather than deferring them, since they directly blocked this task's own "record a real pass/fail tally" criterion. Both fixes are minimal and evidence-backed, and validated by a behavioral flip: `L2/001_compile_base_agent` — the one eval that must actually read and merge template files — timed out in every pre-fix run and passed in every post-fix run.
+- Did not chase a third, distinct issue (permission-blocked file writes, below) inside this task — it's a deeper, evidently pre-existing defect unrelated to the artifact_file repair or the two fixes already made. Recorded as follow-up per this task's own "behavioral failures are acceptable and reported honestly" criterion rather than expanding scope further.
 
 **Blockers encountered:**
-- TBD
+- Initial auth failures (`Authorization error, you may need to run /login`) — resolved when the user added "Copilot Requests" permission to the fine-grained PAT used for `GH_TOKEN`.
+- A background run was killed by an unrelated Claude Code process/harness restart mid-run (no completion record); required a clean re-run.
+- All 5 `create-agent`/`create-skill` evals fail even after the templates-path fix, every one citing the same cause: blocked by filesystem permission errors, unable to write any file. Root cause not identified — `.smaqit/definitions/`, `.github/agents/`, and `.github/skills/` are all pre-created with 0755 by `setupWorkspace()`, ruling out the obvious explanation. The two `L2` evals never actually verify a successful on-disk write (they only check chat-transcript content), so they don't exercise this path and can't confirm whether the defect is pre-existing or specific to the inference-first skills.
 
 **Follow-up identified:**
-- TBD
+- New task needed: investigate why `create-agent`/`create-skill` sessions cannot write any file in the eval workspace. This blocks Task 020 (Lite-Tier Behavioral Evals) from ever reaching a genuine pass, since any new eval Task 020 authors will hit the same workspace/permission setup.
+- Final tally — **2/7 passed**: `agents/smaqit.L2/001_compile_base_agent` PASS, `agents/smaqit.L2/002_reject_unresolved_placeholders` PASS; all 5 `create-agent`/`create-skill` evals FAIL/ERROR on the permission-write issue above. Run report: `tests/evals/runs/20260806-113717/` (`results.json`, `report.md`).
+- Task 020 already carries a note (added this session) pointing at the corrected evals and flagging the auth/leak/path gotchas found here; the new permission-write follow-up should be added there, or filed as its own task, before Task 020 starts.
 
 ## Files to Create / Modify
 
@@ -66,7 +85,8 @@ Verified state as of 2026-08-05:
 |------|--------|
 | `tests/evals/skills/smaqit.new-agent/*.json` (3 files) | Modify + move to `smaqit.create-agent/` |
 | `tests/evals/skills/smaqit.new-skill/*.json` (2 files) | Modify + move to `smaqit.create-skill/` |
-| `.smaqit/tasks/021_advanced_tier_behavioral_evals.md` | Modify — note the repair once done |
+| `.smaqit/tasks/020_lite_tier_behavioral_evals.md` | Modify — note the repair once done (corrected from Task 021, which does not cover these lite-tier artifacts) |
+| `tests/evals/runner/main.go` | Modify — added `defer client.Stop()` at both `NewClient()` sites (process leak); fixed `setupWorkspace()` to copy templates/framework under `.smaqit/` instead of top-level (wrong runtime path) |
 
 ## Notes
 
