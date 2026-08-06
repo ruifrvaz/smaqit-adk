@@ -5,17 +5,17 @@
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
 | 023 | HarnessBench Phase 1 — `smaqit-adk bench` Subcommand | Not Started | A/B evaluation engine: variants, repetitions, deterministic graders, statistics, winner selection; in-process Copilot SDK; ships as a `bench` subcommand; independent of 018 |
-| 024 | Repair Broken Eval Artifact References | Not Started | 5 of 7 evals point at renamed `smaqit.new-agent`/`new-skill` files that no longer exist and cannot load; narrow repair ahead of Task 021 |
 | 025 | README Documents Non-Existent CLI Commands | Not Started | README documents `smaqit-adk create-agent`/`create-skill`; no such cases in the dispatch — confirm deliberate removal, then correct docs |
 | 018 | Level Skills Completion | Not Started | `smaqit.new-principle` shipped in adk-v0.6.0; remaining: new-template, new-rules, L0 definition file pattern |
 | 019 | Cross-Level Compilation (smaqit.compile) | Not Started | smaqit.compile.principle/template/agent skills; L0→L1→L2 chain via subagents; depends on Task 018 |
-| 020 | Lite-Tier Behavioral Evals | Not Started | Evals for smaqit.create-agent + smaqit.create-skill (skill + agent); independent of advanced tier |
+| 020 | Lite-Tier Behavioral Evals | Not Started | Evals for smaqit.create-agent + smaqit.create-skill (skill + agent); independent of advanced tier; depends on a fix for the permission-write defect found in Task 024 before any new eval can pass |
 | 021 | Advanced-Tier Behavioral Evals | Not Started | Review existing 7 evals; add L0, L1, new-principle, new-template, new-rules evals; depends on Task 018 |
 
 ## Completed
 
 | ID | Title | Completed | Notes |
 |----|-------|-----------|-------|
+| 024 | Repair Broken Eval Artifact References | 2026-08-06 | All criteria met; 5 broken evals repointed/rewritten for inference-first flow; also fixed 2 runner bugs (process leak, wrong templates path); final tally 2/7 (both L2) — 5 create-agent/create-skill evals blocked by an unresolved permission-write defect, follow-up needed before Task 020 |
 | 022 | Skill Format Spec Alignment | 2026-05-09 | All criteria met; create-skill, base template, skill.rules.md aligned with agentskills.io spec |
 | 014 | CLI create-agent / create-skill Fix | 2026-04-09 | All criteria met; shipped in adk-v0.5.0 (commit 9fe9d37) |
 | 017 | CLI Tier Subcommands — Replace `init` with `lite` and `advanced` | 2026-04-05 | All criteria met; breaking change; released as adk-v0.5.0 |
