@@ -5,139 +5,65 @@
 
 ## Description
 
-Build **HarnessBench Phase 1**: a controlled, repeatable A/B evaluation engine shipped as a `bench` subcommand of the `smaqit-adk` binary. Its purpose is to answer the question smaqit-adk currently cannot answer with evidence — *does injecting the ADK actually make a coding agent better, and at what cost?*
+Build **HarnessBench Phase 1**: a configurable local evaluation and benchmarking engine shipped as the `bench` subcommand of the `smaqit-adk` binary. Users and applications declare one or more cases, one or more harness variants, deterministic expected outputs, execution controls, and reporting policy in a versioned manifest.
 
-Phase 1 is deliberately the **smallest system that produces real evidence**. It runs N repetitions of a fixed task across two or more variants (e.g. baseline vs. `smaqit-adk lite` installed), grades each attempt with **deterministic** graders, computes distributions rather than single-run anecdotes, and selects a winner (or declares a tie) with an explanation traceable to raw measurements.
+Each case can provide a prompt plus named specs, files, directories, and images. Phase 1 executes any locally installed agentic harness through a generic process adapter, with task delivery through stdin or safe argument placeholders. One variant produces a standalone evaluation; two or more variants additionally produce a controlled comparison. Repetitions, deterministic grading, statistics, eligibility gates, and winner/tie/inconclusive outcomes remain traceable to immutable raw measurements.
 
-Phase 1 drives the **Copilot SDK in-process**. External harness CLIs (codex, claude-code, opencode), the worker-process boundary, git diff metrics, and HTML reporting are explicitly **Phase 2+** and out of scope here. The adapter interface is designed so Phase 2 adds a `process` adapter without touching orchestration.
+The workflow is plan-first: `bench validate` checks configuration, `bench plan` resolves and hashes all referenced inputs and expands the exact run matrix, and `bench run` executes the saved plan only if drift checks pass. `bench run <manifest>` remains an auto-plan convenience. Native SDK/API adapters, remote harnesses, multi-turn protocols, semantic/LLM judging, perceptual image grading, self-contained plan bundles, worker-process crash isolation, hostile-code sandboxing, git-diff metrics, and HTML reporting are explicitly deferred.
 
 This task originates from a one-shot implementation prompt at `assets/HARNESSBENCH_ONE_SHOT_PROMPT.md`. **That prompt was written for a different repository** — a .NET/C# solution built on a "Daisy workflow orchestration engine". Its entire "Required Daisy workflow model" section (receivers, abilities, transmitters, traversal rules, loopbacks, impulses) and all .NET-specific API guidance are **inapplicable to this Go codebase and must be ignored**. What remains valuable and MUST be carried forward is: the product boundary, the scientific-validity controls, the manifest shape, the grader taxonomy, the scoring/winner-selection ordering, the artifact contract, and the security constraints.
 
 ## Design Decisions
 
-- **Placement: subcommand of the `smaqit-adk` binary** (user decision, 2026-08-05). Chosen over a separate module/binary for discoverability and a single distributable. **Accepted cost:** `installer/` today has *zero* external dependencies and produces a small static binary that every `curl | bash` user downloads; this task adds `copilot-sdk/go` and a YAML parser to it. **Mitigation:** all bench code lives under `installer/bench/`, importing nothing from the installer's install/uninstall paths, so extraction into its own module is a mechanical move if binary size later becomes a problem.
-- **Phase 1 only — prove the thesis** (user decision, 2026-08-05). In scope: variants, repetitions, deterministic graders, statistics, gating, winner selection, JSON + Markdown reports. Out of scope: external process adapters, worker-process boundary + recursion guard, descendant-process kill, generalized overlays with path-containment, git diff metrics, HTML reporting, blind LLM judge.
-- **Deterministic graders are the primary signal.** An LLM judge is *not* implemented in Phase 1. The existing eval runner grades exclusively by LLM, which is precisely the weakness HarnessBench exists to correct. Note that `assets/test-harness.png` places a "Blind comparative judge" on the main path between graders and ranking — this **contradicts** the prompt text ("must not be necessary to select a winner", "can supplement but not override required executable failures"). The prompt wins: the judge is a deferred, optional extension point.
-- **Harvest, don't rewrite, the isolation code.** [tests/evals/runner/main.go](../../tests/evals/runner/main.go) already solves two hard problems that MUST be preserved: (a) the workspace is created *outside* the repo tree because a workspace inside it causes git-root discovery to leak full project context to the agent ([main.go:197-201](../../tests/evals/runner/main.go#L197-L201)); (b) an explicit token is mandatory so sessions never route through VS Code's shared XDG config and inherit smaqit-adk's own workspace context ([evals/README.md:31-39](../../tests/evals/README.md#L31-L39)). Violating either silently invalidates every result.
-- **Adapter interface from day one, with a `mock` adapter.** Required so the test suite is fully deterministic and needs no model API or network access.
-- **Unit tests live in-package** (`installer/bench/*_test.go`), diverging from the repo's `tests/` module convention. Rationale: `tests/` is deliberately black-box (drives the built binary via `SMAQIT_ADK_BIN`); bench unit tests need access to unexported types. Black-box CLI smoke tests still belong in `tests/`.
+- **General engine, ADK benchmark as one use case** (user decision, 2026-08-06). Task 023 delivers a configurable local evaluation and benchmarking engine. Measuring ADK versus baseline remains an important example, not the engine's product boundary.
+- **Placement: subcommand of the `smaqit-adk` binary** (user decision, 2026-08-05). Chosen for discoverability and one distributable. Bench internals live under `installer/bench/` and do not import install/uninstall paths, preserving a mechanical extraction seam.
+- **Generic local `process` adapter in Phase 1** (user decision, 2026-08-06). Any locally installed harness that can accept task input through stdin or arguments is configurable. A deterministic `mock` adapter supports tests and examples. The in-process Copilot SDK adapter is deferred, so `installer/` adds a YAML parser but not the Copilot SDK.
+- **Plan-first workflow** (user decision, 2026-08-06). `bench validate` checks configuration, `bench plan` creates a reviewable immutable plan, and `bench run <plan>` executes that exact plan. `bench run <manifest>` remains an auto-plan convenience.
+- **Reference-and-hash plans** (user decision, 2026-08-06). Plans resolve and hash configuration, visible inputs, hidden oracle assets, graders, fixtures, executable identity, seed, and run order without embedding source assets. Execution rejects missing or changed inputs before launching a harness.
+- **Case-oriented multimodal inputs** (user decision, 2026-08-06). A manifest contains one or more cases. Each case may provide a prompt plus named specs, files, directories, and images. Generic process delivery exposes staged filesystem paths and a rendered task envelope; provider-native multimodal upload is deferred.
+- **One or more variants** (user decision, 2026-08-06). One variant produces a standalone evaluation. Two or more variants additionally produce a benchmark comparison.
+- **Required expectations gate eligibility** (user decision, 2026-08-06). Declared expected outputs are deterministic pass/fail gates. Optional weighted graders measure secondary qualities only after eligibility; their weights MUST sum exactly to `1.0` when present and are never silently normalized.
+- **Generic output boundary.** Phase 1 evaluates process stdout/stderr and artifacts written to the workspace. Native final-chat-response extraction, multi-turn protocols, semantic/LLM judging, and perceptual image grading are deferred.
+- **Hidden-oracle boundary.** Expected values, golden assets, grader definitions/scripts, saved plans, and experiment outputs never enter the harness workspace, request, arguments, environment, or logs. This is non-disclosure by staging discipline, not a security boundary against a hostile same-user process.
+- **Fresh external workspaces and robust process lifecycle.** Every attempt runs outside the source repository. Setup/harness/grader commands use argument arrays, never shell strings. Timeout and cancellation terminate descendant processes and close owned resources.
+- **Immutable evidence, revisioned derivations.** Raw requests, traces, submissions, and measurements are immutable. Regrading creates revisioned derived artifacts instead of overwriting prior evidence. Missing usage/cost values remain null, never zero.
+- **Deterministic tests at both module boundaries.** Unit and integration tests live in `installer/bench/`; black-box CLI tests live in `tests/`. Makefile and CI wiring MUST execute both suites with no model API or network requirement.
 
 ## Implementation Steps
 
-1. **Add dependencies to `installer/go.mod`:** `github.com/github/copilot-sdk/go v0.2.0` (same version already used by `tests/go.mod`) and `gopkg.in/yaml.v3`. Run `go mod tidy` in `installer/`.
+1. **Create the versioned manifest contract.** Add strict YAML types and field-addressed diagnostics for one or more cases, one or more variants, execution controls, required expectations, optional graders, comparison policy, and output location. Resolve relative paths against the manifest directory and reject unknown fields, duplicate IDs, escaping destinations, invalid placeholders, invalid timeouts/repetitions, and optional weights that do not sum to `1.0`.
 
-2. **`installer/bench/manifest.go` — manifest types, parsing, validation.**
-   - Support the YAML shape below (a Phase-1 subset of the prompt's schema, preserving field names so Phase 2 is additive).
-   - Decode with `yaml.Decoder.KnownFields(true)` so a typo cannot silently invalidate an experiment.
-   - Resolve every relative path against the **manifest's own directory**, not the process CWD.
-   - Validate: at least 2 variants, unique variant IDs, weights sum to 1.0 (or normalize with a recorded warning), required graders present, repetitions ≥ 1, timeout > 0.
-   - Emit diagnostics naming the exact offending field path.
+2. **Model case inputs.** Each case supports a prompt from exactly one inline value or file plus named specs, files, directories, and images. Inputs declare stable IDs, sources, optional media types, and containment-safe destinations. Keep the writable fixture distinct from staged read-only task inputs.
 
-   ```yaml
-   schemaVersion: 1
-   name: adk-vs-baseline
-   fixture:
-     source: ./fixtures/empty-python        # optional local dir; copied per attempt
-   task:
-     instructionsFile: ./tasks/hello-mario.md
-   variants:
-     - id: baseline
-       adapter: copilot                     # copilot | mock
-     - id: adk-lite
-       adapter: copilot
-       setup:                               # executable + argument array; never a shell string
-         - executable: smaqit-adk
-           arguments: ["lite"]
-   execution:
-     repetitions: 10
-     randomizeOrder: true
-     seed: null                             # generated and recorded when null
-     timeoutSeconds: 300
-   graders:
-     - id: runtime-output
-       type: commandAssertion
-       required: true
-       weight: 0.5
-       executable: python
-       arguments: ["main.py"]
-       assertions: { exitCode: 0, stdoutContains: ["hello", "mario"], ignoreCase: true }
-     - id: scope
-       type: repository
-       required: false
-       weight: 0.5
-       assertions: { maximumFilesCreated: 5, forbiddenContent: ["TODO", "NotImplementedError"] }
-   comparison:
-     minimumRequiredPassRate: 0.9
-     tieThreshold: 0.01
-     tieBreakers: [higherRequiredPassRate, higherMedianScore, lowerMedianDuration]
-   output:
-     directory: ./bench-results
-   ```
+3. **Model process variants.** Configure executable, argument array, input mode (`stdin` or argument), working directory, explicitly inherited environment-variable names, non-secret environment overrides, setup commands, and intended treatment differences. Support argument-level placeholders `{task}`, `{taskFile}`, `{inputRoot}`, `{input:<id>}`, `{workspace}`, `{caseId}`, and `{variantId}`; never invoke a shell.
 
-3. **`installer/bench/plan.go` — run plan.** Expand `variants × repetitions` into a deterministic ordered plan. When `randomizeOrder` is true, shuffle with a seeded PRNG; **generate the seed if absent and always persist it** to `run-plan.json`. The same seed MUST reproduce the same order.
+4. **Model expected outputs and optional graders.** Required expectations locate actual output in harness stdout/stderr, a submission file/directory, semantic JSON, or a command result. Optional graders remain a separate weighted mechanism for secondary metrics and never override failed expectations.
 
-4. **`installer/bench/adapter.go` — harness adapter boundary.**
-   ```go
-   type Adapter interface {
-       Name() string
-       Execute(ctx context.Context, req Request) (Result, error)
-   }
-   ```
-   - `copilot` adapter: creates a session against the isolated workspace, sends the task instructions, waits for completion, records duration, terminal status, and any usage the SDK exposes. Deny shell permission requests only if the task's graders do not require generated code to run; otherwise approve — record which policy applied.
-   - `mock` adapter: writes a configured set of files and returns a configured status. Deterministic, no network. Used by every integration test.
-   - **Missing token/cost/usage data MUST be `nil`, never `0`.** Use pointer or `sql.Null`-style optional fields so "unknown" and "zero" stay distinguishable through statistics and reporting.
+5. **Implement `bench validate`.** Parse and fully validate the manifest without running a harness or mutating a workspace. Provide human-readable field paths and stable JSON diagnostics for application callers.
 
-5. **`installer/bench/workspace.go` — per-attempt isolation.**
-   - `os.MkdirTemp` **outside the repo tree** (never inside the project — see Design Decisions).
-   - Copy the fixture in without modifying the source; reject any resolved destination that escapes the workspace root.
-   - Run variant `setup` commands via `exec.CommandContext` with an **argument slice** — never build a shell string, never pass through `sh -c`.
-   - Record a baseline file inventory after setup and before harness execution.
-   - Preserve the workspace into the run directory afterward, then remove the temp dir.
+6. **Implement `bench plan`.** Resolve configuration, sources, placeholders, defaults, executable identity, environment names, and intended differences; generate a seed when absent; expand `cases × variants × repetitions`; deterministically randomize order; hash all visible inputs, hidden oracle assets, fixtures, setup inputs, grader assets, and executable identity; emit comparability warnings; and atomically write a stable plan artifact.
 
-6. **`installer/bench/grader.go` — deterministic graders.** Registry keyed by `type`:
-   - `command` — run an executable, capture stdout/stderr/exit code/duration, honour a timeout, pass on exit 0.
-   - `commandAssertion` — as above plus assertions on exit code, `stdoutContains`, `stderrContains`, regex, with `ignoreCase`.
-   - `repository` — filesystem-only assertions: `fileExists`, `fileAbsent`, `maximumFilesCreated` (vs. the recorded baseline inventory), `forbiddenContent`, `requiredContent`. No git dependency in Phase 1.
-   - **Grading runs against a frozen copy** of the submission, so grader-created files and caches cannot contaminate the recorded metrics.
-   - **Grader definitions and any grader assets MUST live outside the target workspace** and must never be copied into it — the agent under test must not be able to read or game them.
+7. **Make saved plans canonical.** `bench run <plan>` re-hashes references and rejects drift before launching anything. `bench run <manifest>` creates, persists, and executes a plan as a convenience. Case/variant/repetition filters may run subsets, but incomplete evidence is explicitly marked and cannot yield a conclusive comparison.
 
-7. **`installer/bench/stats.go`** — count, success/failure/timeout counts, mean, median, min, max, stddev. Values that are unknown propagate as unknown and are excluded from aggregates, with the exclusion counted and reported.
+8. **Implement the adapter boundary.** Add `process` and `mock` adapters. Pass only a resolved run-scoped request containing run identity, workspace, rendered task input, executable/arguments/environment, and trace paths. Treat a started process's non-zero exit as a recorded result; reserve adapter errors for infrastructure failures. Keep unknown usage/cost metrics nullable.
 
-8. **`installer/bench/compare.go` — gating and winner selection, in this exact order:**
-   1. mark each run's required-grader status;
-   2. compute required pass rate per variant;
-   3. disqualify variants below `minimumRequiredPassRate`;
-   4. normalize optional grader scores to `[0,1]`;
-   5. compute the weighted score;
-   6. compute statistics per metric;
-   7. rank eligible variants;
-   8. apply `tieThreshold`, then declared tie-breakers in order;
-   9. if still tied or evidence is insufficient, return **tie / inconclusive** — never invent a winner.
-   - **Functional correctness dominates:** a variant that fails a required grader can never outrank one that passes, regardless of speed or size.
-   - Emit **comparison warnings** when variants differ in materially uncontrolled ways (differing adapters, differing setup, missing metrics on one side).
+9. **Implement process lifecycle management.** Execute in the attempt workspace, stream bounded stdout/stderr to trace files, enforce timeouts and cancellation, terminate descendant processes with platform-specific handling, and close all owned resources. Never persist inherited secret values.
 
-9. **`installer/bench/report.go`** — write `experiment.json`, `resolved-manifest.json`, `run-plan.json`, `comparison.json`, and `report.md`. Write **atomically**: temp file in the same directory, flush, then rename, so a crash never leaves valid-looking partial JSON. The Markdown narrative MUST be generated from structured facts — never ask a model to author the experiment's conclusion.
+10. **Implement isolated workspaces.** Create every attempt with `os.MkdirTemp` outside the repository, copy the fixture without changing its source, stage only declared agent-visible inputs under a reserved input root, render the task envelope, record the baseline inventory, freeze the completed submission, preserve evidence, and remove the temporary workspace.
 
-10. **`installer/bench/run.go`** — orchestration: validate → plan → per-attempt (workspace → setup → execute → freeze → grade → persist) → aggregate → compare → report. One attempt failing must not abort collection of the others unless fail-fast is set.
+11. **Implement deterministic evaluators.** Support text exact/contains/regex checks with explicit normalization; file exists/absent/byte/hash/size/content checks; stable directory inventory/tree/count checks; strict semantic JSON exact/subset checks; runtime exit/stdout/stderr checks; and exact-byte or SHA-256 image-output checks. Run commands only against disposable grading copies of frozen submissions.
 
-11. **`installer/cmd_bench.go` + `installer/main.go`** — add the `bench` case to the dispatch switch at [installer/main.go:39](../../installer/main.go#L39) and subcommands: `validate <manifest>`, `run <manifest> [--variant id] [--repetition n]`, `grade <run-dir>`, `compare <experiment-dir>`, `report <experiment-dir> [--format json|markdown]`. Every subcommand gets `--help`. Update `printUsage` and `cmdHelp`. Exit codes: `0` success, `1` completed but no eligible successful result, `2` invalid CLI input or manifest, `3` infrastructure/orchestration failure.
+12. **Enforce the hidden-oracle boundary.** Keep expected values, golden assets, grader definitions/scripts, plans, and experiment output paths out of harness workspaces, task envelopes, requests, arguments, environments, and logs. Store grader traces separately and assert the boundary in tests. Document that same-user process execution is not a hostile-code sandbox.
 
-12. **Artifact layout** under `output.directory`:
-    ```
-    experiment-<id>/
-      experiment.json  resolved-manifest.json  run-plan.json
-      comparison.json  report.md
-      runs/<run-id>/
-        request.json  result.json
-        workspace/  submission/
-        traces/harness.stdout.log  traces/harness.stderr.log
-        grades/results.json
-    ```
-    `result.json` normalizes at minimum: `schemaVersion`, `experimentId`, `runId`, `variantId`, `repetition`, `status` (enum: `completed|failed|timedOut|cancelled|invalid`), `startedAt`, `completedAt`, `durationMs`, `harness{adapter,exitCode,timedOut}`, `usage{...nullable}`, `grades{requiredPassed,score}`, `failure` (phase, error type, concise message, log path — never a serialized exception graph).
+13. **Implement statistics and comparison.** Summarize repetitions per case and variant; emit evaluation outcomes for a single variant; for multiple variants, gate eligibility on required expectations, compute optional weighted scores and nullable statistics, apply minimum pass rate, tie threshold, and declared tie-breakers in a fixed order, surface uncontrolled differences, and return winner, tie, or inconclusive.
 
-13. **Tests.** Unit (`installer/bench/*_test.go`): manifest parsing incl. unknown-field rejection, relative path resolution, plan expansion + seed determinism, required-grader gating, weight validation, statistics + tie threshold, tie-breaker ordering, unknown-metrics-stay-unknown, status transitions. Integration (mock adapter, no network): a full two-variant multi-repetition experiment; required-grader failure disqualifies a higher optional score; a known winner is selected; equal results produce a tie; parallel-safe distinct workspaces; grader assets absent from the workspace; source fixture byte-for-byte unchanged; `grade`/`compare`/`report` operate on existing artifacts without re-running a harness. Add a black-box CLI smoke test in `tests/`.
+14. **Persist immutable evidence and revisioned derivations.** Atomically write saved plan, sanitized resolved configuration, experiment metadata, run matrix, per-attempt request/result, hashes, frozen submission, traces, grades, statistics, comparison, and Markdown report. Keep raw evidence immutable and write regrading results as revisioned derived artifacts.
 
-14. **Example + docs.** Ship a runnable `examples/bench/adk-vs-baseline/` (manifest, task instructions, minimal fixture, deterministic grader, and a `mock`-adapter variant usable with no model access). Write `docs/wiki/benchmarking.md` covering what HarnessBench measures and what it does not, the control/treatment model, manifest reference, scoring and winner selection, artifact layout, and — stated plainly — that Phase 1 is local process isolation, **not** a security sandbox for hostile generated code.
+15. **Wire the CLI.** Add `bench validate|plan|run|grade|compare|report` to `installer/main.go` through `installer/cmd_bench.go`; provide nested `--help`, JSON modes for machine-consumed commands, and stable exit codes for success, completed-but-ineligible, invalid input/configuration, drift, and infrastructure failure.
+
+16. **Add deterministic verification.** Cover strict parsing, containment, input hashing, drift, seeded plans, placeholder expansion, process I/O and cleanup, all expectation types, required gating, optional weights, single-variant evals, multi-variant winner/tie/inconclusive outcomes, incomplete matrices, hidden-oracle exclusion, immutable fixtures, revisioned regrading, and full network-free mock experiments. Add built-binary black-box tests and wire installer-package tests into Makefile and CI.
+
+17. **Ship examples and documentation.** Add a one-variant evaluation using prompt/spec/file/image inputs, a two-variant mock benchmark, and a generic process-harness example. Document the manifest and plan schemas, validate/plan/run lifecycle, input delivery, expectations, scoring, artifacts, application integration, secret handling, scientific-validity controls, and local-process security limits.
 
 ## Known Issues Triage
 
@@ -145,22 +71,32 @@ This task originates from a one-shot implementation prompt at `assets/HARNESSBEN
 
 ## Acceptance Criteria
 
-- [ ] `smaqit-adk bench validate|run|grade|compare|report` all exist with `--help`, and appear in `printUsage`/`cmdHelp`
-- [ ] Manifest parsing rejects unknown fields and reports the offending field path
-- [ ] Relative paths resolve against the manifest directory, not the process CWD
-- [ ] Run plan expands variants × repetitions; seed is generated when absent, persisted, and reproduces the same order
-- [ ] Each attempt runs in a fresh workspace created **outside** the repo tree
-- [ ] Setup and grader commands execute via argument slices — no shell string interpolation anywhere
-- [ ] `command`, `commandAssertion`, and `repository` graders are implemented and grade a frozen submission copy
-- [ ] Grader definitions and assets are provably absent from the target workspace (asserted by a test)
-- [ ] Required graders gate eligibility: a required-grader failure can never outrank a passing run
-- [ ] Comparison produces an evidence-backed winner, tie, or inconclusive result, with tie-breakers applied in declared order
-- [ ] Unknown usage metrics are reported as null, never zero (asserted by a test)
-- [ ] `experiment.json`, `resolved-manifest.json`, `run-plan.json`, `comparison.json`, and `report.md` are written atomically
-- [ ] Full deterministic test suite passes with no model API or network access (mock adapter)
-- [ ] The `examples/bench/adk-vs-baseline/` example runs end to end using the mock adapter
-- [ ] `docs/wiki/benchmarking.md` written, including the explicit security-limitations statement
-- [ ] `cd installer && make build` passes; `cd tests && go test ./...` passes
+- [ ] `smaqit-adk bench validate|plan|run|grade|compare|report` all exist with nested `--help`, appear in top-level usage/help, and expose documented stable exit codes
+- [ ] Machine-consumed commands provide stable JSON diagnostics/results without requiring applications to parse terminal prose
+- [ ] Manifest parsing rejects unknown fields and reports the exact offending field path
+- [ ] Relative paths resolve against the manifest directory; source and destination containment checks reject escaping paths and unsafe symlinks
+- [ ] A manifest accepts one or more cases containing prompt, spec, file, directory, and image inputs with unique stable IDs
+- [ ] A manifest accepts one or more variants using the generic local `process` adapter; the deterministic `mock` adapter remains available for tests/examples
+- [ ] Process harnesses accept task input through configured stdin or safe argument placeholders, including named input paths, without shell interpolation
+- [ ] `bench plan` expands `cases × variants × repetitions`, generates and persists a seed when absent, and reproduces the same order from the same resolved inputs and seed
+- [ ] Saved plans record hashes for configuration, visible inputs, hidden oracle assets, fixtures, setup/grader assets, and executable identity where available
+- [ ] `bench run <plan>` detects missing or changed references and exits before launching any harness; `bench run <manifest>` persists the auto-generated plan
+- [ ] Each attempt runs in a fresh workspace created outside the source repository, and source fixtures remain byte-for-byte unchanged
+- [ ] Setup, harness, and grader commands execute with argument arrays only; timeout/cancellation terminates descendant processes and leaves no owned process running
+- [ ] Text, file, directory, strict semantic JSON, runtime, and exact-byte/SHA-256 image-output expectations grade a frozen submission copy deterministically
+- [ ] Expected values, golden assets, grader definitions/scripts, saved plans, and experiment outputs are absent from the target workspace and harness request surface, as asserted by tests
+- [ ] Required expectations gate eligibility; a failing run cannot outrank an eligible run regardless of optional metrics
+- [ ] Optional grader weights are rejected unless they sum exactly to `1.0`; no silent weight normalization occurs
+- [ ] One variant produces a standalone evaluation outcome and statistics without requiring comparison
+- [ ] Two or more variants produce an evidence-backed winner, tie, or inconclusive comparison with minimum pass rate, tie threshold, and tie-breakers applied in documented order
+- [ ] Filtered or otherwise incomplete run matrices are reported as incomplete and cannot yield a conclusive comparison
+- [ ] Unknown usage/cost metrics remain null, are excluded from aggregates, and have their exclusions counted
+- [ ] Raw requests, traces, submissions, and measurements are immutable; regrading writes revisioned derived artifacts without rerunning the harness
+- [ ] Plan, experiment, run, grade, comparison, and report artifacts are written atomically and remain traceable to their hashed inputs
+- [ ] Deterministic unit/integration tests pass without a model API or network, including full single- and multi-variant mock experiments
+- [ ] Runnable examples cover single-variant multimodal evaluation, two-variant comparison, and generic process-harness input delivery
+- [ ] Benchmarking documentation covers manifest/plan formats, lifecycle, scoring, application integration, secrets, scientific-validity controls, and the explicit local-process security limitation
+- [ ] `cd installer && go test ./...`, `cd installer && make build`, `cd installer && make test`, and `cd tests && go test ./...` pass; CI executes installer-package and black-box tests
 - [ ] No TODOs, placeholder methods, or commented-out core behavior remain
 
 ## Findings
@@ -183,24 +119,27 @@ This task originates from a one-shot implementation prompt at `assets/HARNESSBEN
 
 | File | Action |
 |------|--------|
-| `installer/bench/manifest.go` | Create |
-| `installer/bench/plan.go` | Create |
-| `installer/bench/adapter.go` | Create |
-| `installer/bench/workspace.go` | Create |
-| `installer/bench/grader.go` | Create |
-| `installer/bench/stats.go` | Create |
-| `installer/bench/compare.go` | Create |
-| `installer/bench/report.go` | Create |
-| `installer/bench/run.go` | Create |
-| `installer/bench/*_test.go` | Create |
+| `installer/bench/manifest.go`, `inputs.go` | Create — versioned schema, strict validation, case inputs, diagnostics, and manifest-relative resolution |
+| `installer/bench/plan.go`, `hash.go` | Create — immutable saved plan, hashing, drift detection, seed, and case × variant × repetition expansion |
+| `installer/bench/adapter.go`, `process.go`, `mock.go` | Create — adapter contract plus generic process and deterministic mock implementations |
+| `installer/bench/process_unix.go`, `process_windows.go` | Create — platform-specific descendant-process cleanup |
+| `installer/bench/workspace.go` | Create — external workspaces, safe staging, baseline inventory, submission freeze, and preservation |
+| `installer/bench/expect.go`, `grader.go` | Create — deterministic required expectations, optional graders, and hidden-oracle enforcement |
+| `installer/bench/stats.go`, `compare.go` | Create — nullable statistics, eligibility, ranking, ties, and inconclusive outcomes |
+| `installer/bench/artifacts.go`, `report.go` | Create — atomic immutable evidence, revisioned derivations, JSON results, and Markdown reports |
+| `installer/bench/run.go` | Create — validate/plan/run/grade/compare/report orchestration |
+| `installer/bench/*_test.go` | Create — deterministic unit and integration coverage |
 | `installer/cmd_bench.go` | Create |
 | `installer/main.go` | Modify — add `bench` dispatch case, update usage/help |
-| `installer/go.mod`, `installer/go.sum` | Modify — add copilot-sdk + yaml.v3 |
-| `installer/Makefile` | Modify — add a `bench-example` target |
-| `examples/bench/adk-vs-baseline/` | Create — manifest, task, fixture, grader |
+| `installer/go.mod`, `installer/go.sum` | Modify — add YAML parsing dependency only |
+| `installer/Makefile` | Modify — run installer-package tests and add example verification |
+| `.github/workflows/test-integration.yml` | Modify — execute installer-package and black-box CLI tests |
+| `examples/bench/single-eval/` | Create — prompt/spec/file/image evaluation example |
+| `examples/bench/multi-variant/` | Create — deterministic two-variant mock benchmark |
+| `examples/bench/process-harness/` | Create — generic stdin and named-input placeholder example |
 | `docs/wiki/benchmarking.md` | Create |
+| `README.md` | Modify — add benchmark/evaluation quick start |
 | `tests/unit/bench_cli_test.go` | Create — black-box CLI smoke test |
-| `assets/HARNESSBENCH_ONE_SHOT_PROMPT.md` | Modify — commit as the source reference, annotated that the Daisy/.NET sections do not apply |
 
 ## Notes
 
@@ -217,8 +156,8 @@ This task originates from a one-shot implementation prompt at `assets/HARNESSBEN
 - ties and statistically weak differences reported honestly — no manufactured causal certainty
 - material uncontrolled differences between variants surfaced as warnings
 
-**Recursion guard (deferred but noted):** Phase 2 introduces a worker-process boundary, at which point `harnessbench experiment → worker → external harness` must be enforced with a depth limit so a misconfiguration cannot spawn recursively. Phase 1 has no worker process and therefore no recursion risk, but variant `setup` commands MUST NOT be permitted to invoke `smaqit-adk bench`.
+**Process boundary:** Phase 1 launches each harness as a direct child process and MUST terminate its descendant process group on timeout or cancellation. It does not provide a separate crash-isolating worker or hostile-code sandbox. Direct recursive `smaqit-adk bench` configurations MUST fail validation when detectable; indirect recursion through arbitrary wrappers cannot be guaranteed and is documented as a limitation.
 
 **A note on the first experiment:** the honest expected result is that a trivial task favors the baseline, because kit overhead can exceed its value at low complexity. The eventual benchmark corpus needs a complexity ladder — trivial generation, multi-requirement application, existing-repo modification, ambiguity, multi-module change, mid-task requirement change, regression repair. Do not tune the first task until the ADK wins; report what is measured.
 
-**Related:** Task 020 and Task 021 (behavioral evals) answer *"does the artifact behave as specified?"*. HarnessBench answers *"is the kit worth it?"*. They are complementary, not overlapping, and neither blocks the other. Task 024 (broken eval references) is worth resolving first if this task ends up reusing code from `tests/evals/runner/`.
+**Related:** Task 020 and Task 021 (behavioral evals) answer *"does the artifact behave as specified?"*. HarnessBench supports that evaluation use case and additionally answers comparative questions such as *"which harness or treatment performs better?"*. Task 024 is complete; its external-workspace and process-lifecycle findings are inputs to this implementation, while its Copilot-specific session and LLM-grading code is not reused as engine architecture.
