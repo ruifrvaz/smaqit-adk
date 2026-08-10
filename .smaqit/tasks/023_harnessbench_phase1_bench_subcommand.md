@@ -1,9 +1,10 @@
 # HarnessBench Phase 1 — `smaqit-adk bench` Subcommand
 
-**Status:** In Progress
+**Status:** Completed
 **Mode:** Assisted
 **Created:** 2026-08-05
 **Started:** 2026-08-06
+**Completed:** 2026-08-10
 
 ## Description
 
@@ -83,51 +84,55 @@ Implementation avoids the affected custom `UnmarshalYAML` → `Node.Decode` path
 
 ## Acceptance Criteria
 
-- [ ] `smaqit-adk bench validate|plan|run|grade|compare|report` all exist with nested `--help`, appear in top-level usage/help, and expose documented stable exit codes
-- [ ] Machine-consumed commands provide stable JSON diagnostics/results without requiring applications to parse terminal prose
-- [ ] `bench run` reports readable lifecycle state by default; `-events jsonl` emits ordered, timestamped, typed run/attempt/progress/completion or failure events; `-events quiet` suppresses progress
-- [ ] Lifecycle events are durably recorded in each created experiment's immutable `events.jsonl` before being delivered to a caller; `run.completed` identifies the outcome, experiment directory, and report, while `run.failed` identifies the failure phase/message and diagnostics when available
-- [ ] Manifest parsing rejects unknown fields and reports the exact offending field path
-- [ ] Relative paths resolve against the manifest directory; source and destination containment checks reject escaping paths and unsafe symlinks
-- [ ] A manifest accepts one or more cases containing prompt, spec, file, directory, and image inputs with unique stable IDs
-- [ ] A manifest accepts one or more variants using the generic local `process` adapter; the deterministic `mock` adapter remains available for tests/examples
-- [ ] Process harnesses accept task input through configured stdin or safe argument placeholders, including named input paths, without shell interpolation
-- [ ] `bench plan` expands `cases × variants × repetitions`, generates and persists a seed when absent, and reproduces the same order from the same resolved inputs and seed
-- [ ] Saved plans record hashes for configuration, visible inputs, hidden oracle assets, fixtures, setup/grader assets, and executable identity where available
-- [ ] `bench run <plan>` detects missing or changed references and exits before launching any harness; `bench run <manifest>` persists the auto-generated plan
-- [ ] Each attempt runs in a fresh workspace created outside the source repository, and source fixtures remain byte-for-byte unchanged
-- [ ] Setup, harness, and grader commands execute with argument arrays only; timeout/cancellation terminates descendant processes and leaves no owned process running
-- [ ] Text, file, directory, strict semantic JSON, runtime, and exact-byte/SHA-256 image-output expectations grade a frozen submission copy deterministically
-- [ ] Expected values, golden assets, grader definitions/scripts, saved plans, and experiment outputs are absent from the target workspace and harness request surface, as asserted by tests
-- [ ] Required expectations gate eligibility; a failing run cannot outrank an eligible run regardless of optional metrics
-- [ ] Optional grader weights are rejected unless they sum exactly to `1.0`; no silent weight normalization occurs
-- [ ] One variant produces a standalone evaluation outcome and statistics without requiring comparison
-- [ ] Two or more variants produce an evidence-backed winner, tie, or inconclusive comparison with minimum pass rate, tie threshold, and tie-breakers applied in documented order
-- [ ] Filtered or otherwise incomplete run matrices are reported as incomplete and cannot yield a conclusive comparison
-- [ ] Unknown usage/cost metrics remain null, are excluded from aggregates, and have their exclusions counted
-- [ ] Raw requests, traces, submissions, and measurements are immutable; regrading writes revisioned derived artifacts without rerunning the harness
-- [ ] Plan, experiment, run, grade, comparison, and report artifacts are written atomically and remain traceable to their hashed inputs
-- [ ] Deterministic unit/integration tests pass without a model API or network, including full single- and multi-variant mock experiments
-- [ ] Runnable examples cover single-variant multimodal evaluation, two-variant comparison, and generic process-harness input delivery
-- [ ] Benchmarking documentation covers manifest/plan formats, lifecycle, scoring, application integration, secrets, scientific-validity controls, and the explicit local-process security limitation
-- [ ] `cd src && go test ./...`, `cd installer && go test ./...`, `cd installer && make build`, `cd installer && make test`, and `cd tests && go test ./...` pass; CI executes source-module, installer-wrapper, and black-box tests
-- [ ] No TODOs, placeholder methods, or commented-out core behavior remain
+- [x] `smaqit-adk bench validate|plan|run|grade|compare|report` all exist with nested `--help`, appear in top-level usage/help, and expose documented stable exit codes
+- [x] Machine-consumed commands provide stable JSON diagnostics/results without requiring applications to parse terminal prose
+- [x] `bench run` reports readable lifecycle state by default; `-events jsonl` emits ordered, timestamped, typed run/attempt/progress/completion or failure events; `-events quiet` suppresses progress
+- [x] Lifecycle events are durably recorded in each created experiment's immutable `events.jsonl` before being delivered to a caller; `run.completed` identifies the outcome, experiment directory, and report, while `run.failed` identifies the failure phase/message and diagnostics when available
+- [x] Manifest parsing rejects unknown fields and reports the exact offending field path
+- [x] Relative paths resolve against the manifest directory; source and destination containment checks reject escaping paths and unsafe symlinks
+- [x] A manifest accepts one or more cases containing prompt, spec, file, directory, and image inputs with unique stable IDs
+- [x] A manifest accepts one or more variants using the generic local `process` adapter; the deterministic `mock` adapter remains available for tests/examples
+- [x] Process harnesses accept task input through configured stdin or safe argument placeholders, including named input paths, without shell interpolation
+- [x] `bench plan` expands `cases × variants × repetitions`, generates and persists a seed when absent, and reproduces the same order from the same resolved inputs and seed
+- [x] Saved plans record hashes for configuration, visible inputs, hidden oracle assets, fixtures, setup/grader assets, and executable identity where available
+- [x] `bench run <plan>` detects missing or changed references and exits before launching any harness; `bench run <manifest>` persists the auto-generated plan
+- [x] Each attempt runs in a fresh workspace created outside the source repository, and source fixtures remain byte-for-byte unchanged
+- [x] Setup, harness, and grader commands execute with argument arrays only; timeout/cancellation terminates descendant processes and leaves no owned process running
+- [x] Text, file, directory, strict semantic JSON, runtime, and exact-byte/SHA-256 image-output expectations grade a frozen submission copy deterministically
+- [x] Expected values, golden assets, grader definitions/scripts, saved plans, and experiment outputs are absent from the target workspace and harness request surface, as asserted by tests
+- [x] Required expectations gate eligibility; a failing run cannot outrank an eligible run regardless of optional metrics
+- [x] Optional grader weights are rejected unless they sum exactly to `1.0`; no silent weight normalization occurs
+- [x] One variant produces a standalone evaluation outcome and statistics without requiring comparison
+- [x] Two or more variants produce an evidence-backed winner, tie, or inconclusive comparison with minimum pass rate, tie threshold, and tie-breakers applied in documented order
+- [x] Filtered or otherwise incomplete run matrices are reported as incomplete and cannot yield a conclusive comparison
+- [x] Unknown usage/cost metrics remain null, are excluded from aggregates, and have their exclusions counted
+- [x] Raw requests, traces, submissions, and measurements are immutable; regrading writes revisioned derived artifacts without rerunning the harness
+- [x] Plan, experiment, run, grade, comparison, and report artifacts are written atomically and remain traceable to their hashed inputs
+- [x] Deterministic unit/integration tests pass without a model API or network, including full single- and multi-variant mock experiments
+- [x] Runnable examples cover single-variant multimodal evaluation, two-variant comparison, and generic process-harness input delivery
+- [x] Benchmarking documentation covers manifest/plan formats, lifecycle, scoring, application integration, secrets, scientific-validity controls, and the explicit local-process security limitation
+- [x] `cd src && go test ./...`, `cd installer && go test ./...`, `cd installer && make build`, `cd installer && make test`, and `cd tests && go test ./...` pass; CI executes source-module, installer-wrapper, and black-box tests
+- [x] No TODOs, placeholder methods, or commented-out core behavior remain
 
 ## Findings
 
 [Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
 
 **Implementation approach:**
-- TBD
+- Implemented Bench as an independent `src` module with strict manifests, hashed plans, isolated workspaces, adapters, deterministic grading, evidence artifacts, and a packaging-wrapper CLI dispatch.
+- Added durable lifecycle events, runnable examples, black-box tests, documentation, and a Codex-backed end-to-end playbook.
 
 **Decisions made:**
-- TBD
+- Kept Phase 1 harnesses generic through direct local process execution; `mock` provides deterministic test coverage without model or network access.
+- Made plans and immutable experiment evidence canonical, with JSONL state updates for application callers and readable terminal progress for people.
 
 **Blockers encountered:**
-- TBD
+- Read-only staged inputs initially prevented temporary workspace deletion; cleanup now restores permissions before removal and is covered by regression tests.
+- No remaining blocker; all required verification and live Codex E2E evidence passed.
 
 **Follow-up identified:**
-- TBD
+- Task 026, currently parked, will migrate the obsolete Copilot behavioural suite to HarnessBench skill and agent benchmarks.
+- Native SDK adapters, multi-turn protocols, semantic judging, and hostile-code sandboxing remain deliberately outside Phase 1.
 
 ## Files to Create / Modify
 
