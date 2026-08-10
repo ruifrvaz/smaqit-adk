@@ -4,7 +4,6 @@
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
-| 026 | HarnessBench Skill and Agent Evaluation Suite | In Progress | Replaces the Copilot SDK behavioural-evaluation suite with a shipped `bench suite` capability and `.smaqit/bench/` dogfood manifests; supersedes 020/021 |
 | 025 | README Documents Non-Existent CLI Commands | Not Started | README documents `smaqit-adk create-agent`/`create-skill`; no such cases in the dispatch — confirm deliberate removal, then correct docs |
 | 018 | Level Skills Completion | Not Started | `smaqit.new-principle` shipped in adk-v0.6.0; remaining: new-template, new-rules, L0 definition file pattern |
 | 019 | Cross-Level Compilation (smaqit.compile) | Not Started | smaqit.compile.principle/template/agent skills; L0→L1→L2 chain via subagents; depends on Task 018 |
@@ -13,6 +12,7 @@
 
 | ID | Title | Completed | Notes |
 |----|-------|-----------|-------|
+| 026 | HarnessBench Skill and Agent Evaluation Suite | 2026-08-10 | Shipped a `bench suite validate\|plan\|run` engine capability plus 3 `.smaqit/bench/` dogfood manifests (2 skills + 1 agent); `make evals` verified live against the authenticated Codex CLI, 3/3 passed; found/fixed a real `Command.Environment` engine gap; removed the legacy Copilot SDK runner and dependency; supersedes 020/021 |
 | 023 | HarnessBench Phase 1 — `smaqit-adk bench` Subcommand | 2026-08-10 | Shipped plan-first local evaluation/benchmark CLI with multimodal cases, generic process harnesses, deterministic grading, immutable evidence, lifecycle events, examples, CI coverage, and Codex E2E validation |
 | 024 | Repair Broken Eval Artifact References | 2026-08-06 | Historical Copilot SDK repair: 5 evals repointed/rewritten and two runner bugs fixed; final tally 2/7. The runner and its remaining permission defect are superseded by Task 026. |
 | 022 | Skill Format Spec Alignment | 2026-05-09 | All criteria met; create-skill, base template, skill.rules.md aligned with agentskills.io spec |
