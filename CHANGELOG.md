@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-10
+
+### Added
+
+- `smaqit-adk bench suite validate|plan|run` — discovers every `bench.yaml` found under a directory tree (deterministic, sorted order) and drives each through the same validate/plan/run pipeline in turn; a manifest that fails to load, plan, or run is recorded against it individually without stopping the rest of the suite. `bench suite run` forwards each manifest's lifecycle events (prefixed with its path) to `-events plain|jsonl|quiet`; its final JSON document reports per-manifest results plus suite-level `passed`/`failed`/`errored` counts. Documented in a new "Suites" section of `docs/wiki/benchmarking.md`.
+- `.smaqit/bench/` — this repo's own HarnessBench dogfood suite: three manifests exercising `smaqit.L2` (`compile-base-agent`, `reject-unresolved-placeholders`) and the `smaqit.create-agent`/`smaqit.create-skill` skills against the shipped `bench` engine, with `README.md` and `MIGRATION.md`.
+
+### Changed
+
+- `installer/Makefile` — `evals` target repointed from the legacy Copilot-SDK runner to `smaqit-adk bench suite run .smaqit/bench`, run against the authenticated local Codex CLI (`codex exec`) instead of a token-based Copilot API client; `build` now also compiles `validate-skill` as a standalone binary to sidestep a Snap-packaged `go run` toolchain conflict with Bench's process-group isolation; `test-bench-examples` also validates the dogfood suite; `test-all` no longer runs `evals` (kept as an explicit, separate step since it drives a live, credentialed CLI).
+- `.github/workflows/test-integration.yml` — CI step renamed to also validate the dogfood suite via `make test-bench-examples`.
+- `.github/copilot-instructions.md` — architecture table now lists `src/` (bench engine + CLI Go source) as ADK-shipped; documents `.smaqit/bench/` as this repo's own dogfood data, not an ADK-installed artifact.
+
+### Fixed
+
+- `Command.Environment` — setup, command-grader, and command-expectation executions can now opt in to `environment.inherit`/`environment.set`; previously this configuration was silently unavailable for these execution paths, which always ran with a completely empty environment (not even inherited variables such as `PATH`). Omitting `environment` preserves the prior empty-environment default, so existing manifests are unaffected.
+
+### Removed
+
+- Legacy Copilot-SDK eval runner (`tests/evals/`) and its Go SDK dependency (`github.com/github/copilot-sdk/go`) — superseded by the HarnessBench dogfood suite under `.smaqit/bench/`; see `.smaqit/bench/MIGRATION.md`.
+
 ## [1.0.0] - 2026-08-10
 
 ### Added
@@ -219,7 +240,8 @@ smaqit-adk is a **generic agent development toolkit**, not tied to any specific 
 
 The [smaQit product](https://github.com/ruifrvaz/smaqit) demonstrates one possible use case (five-layer specification system), but ADK users can create entirely different architectures.
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v1.0.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v1.1.0...HEAD
+[1.1.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v1.0.0...adk-v1.1.0
 [1.0.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.3...adk-v1.0.0
 [0.7.3]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.2...adk-v0.7.3
 [0.7.2]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.1...adk-v0.7.2
