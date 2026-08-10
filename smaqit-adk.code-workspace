@@ -3,10 +3,6 @@
     {
       "name": "main",
       "path": "."
-    },
-    {
-      "name": "task/026-harnessbench-skill-and-agent-evaluation-suite",
-      "path": "../smaqit-adk-wt-task-026-harnessbench-skill-and-agent-evaluation-suite"
     }
   ],
   "settings": {
