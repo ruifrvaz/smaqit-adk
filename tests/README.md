@@ -10,14 +10,16 @@ cd tests && go test ./unit/...
 cd tests && go test ./structural/...
 ```
 
-## All non-eval tests
+## All offline tests
 ```
 cd tests && go test ./...
 ```
 
-## Behavioral evals (live Copilot API)
+## Behavioral evals (live Codex CLI, via HarnessBench)
 ```
-cd tests && go run ./evals/runner/... ./evals/
+cd installer && make evals
 ```
 
-Run reports are written to `tests/evals/runs/<YYYYMMDD-HHMMSS>/`.
+Requires the `codex` CLI on PATH and already authenticated — see `.smaqit/bench/README.md` for the manifest layout and `docs/wiki/benchmarking.md` for the Bench engine itself. Run evidence is written under `.smaqit/bench/runs/`.
+
+This replaces the former Copilot-SDK-based `tests/evals/` runner and JSON corpus (removed in Task 026 after verifying the HarnessBench suite above passes against a live, authenticated Codex CLI — see `.smaqit/bench/MIGRATION.md`).

@@ -36,6 +36,14 @@ build: prepare
 	@mkdir -p $(DIST_DIR)
 	@go build $(LDFLAGS) -o $(DIST_DIR)/$(DEV_BINARY_NAME) .
 	@echo "Built: $(DIST_DIR)/$(DEV_BINARY_NAME)"
+	@# Pre-built for the .smaqit/bench dogfood suite's validator-passes command
+	@# grader: `go run` resolves through a Snap-packaged toolchain
+	@# (/snap/bin/go -> /usr/bin/snap) on some dev machines, and Bench's
+	@# process-group isolation for reliable timeout/kill handling is
+	@# incompatible with Snap's own confinement locking there ("race condition
+	@# detected, snap-run can only retry once"). A plain compiled binary sidesteps
+	@# Snap entirely at grading time. See .smaqit/bench/README.md.
+	@go build -o $(DIST_DIR)/validate-skill ../skills/smaqit.create-skill/scripts/validate-skill.go
 
 # Build for all platforms
 .PHONY: build-all
@@ -93,20 +101,20 @@ test-bench-examples: build
 	@$(CURDIR)/$(DIST_DIR)/$(DEV_BINARY_NAME) bench validate $(REPO_ROOT)/examples/bench/single-eval/bench.yaml
 	@$(CURDIR)/$(DIST_DIR)/$(DEV_BINARY_NAME) bench validate $(REPO_ROOT)/examples/bench/multi-variant/bench.yaml
 	@$(CURDIR)/$(DIST_DIR)/$(DEV_BINARY_NAME) bench validate $(REPO_ROOT)/examples/bench/process-harness/bench.yaml
+	@$(CURDIR)/$(DIST_DIR)/$(DEV_BINARY_NAME) bench suite validate $(REPO_ROOT)/.smaqit/bench
 
-# Layer 3: behavioral evaluations
-# Auto-detects an OAuth token via gh auth token; override with GH_TOKEN=<token>.
-# Classic PATs are rejected by the Copilot agent API. Use gh auth token, GITHUB_TOKEN (CI),
-# or a fine-grained PAT with the copilot scope.
+# Layer 3: HarnessBench dogfood suite, run against the authenticated local
+# Codex CLI (`codex exec`). Requires `codex` on PATH and already logged in —
+# there is no token/env-var handoff here, unlike the legacy Copilot runner
+# this replaced; Codex manages its own local auth. See .smaqit/bench/README.md.
 .PHONY: evals
 evals: build
-	@cd $(REPO_ROOT)/tests && \
-		GH_TOKEN="$${GH_TOKEN:-$$(gh auth token 2>/dev/null)}" \
-		go run ./evals/runner/... $(REPO_ROOT)/tests/evals/
+	@$(CURDIR)/$(DIST_DIR)/$(DEV_BINARY_NAME) bench suite run $(REPO_ROOT)/.smaqit/bench
 
-# All layers
+# All layers. Deliberately excludes `evals`: it drives a live, credentialed
+# Codex CLI and must stay an explicit, separate step — see .smaqit/bench/README.md.
 .PHONY: test-all
-test-all: test evals
+test-all: test
 
 # Help
 .PHONY: help
@@ -117,7 +125,9 @@ help:
 	@echo "  build      Build for current platform (default)"
 	@echo "  build-all  Build for all platforms"
 	@echo "  test       Test source module, installer wrapper, and installation"
-	@echo "  test-bench-examples  Validate benchmark examples"
+	@echo "  test-bench-examples  Validate benchmark examples and the .smaqit/bench dogfood suite"
+	@echo "  evals      Run the HarnessBench dogfood suite live against the authenticated Codex CLI"
+	@echo "  test-all   Run test (evals stays separate — see 'evals' above)"
 	@echo "  clean      Remove build artifacts"
 	@echo "  version    Show version that would be built"
 	@echo "  help       Show this help"

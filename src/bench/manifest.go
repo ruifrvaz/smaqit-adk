@@ -93,9 +93,10 @@ type MockConfig struct {
 }
 
 type Command struct {
-	Executable     string   `yaml:"executable" json:"executable"`
-	Arguments      []string `yaml:"arguments,omitempty" json:"arguments,omitempty"`
-	TimeoutSeconds int      `yaml:"timeoutSeconds,omitempty" json:"timeoutSeconds,omitempty"`
+	Executable     string      `yaml:"executable" json:"executable"`
+	Arguments      []string    `yaml:"arguments,omitempty" json:"arguments,omitempty"`
+	TimeoutSeconds int         `yaml:"timeoutSeconds,omitempty" json:"timeoutSeconds,omitempty"`
+	Environment    Environment `yaml:"environment,omitempty" json:"environment,omitempty"`
 }
 
 type Expectation struct {

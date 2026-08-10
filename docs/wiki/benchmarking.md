@@ -32,6 +32,20 @@ The stream uses typed `run.started`, `attempt.started`, `attempt.completed`, `ru
 
 Applications can add `-json` to every subcommand for one final JSON document. For `bench run`, `-json` implies quiet events; use `-events jsonl` instead when streaming state is required. Exit codes are stable: `0` means success, `2` means a valid completed experiment was ineligible or inconclusive, `3` means invalid CLI/configuration, `4` means plan drift, and `5` means an infrastructure failure.
 
+## Suites
+
+Every command above operates on exactly one manifest. `bench suite <validate|plan|run> <directory>` discovers every `bench.yaml` found anywhere under a directory tree (sorted, so order is deterministic) and drives each one through the same validate/plan/run pipeline in turn — useful once a project has many independent benchmarks rather than one:
+
+```bash
+smaqit-adk bench suite validate ./benchmarks
+smaqit-adk bench suite plan ./benchmarks
+smaqit-adk bench suite run ./benchmarks
+```
+
+A manifest that fails to load, plan, or run is recorded against it individually and does not stop the rest of the suite from proceeding. `bench suite run` forwards each manifest's lifecycle events (prefixed with its path) to `-events plain|jsonl|quiet` the same way `bench run` does, and its final JSON document reports per-manifest results plus suite-level `passed`/`failed`/`errored` counts. There is no cross-manifest comparison — each manifest's own `Variants` comparison (see below) is computed independently; the suite only aggregates pass/fail across manifests, not across variants in different files. Exit codes follow the same convention as `bench run`, applied to the suite as a whole.
+
+smaqit-adk's own `.smaqit/bench/` is an example consumer of `bench suite` — it dogfoods the engine against smaqit-adk's own skills and agents. See `.smaqit/bench/README.md` for that specific layout convention; it is this repository's own usage, not part of the `bench` command's contract.
+
 ## Manifest
 
 The schema is strict YAML with `schemaVersion: 1`; unknown fields fail validation. Paths are resolved relative to the manifest. A minimal evaluation is:

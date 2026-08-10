@@ -27,7 +27,7 @@ jobs:
         working-directory: installer
         run: make test
 
-      - name: Validate benchmark examples
+      - name: Validate benchmark examples and dogfood suite
         working-directory: installer
         run: make test-bench-examples
 

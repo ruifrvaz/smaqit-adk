@@ -35,6 +35,47 @@ func TestDeterministicExpectationTypes(t *testing.T) {
 	}
 }
 
+func TestCommandExpectationRunsWithAnEmptyEnvironmentByDefault(t *testing.T) {
+	root := t.TempDir()
+	expectations := []Expectation{
+		{ID: "no-env", Type: "command", Actual: "submission", Command: &Command{Executable: "sh", Arguments: []string{"-c", `test -z "$SMAQIT_BENCH_PROBE"`}}},
+	}
+	request := RunRequest{Workspace: &Workspace{Root: root}, TraceDir: filepath.Join(root, "traces")}
+	os.Setenv("SMAQIT_BENCH_PROBE", "leaked-from-parent")
+	defer os.Unsetenv("SMAQIT_BENCH_PROBE")
+	grades, err := gradeExpectations(context.Background(), expectations, HarnessResult{}, root, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !grades[0].Passed {
+		t.Fatalf("expected an unset variable by default (command runs with an empty environment): %s", grades[0].Message)
+	}
+}
+
+func TestCommandExpectationEnvironmentSetAndInheritAreHonored(t *testing.T) {
+	root := t.TempDir()
+	os.Setenv("SMAQIT_BENCH_INHERITED", "from-parent")
+	defer os.Unsetenv("SMAQIT_BENCH_INHERITED")
+	expectations := []Expectation{
+		{ID: "set-and-inherit", Type: "command", Actual: "submission", Command: &Command{
+			Executable: "sh",
+			Arguments:  []string{"-c", `test "$SMAQIT_BENCH_SET" = configured && test "$SMAQIT_BENCH_INHERITED" = from-parent`},
+			Environment: Environment{
+				Inherit: []string{"SMAQIT_BENCH_INHERITED"},
+				Set:     map[string]string{"SMAQIT_BENCH_SET": "configured"},
+			},
+		}},
+	}
+	request := RunRequest{Workspace: &Workspace{Root: root}, TraceDir: filepath.Join(root, "traces")}
+	grades, err := gradeExpectations(context.Background(), expectations, HarnessResult{}, root, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !grades[0].Passed {
+		t.Fatalf("expected explicit Set and Inherit environment entries to reach the command: %s", grades[0].Message)
+	}
+}
+
 func TestJSONRejectsTrailingGarbage(t *testing.T) {
 	var value any
 	if err := decodeStrictJSON([]byte(`{} trailing`), &value); err == nil {

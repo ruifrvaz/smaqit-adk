@@ -1,0 +1,86 @@
+schemaVersion: 1
+name: smaqit-l2
+# Dogfood suite for agents/smaqit.L2.agent.md. See ../../MIGRATION.md for how
+# this maps from the legacy tests/evals/agents/smaqit.L2/*.json cases, and
+# ../../README.md for the with/without-artifact and reusable-Codex-block
+# conventions this manifest follows.
+cases:
+  - id: compile-base-agent
+    given:
+      prompt:
+        file: prompts/compile-base-agent.md
+    expect:
+      - id: definition-written
+        type: file
+        actual: "file:.smaqit/definitions/agents/qa-helper.md"
+        operator: exists
+      - id: compiled-agent-written
+        type: file
+        actual: "file:agents/qa-helper.agent.md"
+        operator: exists
+      - id: no-unresolved-placeholders
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "! grep -qE '\\[(DOMAIN|PREFIX|PHASE)\\]' agents/qa-helper.agent.md 2>/dev/null"]
+      - id: has-must-section
+        type: text
+        actual: "file:agents/qa-helper.agent.md"
+        operator: contains
+        value: "MUST"
+      - id: has-must-not-section
+        type: text
+        actual: "file:agents/qa-helper.agent.md"
+        operator: contains
+        value: "MUST NOT"
+  - id: reject-unresolved-placeholders
+    given:
+      prompt:
+        file: prompts/reject-unresolved-placeholders.md
+    expect:
+      - id: no-placeholder-file-written
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "! grep -qE '\\[(DOMAIN|PREFIX|PHASE)\\]' agents/incomplete-agent.agent.md 2>/dev/null"]
+variants:
+  - id: with-artifact
+    adapter: process
+    setup:
+      - executable: ../../../../installer/dist/smaqit-adk-dev
+        arguments: ["lite", "{workspace}"]
+    process:
+      executable: codex
+      arguments:
+        - exec
+        - --sandbox
+        - danger-full-access
+        - --skip-git-repo-check
+        - --cd
+        - "{workspace}"
+        - "{taskFile}"
+      inputMode: argument
+  - id: without-artifact
+    adapter: process
+    process:
+      executable: codex
+      arguments:
+        - exec
+        - --sandbox
+        - danger-full-access
+        - --skip-git-repo-check
+        - --cd
+        - "{workspace}"
+        - "{taskFile}"
+      inputMode: argument
+    intendedDifferences:
+      - Runs without smaqit.L2's own agent file or compilation templates staged — no ADK compilation guidance is available, establishing the no-artifact baseline. Native discovery of L2's rules is not claimed.
+execution:
+  repetitions: 1
+  timeoutSeconds: 600
+comparison:
+  minimumRequiredPassRate: 1
+output:
+  directory: ../../runs/agents-l2

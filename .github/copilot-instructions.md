@@ -14,8 +14,13 @@ When reasoning about or modifying the ADK, work exclusively with root-level arti
 | `skills/` | ADK skills: create-agent, create-skill (lite tier); new-principle (advanced tier) |
 | `framework/` | L0 principle files |
 | `templates/` | L1 templates and compilation rules (agents and skills) |
+| `src/` | Go source for shipped engine capabilities (e.g. `src/bench`, `src/benchcli` — the HarnessBench evaluation/benchmark engine and CLI) |
 | `installer/` | Go CLI that packages and distributes the above |
 | `docs/` | ADK documentation |
+
+## `.smaqit/` in this repo is dogfood data, not an ADK artifact
+
+`.smaqit/bench/` holds this repo's own HarnessBench manifests — smaqit-adk using its own shipped `bench` engine (`src/bench`/`src/benchcli`) to benchmark its own skills and agents. It is local project state, in the same sense `.smaqit/tasks/` or `.smaqit/compendium.md` are, not ADK-shipped source and not something `smaqit-adk lite`/`advanced` writes into a consuming project. See `.smaqit/bench/README.md`.
 
 ## `.github/` contents are NOT ADK artifacts
 
@@ -39,11 +44,14 @@ smaqit-adk (this repo, root)
 ├── skills/          ← ADK ships these (create-agent, create-skill, new-principle)
 ├── framework/       ← ADK ships these (principle files)
 ├── templates/       ← ADK ships these (compilation templates)
+├── src/             ← ADK ships these (bench engine + CLI Go source)
 └── installer/       ← packages all of the above into a binary
 
 .github/             ← NOT shipped by ADK
 ├── agents/          ← may contain smaqit product agents (external)
 └── skills/          ← may contain smaqit product skills (external)
+
+.smaqit/bench/       ← NOT shipped by ADK — this repo's own dogfood data
 ```
 
 When a project runs `smaqit-adk init`, it receives two agents into `.github/agents/` and two routing skills into `.github/skills/`. No framework files, templates, or Level agents are written. The `.github/` content in this development repo is smaqit product work that happens to live here — it is not installed by `init`.
