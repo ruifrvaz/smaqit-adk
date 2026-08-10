@@ -8,9 +8,11 @@
 
 ---
 
-**Where will HarnessBench (the harness A/B benchmarking tool, Task 023) live in the codebase?**
+**Where does HarnessBench live, and how will it evaluate skills and agents?**
 
-As a `bench` subcommand of the existing `smaqit-adk` binary (`installer/bench/`), not a separate module/binary. This was a deliberate choice against the alternative of a dependency-free separate module — the `smaqit-adk` installer currently has zero external Go dependencies and every `curl | bash` user downloads it, so adding `bench` brings in `copilot-sdk/go` and a YAML parser. The trade-off was made explicitly, favoring one distributable and discoverability over installer size. Phase 1 scope is deliberately small: variants, repetitions, deterministic graders, statistics, and winner selection, driving the Copilot SDK in-process — no external harness process adapters, no worker-process boundary, no git-diff metrics yet.
+HarnessBench is the `smaqit-adk bench` subcommand. Its implementation is the independent Go source module under `src/bench/` and `src/benchcli/`; `installer/` packages the resulting command but does not own the engine. Bench uses strict, plan-first manifests and a generic local `process` adapter, so a configured CLI harness such as Codex can receive declared prompts, specs, files, directories, and images while deterministic expectations and hidden graders evaluate frozen outputs.
+
+The planned repository convention colocates skill benchmarks under `skills/<skill-id>/evals/` and agent benchmarks under `agents/evals/<agent-id>/`. Those suites will replace the legacy Copilot SDK JSON eval runner; until native discovery is demonstrated, a benchmark explicitly makes the tested skill or agent available to the configured harness and compares it with an artifact-absent baseline.
 
 ---
 
