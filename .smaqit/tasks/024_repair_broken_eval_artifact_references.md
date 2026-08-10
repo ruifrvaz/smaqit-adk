@@ -76,6 +76,7 @@ Verified state as of 2026-08-05:
 
 **Follow-up identified:**
 - New task needed: investigate why `create-agent`/`create-skill` sessions cannot write any file in the eval workspace. This blocks Task 020 (Lite-Tier Behavioral Evals) from ever reaching a genuine pass, since any new eval Task 020 authors will hit the same workspace/permission setup.
+- **Superseded (2026-08-10):** Task 026 replaces the Copilot SDK suite and Tasks 020/021 with HarnessBench. The permission-write defect is no longer a required follow-up unless retained for historical Copilot-runner maintenance.
 - Final tally — **2/7 passed**: `agents/smaqit.L2/001_compile_base_agent` PASS, `agents/smaqit.L2/002_reject_unresolved_placeholders` PASS; all 5 `create-agent`/`create-skill` evals FAIL/ERROR on the permission-write issue above. Run report: `tests/evals/runs/20260806-113717/` (`results.json`, `report.md`).
 - Task 020 already carries a note (added this session) pointing at the corrected evals and flagging the auth/leak/path gotchas found here; the new permission-write follow-up should be added there, or filed as its own task, before Task 020 starts.
 

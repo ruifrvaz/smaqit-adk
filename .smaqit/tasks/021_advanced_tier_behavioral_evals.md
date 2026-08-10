@@ -1,9 +1,11 @@
 # Advanced-Tier Behavioral Evals
 
-**Status:** Not Started  
+**Status:** Obsolete — Superseded by Task 026
 **Created:** 2026-04-05
 
 ## Description
+
+> **Superseded (2026-08-10):** Task 026 replaces this Copilot SDK-specific eval work with the HarnessBench skill and agent evaluation suite. Do not author or repair additional Copilot JSON evals here.
 
 Rewrite and extend the behavioral eval suite for the advanced-tier artifacts. The existing 7 evals (`smaqit.new-agent`, `smaqit.new-skill`, `smaqit.L2`) were written before Task 018 (Level Skills Completion) and need to be reviewed, aligned, and extended to cover the new skills (`smaqit.new-principle`, `smaqit.new-template`, `smaqit.new-rules`) and updated L0/L1 agents.
 
