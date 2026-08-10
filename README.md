@@ -45,7 +45,23 @@ make build
 ./dist/smaqit-adk-dev init
 ```
 
+Product implementation lives under `src/`. The `installer/` directory is the Make-driven packaging and embedded-artifact staging boundary; it delegates benchmark commands to the source module.
+
 ## Quick Start
+
+### Evaluate or compare an agent harness
+
+Define cases, visible inputs, expected outputs, and one or more local harness variants in YAML, then validate, plan, and run:
+
+```bash
+smaqit-adk bench validate examples/bench/single-eval/bench.yaml
+smaqit-adk bench plan examples/bench/single-eval/bench.yaml
+smaqit-adk bench run examples/bench/single-eval/bench.yaml
+```
+
+One variant produces an evaluation; multiple variants produce a controlled comparison. `bench run` displays lifecycle progress by default; agents and applications can use `-events jsonl` for ordered machine-readable state updates. See [Benchmarking and evaluation](docs/wiki/benchmarking.md) for the manifest, process adapter, scoring, artifacts, security model, and application-facing interfaces.
+
+### Install the ADK
 
 1. **Initialize ADK in your project:**
 
@@ -130,6 +146,7 @@ Then it compiles and writes `.github/skills/[name]/SKILL.md`.
 
 | Command | Description |
 |---------|-------------|
+| `smaqit-adk bench <validate\|plan\|run\|grade\|compare\|report>` | Run config-first local evaluations and comparisons |
 | `smaqit-adk lite [dir]` | Install lite-tier agents and skills into `.github/` |
 | `smaqit-adk advanced [dir]` | Install full ADK (framework, templates, Level agents) into `.smaqit/` |
 | `smaqit-adk create-agent [--output <dir>]` | Create a new agent interactively (isolated CLI context) |

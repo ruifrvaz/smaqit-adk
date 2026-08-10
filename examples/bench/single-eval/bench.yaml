@@ -1,0 +1,33 @@
+schemaVersion: 1
+name: multimodal-single-evaluation
+cases:
+  - id: summarize-inputs
+    given:
+      prompt:
+        text: Read the declared inputs and return OK.
+      specs:
+        - id: requirements
+          source: requirements.md
+      files:
+        - id: sample
+          source: sample.txt
+      images:
+        - id: diagram
+          source: pixel.svg
+          mediaType: image/svg+xml
+    expect:
+      - id: required-response
+        type: text
+        actual: stdout
+        operator: exact
+        value: OK
+variants:
+  - id: deterministic-mock
+    adapter: mock
+    mock:
+      stdout: OK
+execution:
+  repetitions: 1
+  timeoutSeconds: 10
+output:
+  directory: results

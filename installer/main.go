@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/ruifrvaz/smaqit-adk/src/benchcli"
 )
 
 //go:embed agents/*.md
@@ -37,6 +39,8 @@ func main() {
 	}
 
 	switch os.Args[1] {
+	case "bench":
+		os.Exit(benchcli.Run(os.Args[2:]))
 	case "lite":
 		targetDir := "."
 		if len(os.Args) > 2 {
@@ -76,6 +80,7 @@ func printUsage() {
 Usage: smaqit-adk <command>
 
 Commands:
+	bench <command>           Validate, plan, run, grade, compare, or report evaluations
   lite [dir]                Install lite-tier agents and skills
   advanced [dir]            Install full ADK (includes lite + L0, L1, framework)
   help                      Show detailed help
@@ -86,6 +91,10 @@ Commands:
 func cmdHelp() {
 	fmt.Println("smaqit-adk - Agent Development Kit")
 	fmt.Printf("Version: %s\n\n", Version)
+	fmt.Println("  smaqit-adk bench <validate|plan|run|grade|compare|report>")
+	fmt.Println("      Run config-first local agent evaluations and benchmarks")
+	fmt.Println("      Use 'smaqit-adk bench --help' for the manifest lifecycle")
+	fmt.Println()
 
 	fmt.Println("  smaqit-adk lite [dir]")
 	fmt.Println("      Install lite tier:")

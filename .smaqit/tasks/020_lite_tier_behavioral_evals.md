@@ -1,9 +1,11 @@
 # Lite-Tier Behavioral Evals
 
-**Status:** Not Started  
+**Status:** Obsolete — Superseded by Task 026
 **Created:** 2026-04-05
 
 ## Description
+
+> **Superseded (2026-08-10):** Task 026 replaces this Copilot SDK-specific eval work with the HarnessBench skill and agent evaluation suite. Do not author or repair additional Copilot JSON evals here.
 
 Write behavioral eval files for the lite-tier artifacts: `smaqit.create-agent` (skill + agent) and `smaqit.create-skill` (skill + agent). These are the two routing entries installed by `smaqit-adk lite`. No advanced-tier artifacts are involved.
 

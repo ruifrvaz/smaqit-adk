@@ -84,7 +84,15 @@ test-scaffold: build
 # Layer 1 + 2: black-box unit tests + structural validation
 .PHONY: test
 test: build
+	@cd $(REPO_ROOT)/src && go test ./...
+	@go test ./...
 	@cd $(REPO_ROOT)/tests && SMAQIT_ADK_BIN=$(CURDIR)/$(DIST_DIR)/$(DEV_BINARY_NAME) go test ./unit/... ./structural/...
+
+.PHONY: test-bench-examples
+test-bench-examples: build
+	@$(CURDIR)/$(DIST_DIR)/$(DEV_BINARY_NAME) bench validate $(REPO_ROOT)/examples/bench/single-eval/bench.yaml
+	@$(CURDIR)/$(DIST_DIR)/$(DEV_BINARY_NAME) bench validate $(REPO_ROOT)/examples/bench/multi-variant/bench.yaml
+	@$(CURDIR)/$(DIST_DIR)/$(DEV_BINARY_NAME) bench validate $(REPO_ROOT)/examples/bench/process-harness/bench.yaml
 
 # Layer 3: behavioral evaluations
 # Auto-detects an OAuth token via gh auth token; override with GH_TOKEN=<token>.
@@ -108,10 +116,10 @@ help:
 	@echo "Targets:"
 	@echo "  build      Build for current platform (default)"
 	@echo "  build-all  Build for all platforms"
-	@echo "  test       Test installation"
+	@echo "  test       Test source module, installer wrapper, and installation"
+	@echo "  test-bench-examples  Validate benchmark examples"
 	@echo "  clean      Remove build artifacts"
 	@echo "  version    Show version that would be built"
 	@echo "  help       Show this help"
 
 .DEFAULT_GOAL := build
-

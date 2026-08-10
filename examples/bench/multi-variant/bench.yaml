@@ -1,0 +1,37 @@
+schemaVersion: 1
+name: deterministic-two-variant-comparison
+cases:
+  - id: greeting
+    given:
+      prompt:
+        text: Return the expected greeting.
+    expect:
+      - id: functional-output
+        type: text
+        actual: stdout
+        operator: exact
+        value: hello
+variants:
+  - id: baseline
+    adapter: mock
+    mock:
+      stdout: wrong
+  - id: treatment
+    adapter: mock
+    mock:
+      stdout: hello
+    intendedDifferences:
+      - Uses the proposed instruction treatment.
+execution:
+  repetitions: 3
+  randomizeOrder: true
+  seed: 23
+  timeoutSeconds: 10
+comparison:
+  minimumRequiredPassRate: 1
+  tieThreshold: 0.01
+  tieBreakers:
+    - higherRequiredPassRate
+    - lowerMedianDuration
+output:
+  directory: results

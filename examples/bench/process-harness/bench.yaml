@@ -1,0 +1,34 @@
+schemaVersion: 1
+name: generic-process-harness
+cases:
+  - id: stdin-and-file
+    given:
+      prompt:
+        text: echo-task
+      files:
+        - id: harness
+          source: harness.sh
+        - id: sample
+          source: sample.txt
+    expect:
+      - id: process-output
+        type: text
+        actual: stdout
+        operator: contains
+        value: named-input
+variants:
+  - id: posix-shell
+    adapter: process
+    process:
+      executable: sh
+      arguments:
+        - "{input:harness}"
+        - "{input:sample}"
+      inputMode: stdin
+    intendedDifferences:
+      - Demonstrates the generic process boundary; this example requires POSIX sh.
+execution:
+  repetitions: 1
+  timeoutSeconds: 10
+output:
+  directory: results
