@@ -4,7 +4,7 @@
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
-| 026 | HarnessBench Skill and Agent Evaluation Suite | Not Started | Replaces the Copilot SDK behavioural-evaluation suite with colocated, configuration-first Bench suites; depends on Task 023; supersedes 020/021 |
+| 026 | HarnessBench Skill and Agent Evaluation Suite | In Progress | Replaces the Copilot SDK behavioural-evaluation suite with a shipped `bench suite` capability and `.smaqit/bench/` dogfood manifests; supersedes 020/021 |
 | 025 | README Documents Non-Existent CLI Commands | Not Started | README documents `smaqit-adk create-agent`/`create-skill`; no such cases in the dispatch — confirm deliberate removal, then correct docs |
 | 018 | Level Skills Completion | Not Started | `smaqit.new-principle` shipped in adk-v0.6.0; remaining: new-template, new-rules, L0 definition file pattern |
 | 019 | Cross-Level Compilation (smaqit.compile) | Not Started | smaqit.compile.principle/template/agent skills; L0→L1→L2 chain via subagents; depends on Task 018 |
