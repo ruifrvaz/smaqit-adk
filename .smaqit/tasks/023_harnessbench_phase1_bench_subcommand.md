@@ -1,7 +1,9 @@
 # HarnessBench Phase 1 — `smaqit-adk bench` Subcommand
 
-**Status:** Not Started
+**Status:** In Progress
+**Mode:** Assisted
 **Created:** 2026-08-05
+**Started:** 2026-08-06
 
 ## Description
 
@@ -16,7 +18,8 @@ This task originates from a one-shot implementation prompt at `assets/HARNESSBEN
 ## Design Decisions
 
 - **General engine, ADK benchmark as one use case** (user decision, 2026-08-06). Task 023 delivers a configurable local evaluation and benchmarking engine. Measuring ADK versus baseline remains an important example, not the engine's product boundary.
-- **Placement: subcommand of the `smaqit-adk` binary** (user decision, 2026-08-05). Chosen for discoverability and one distributable. Bench internals live under `installer/bench/` and do not import install/uninstall paths, preserving a mechanical extraction seam.
+- **Placement: subcommand of the `smaqit-adk` binary** (user decision, 2026-08-05). Chosen for discoverability and one distributable.
+- **Source boundary: product code under `src/`** (user correction, 2026-08-06). The engine and command implementation live in the independent `src` Go module. `installer/` remains the Make-driven packaging/staging boundary and imports only the source CLI entrypoint from its existing binary wrapper.
 - **Generic local `process` adapter in Phase 1** (user decision, 2026-08-06). Any locally installed harness that can accept task input through stdin or arguments is configurable. A deterministic `mock` adapter supports tests and examples. The in-process Copilot SDK adapter is deferred, so `installer/` adds a YAML parser but not the Copilot SDK.
 - **Plan-first workflow** (user decision, 2026-08-06). `bench validate` checks configuration, `bench plan` creates a reviewable immutable plan, and `bench run <plan>` executes that exact plan. `bench run <manifest>` remains an auto-plan convenience.
 - **Reference-and-hash plans** (user decision, 2026-08-06). Plans resolve and hash configuration, visible inputs, hidden oracle assets, graders, fixtures, executable identity, seed, and run order without embedding source assets. Execution rejects missing or changed inputs before launching a harness.
@@ -27,7 +30,8 @@ This task originates from a one-shot implementation prompt at `assets/HARNESSBEN
 - **Hidden-oracle boundary.** Expected values, golden assets, grader definitions/scripts, saved plans, and experiment outputs never enter the harness workspace, request, arguments, environment, or logs. This is non-disclosure by staging discipline, not a security boundary against a hostile same-user process.
 - **Fresh external workspaces and robust process lifecycle.** Every attempt runs outside the source repository. Setup/harness/grader commands use argument arrays, never shell strings. Timeout and cancellation terminate descendant processes and close owned resources.
 - **Immutable evidence, revisioned derivations.** Raw requests, traces, submissions, and measurements are immutable. Regrading creates revisioned derived artifacts instead of overwriting prior evidence. Missing usage/cost values remain null, never zero.
-- **Deterministic tests at both module boundaries.** Unit and integration tests live in `installer/bench/`; black-box CLI tests live in `tests/`. Makefile and CI wiring MUST execute both suites with no model API or network requirement.
+- **Observable lifecycle for agents and users** (user decision, 2026-08-07). `bench run` emits readable state transitions by default and ordered JSONL with `-events jsonl` for agent/application callers. Every emitted run/attempt/progress/completion transition is first durably appended to the experiment's `events.jsonl`; `-events quiet` suppresses progress, and `-json` remains a single final result document.
+- **Deterministic tests at both module boundaries.** Unit and integration tests live in `src/bench/`; black-box CLI tests live in `tests/`. Makefile and CI wiring MUST execute both suites with no model API or network requirement.
 
 ## Implementation Steps
 
@@ -59,7 +63,7 @@ This task originates from a one-shot implementation prompt at `assets/HARNESSBEN
 
 14. **Persist immutable evidence and revisioned derivations.** Atomically write saved plan, sanitized resolved configuration, experiment metadata, run matrix, per-attempt request/result, hashes, frozen submission, traces, grades, statistics, comparison, and Markdown report. Keep raw evidence immutable and write regrading results as revisioned derived artifacts.
 
-15. **Wire the CLI.** Add `bench validate|plan|run|grade|compare|report` to `installer/main.go` through `installer/cmd_bench.go`; provide nested `--help`, JSON modes for machine-consumed commands, and stable exit codes for success, completed-but-ineligible, invalid input/configuration, drift, and infrastructure failure.
+15. **Wire the CLI and observable run state.** Implement `bench validate|plan|run|grade|compare|report` in `src/benchcli/` and dispatch to it from the existing `installer/main.go` packaging wrapper. Provide nested `--help`, single-result JSON modes, readable default `bench run` progress, ordered JSONL lifecycle events for agent/application callers, a durable per-experiment event journal, and stable exit codes for success, completed-but-ineligible, invalid input/configuration, drift, and infrastructure failure.
 
 16. **Add deterministic verification.** Cover strict parsing, containment, input hashing, drift, seeded plans, placeholder expansion, process I/O and cleanup, all expectation types, required gating, optional weights, single-variant evals, multi-variant winner/tie/inconclusive outcomes, incomplete matrices, hidden-oracle exclusion, immutable fixtures, revisioned regrading, and full network-free mock experiments. Add built-binary black-box tests and wire installer-package tests into Makefile and CI.
 
@@ -67,12 +71,22 @@ This task originates from a one-shot implementation prompt at `assets/HARNESSBEN
 
 ## Known Issues Triage
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+**Triaged:** 2026-08-06
+**Tools searched:** go.yaml.in/yaml/v3
+**Result:** Advisory
+
+### Advisory Issues
+- [#321 KnownFields(true) is not propagated when UnmarshalYAML calls Node.Decode](https://github.com/yaml/go-yaml/issues/321) — `yaml/go-yaml` — opened 2026-03-20 — no labels
+- [#332 Fix: option KnownFields not being respected inside custom UnmarshalYAML()](https://github.com/yaml/go-yaml/pull/332) — `yaml/go-yaml` — opened 2026-04-14 — no labels
+
+Implementation avoids the affected custom `UnmarshalYAML` → `Node.Decode` path and uses the maintained stable `go.yaml.in/yaml/v3` module with direct typed decoding.
 
 ## Acceptance Criteria
 
 - [ ] `smaqit-adk bench validate|plan|run|grade|compare|report` all exist with nested `--help`, appear in top-level usage/help, and expose documented stable exit codes
 - [ ] Machine-consumed commands provide stable JSON diagnostics/results without requiring applications to parse terminal prose
+- [ ] `bench run` reports readable lifecycle state by default; `-events jsonl` emits ordered, timestamped, typed run/attempt/progress/completion or failure events; `-events quiet` suppresses progress
+- [ ] Lifecycle events are durably recorded in each created experiment's immutable `events.jsonl` before being delivered to a caller; `run.completed` identifies the outcome, experiment directory, and report, while `run.failed` identifies the failure phase/message and diagnostics when available
 - [ ] Manifest parsing rejects unknown fields and reports the exact offending field path
 - [ ] Relative paths resolve against the manifest directory; source and destination containment checks reject escaping paths and unsafe symlinks
 - [ ] A manifest accepts one or more cases containing prompt, spec, file, directory, and image inputs with unique stable IDs
@@ -96,7 +110,7 @@ This task originates from a one-shot implementation prompt at `assets/HARNESSBEN
 - [ ] Deterministic unit/integration tests pass without a model API or network, including full single- and multi-variant mock experiments
 - [ ] Runnable examples cover single-variant multimodal evaluation, two-variant comparison, and generic process-harness input delivery
 - [ ] Benchmarking documentation covers manifest/plan formats, lifecycle, scoring, application integration, secrets, scientific-validity controls, and the explicit local-process security limitation
-- [ ] `cd installer && go test ./...`, `cd installer && make build`, `cd installer && make test`, and `cd tests && go test ./...` pass; CI executes installer-package and black-box tests
+- [ ] `cd src && go test ./...`, `cd installer && go test ./...`, `cd installer && make build`, `cd installer && make test`, and `cd tests && go test ./...` pass; CI executes source-module, installer-wrapper, and black-box tests
 - [ ] No TODOs, placeholder methods, or commented-out core behavior remain
 
 ## Findings
@@ -119,21 +133,22 @@ This task originates from a one-shot implementation prompt at `assets/HARNESSBEN
 
 | File | Action |
 |------|--------|
-| `installer/bench/manifest.go`, `inputs.go` | Create — versioned schema, strict validation, case inputs, diagnostics, and manifest-relative resolution |
-| `installer/bench/plan.go`, `hash.go` | Create — immutable saved plan, hashing, drift detection, seed, and case × variant × repetition expansion |
-| `installer/bench/adapter.go`, `process.go`, `mock.go` | Create — adapter contract plus generic process and deterministic mock implementations |
-| `installer/bench/process_unix.go`, `process_windows.go` | Create — platform-specific descendant-process cleanup |
-| `installer/bench/workspace.go` | Create — external workspaces, safe staging, baseline inventory, submission freeze, and preservation |
-| `installer/bench/expect.go`, `grader.go` | Create — deterministic required expectations, optional graders, and hidden-oracle enforcement |
-| `installer/bench/stats.go`, `compare.go` | Create — nullable statistics, eligibility, ranking, ties, and inconclusive outcomes |
-| `installer/bench/artifacts.go`, `report.go` | Create — atomic immutable evidence, revisioned derivations, JSON results, and Markdown reports |
-| `installer/bench/run.go` | Create — validate/plan/run/grade/compare/report orchestration |
-| `installer/bench/*_test.go` | Create — deterministic unit and integration coverage |
-| `installer/cmd_bench.go` | Create |
-| `installer/main.go` | Modify — add `bench` dispatch case, update usage/help |
-| `installer/go.mod`, `installer/go.sum` | Modify — add YAML parsing dependency only |
-| `installer/Makefile` | Modify — run installer-package tests and add example verification |
-| `.github/workflows/test-integration.yml` | Modify — execute installer-package and black-box CLI tests |
+| `src/bench/manifest.go`, `inputs.go` | Create — versioned schema, strict validation, case inputs, diagnostics, and manifest-relative resolution |
+| `src/bench/plan.go`, `hash.go` | Create — immutable saved plan, hashing, drift detection, seed, and case × variant × repetition expansion |
+| `src/bench/adapter.go`, `process.go`, `mock.go` | Create — adapter contract plus generic process and deterministic mock implementations |
+| `src/bench/process_unix.go`, `process_windows.go` | Create — platform-specific descendant-process cleanup |
+| `src/bench/workspace.go` | Create — external workspaces, safe staging, baseline inventory, submission freeze, and preservation |
+| `src/bench/expect.go`, `grader.go` | Create — deterministic required expectations, optional graders, and hidden-oracle enforcement |
+| `src/bench/stats.go`, `compare.go` | Create — nullable statistics, eligibility, ranking, ties, and inconclusive outcomes |
+| `src/bench/artifacts.go`, `events.go`, `report.go` | Create — atomic immutable evidence, ordered lifecycle journal, revisioned derivations, JSON results, and Markdown reports |
+| `src/bench/run.go` | Create — validate/plan/run/grade/compare/report orchestration |
+| `src/bench/*_test.go` | Create — deterministic unit and integration coverage |
+| `src/benchcli/bench.go` | Create — CLI parsing, human/JSON/JSONL output, run-state rendering, and stable exit semantics |
+| `src/go.mod`, `src/go.sum` | Create — independent source module and YAML parsing dependency |
+| `installer/main.go` | Modify — delegate the `bench` dispatch case to `src/benchcli` and update usage/help |
+| `installer/go.mod`, `installer/go.sum` | Modify — reference the local source module for packaging |
+| `installer/Makefile` | Modify — test source and installer modules and add example verification |
+| `.github/workflows/test-integration.yml` | Modify — execute source-module, installer-wrapper, and black-box CLI tests |
 | `examples/bench/single-eval/` | Create — prompt/spec/file/image evaluation example |
 | `examples/bench/multi-variant/` | Create — deterministic two-variant mock benchmark |
 | `examples/bench/process-harness/` | Create — generic stdin and named-input placeholder example |
@@ -160,4 +175,4 @@ This task originates from a one-shot implementation prompt at `assets/HARNESSBEN
 
 **A note on the first experiment:** the honest expected result is that a trivial task favors the baseline, because kit overhead can exceed its value at low complexity. The eventual benchmark corpus needs a complexity ladder — trivial generation, multi-requirement application, existing-repo modification, ambiguity, multi-module change, mid-task requirement change, regression repair. Do not tune the first task until the ADK wins; report what is measured.
 
-**Related:** Task 020 and Task 021 (behavioral evals) answer *"does the artifact behave as specified?"*. HarnessBench supports that evaluation use case and additionally answers comparative questions such as *"which harness or treatment performs better?"*. Task 024 is complete; its external-workspace and process-lifecycle findings are inputs to this implementation, while its Copilot-specific session and LLM-grading code is not reused as engine architecture.
+**Related:** Task 026 will adopt HarnessBench as the repository's skill and agent evaluation suite, answering *"does the artifact behave as specified?"* alongside comparative questions such as *"which harness or treatment performs better?"*. Tasks 020 and 021 are superseded and their Copilot-specific session and LLM-grading code is not reused. Task 024 is complete; its external-workspace and process-lifecycle findings are inputs to this implementation.

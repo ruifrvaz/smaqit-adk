@@ -17,11 +17,19 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24'
 
       - name: Build ADK
         working-directory: installer
         run: make build
+
+      - name: Test source, installer wrapper, and benchmark CLI
+        working-directory: installer
+        run: make test
+
+      - name: Validate benchmark examples
+        working-directory: installer
+        run: make test-bench-examples
 
       - name: Test lite installation
         working-directory: installer
