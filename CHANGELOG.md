@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-10
+
+### Added
+
+- `smaqit-adk bench` subcommand — config-first local evaluation and benchmarking CLI with validate, plan, run, grade, compare, and report lifecycle. Includes generic process adapter, deterministic grading, immutable evidence storage, lifecycle events, and benchmark examples in `examples/bench/`.
+- `src/` Go module with `bench/` library (17 files) and `benchcli/` CLI glue for the bench subcommand.
+- `skills/smaqit.create-skill/scripts/validate-skill.go` — automated skill validation script that checks SKILL.md structure before compilation.
+- `docs/wiki/benchmarking.md` — documentation for the benchmark manifest, process adapter, scoring, artifacts, and security model.
+
+### Changed
+
+- `smaqit.create-skill` — added auto-retry validation loop (up to 3 attempts before escalating to user) and wired the validate-skill.go script into the end-validation step.
+- Skill description directives updated across all smaqit skills for autonomous planner routing compatibility.
+- `installer/main.go` — added `bench` subcommand dispatch.
+- `installer/Makefile` — added `test-bench-examples` target; updated `test`, `test-all`, and `evals` targets.
+- `framework/SKILLS.md` and `templates/skills/compiled/skill.rules.md` — updated skill framework principles and compilation rules.
+- `README.md` — added bench documentation, benchmarking examples, and updated CLI command table.
+
+### Fixed
+
+- Eval runner process leak — added `defer client.Stop()` at both `copilot.NewClient()` call sites in `tests/evals/runner/main.go`, preventing accumulation of orphaned `copilot --headless` processes.
+- Eval runner wrong template path — `setupWorkspace()` now provisions `.smaqit/templates`/`.smaqit/framework` matching runtime reads by all current skills and agents.
+- 5 broken eval artifact references repointed and rewritten from `smaqit.new-agent`/`smaqit.new-skill` to `smaqit.create-agent`/`smaqit.create-skill`.
+
+### Removed
+
+- 5 obsolete eval files under `tests/evals/skills/smaqit.new-agent/` and `tests/evals/skills/smaqit.new-skill/` — superseded by the renamed and rewritten `smaqit.create-*` equivalents.
+
 ## [0.7.3] - 2026-05-17
 
 ### Added
@@ -191,7 +219,8 @@ smaqit-adk is a **generic agent development toolkit**, not tied to any specific 
 
 The [smaQit product](https://github.com/ruifrvaz/smaqit) demonstrates one possible use case (five-layer specification system), but ADK users can create entirely different architectures.
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.3...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v1.0.0...HEAD
+[1.0.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.3...adk-v1.0.0
 [0.7.3]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.2...adk-v0.7.3
 [0.7.2]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.1...adk-v0.7.2
 [0.7.1]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.0...adk-v0.7.1
