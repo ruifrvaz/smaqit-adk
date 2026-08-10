@@ -1,0 +1,82 @@
+schemaVersion: 1
+name: smaqit-create-skill
+# Dogfood suite for skills/smaqit.create-skill/SKILL.md. See ../../MIGRATION.md
+# for how this maps from the legacy
+# tests/evals/skills/smaqit.create-skill/*.json cases (both 001 and the
+# mislabeled 002, whose real content is folded into this single case — see
+# MIGRATION.md), and ../../README.md for the with/without-artifact and
+# reusable-Codex-block conventions this manifest follows.
+cases:
+  - id: gather-compile-validate
+    given:
+      prompt:
+        text: |
+          I need to create a new skill for adding framework principles to the
+          ADK. If this project has an ADK skill-authoring skill staged at
+          .github/skills/smaqit.create-skill/SKILL.md, read it first and
+          follow it exactly — do not use your own built-in skill-authoring
+          tooling instead. If your workflow calls for asking a clarifying
+          question about its name, answer "smaqit.new-principle" and
+          proceed — you are running non-interactively via `codex exec` and
+          there is no further input coming.
+    expect:
+      - id: definition-written
+        type: file
+        actual: "file:.smaqit/definitions/skills/smaqit.new-principle.md"
+        operator: exists
+      - id: compiled-skill-written
+        type: file
+        actual: "file:.github/skills/smaqit.new-principle/SKILL.md"
+        operator: exists
+      - id: validator-passes
+        type: command
+        actual: submission
+        command:
+          # Pre-built by `make build` (installer/Makefile) rather than `go
+          # run`: on a Snap-packaged Go toolchain, `go run` resolves through
+          # /snap/bin/go -> /usr/bin/snap, and Bench's process-group
+          # isolation for reliable timeout/kill handling triggers Snap's own
+          # confinement locking ("race condition detected, snap-run can only
+          # retry once"). A plain compiled binary needs no environment at all
+          # and sidesteps Snap entirely. See .smaqit/bench/README.md.
+          executable: ../../../../installer/dist/validate-skill
+          arguments: ["./.github/skills/smaqit.new-principle/SKILL.md"]
+variants:
+  - id: with-artifact
+    adapter: process
+    setup:
+      - executable: ../../../../installer/dist/smaqit-adk-dev
+        arguments: ["lite", "{workspace}"]
+    process:
+      executable: codex
+      arguments:
+        - exec
+        - --sandbox
+        - danger-full-access
+        - --skip-git-repo-check
+        - --cd
+        - "{workspace}"
+        - "{taskFile}"
+      inputMode: argument
+  - id: without-artifact
+    adapter: process
+    process:
+      executable: codex
+      arguments:
+        - exec
+        - --sandbox
+        - danger-full-access
+        - --skip-git-repo-check
+        - --cd
+        - "{workspace}"
+        - "{taskFile}"
+      inputMode: argument
+    intendedDifferences:
+      - Runs without smaqit-adk lite installed — no smaqit.create-skill skill or compilation templates are staged, establishing the no-artifact baseline. Native discovery of the skill is not claimed.
+execution:
+  repetitions: 1
+  timeoutSeconds: 600
+comparison:
+  minimumRequiredPassRate: 1
+output:
+  directory: ../../runs/skills-create-skill

@@ -95,7 +95,7 @@ func (mockAdapter) Execute(_ context.Context, request RunRequest) (HarnessResult
 
 func executeCommand(ctx context.Context, command Command, request RunRequest, tracePrefix string) (HarnessResult, error) {
 	variant := request.Variant
-	variant.Process = &ProcessConfig{Executable: command.Executable, Arguments: command.Arguments, InputMode: "argument", WorkingDirectory: "."}
+	variant.Process = &ProcessConfig{Executable: command.Executable, Arguments: command.Arguments, InputMode: "argument", WorkingDirectory: ".", Environment: command.Environment}
 	request.Variant = variant
 	if command.TimeoutSeconds > 0 {
 		var cancel context.CancelFunc

@@ -42,6 +42,8 @@ func Run(args []string) int {
 		return benchCompare(args[1:])
 	case "report":
 		return benchReport(args[1:])
+	case "suite":
+		return benchSuite(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "unknown bench command %q\n", args[0])
 		printBenchUsage(os.Stderr)
@@ -61,11 +63,14 @@ Commands:
   grade <experiment-directory>   Regrade frozen submissions without rerunning
   compare <experiment-directory> Recompute comparison from existing evidence
   report <experiment-directory>  Render a report from existing evidence
+  suite <validate|plan|run> <directory>
+                                  Discover every bench.yaml under a directory
+                                  tree and validate, plan, or run each in turn
 
 Every command accepts -json for machine-readable final output. bench run
-also accepts -events plain|jsonl|quiet for lifecycle state updates. Exit codes: 0 success,
-2 completed but ineligible, 3 invalid input/configuration, 4 plan drift, and
-5 infrastructure failure.`)
+and bench suite run also accept -events plain|jsonl|quiet for lifecycle state
+updates. Exit codes: 0 success, 2 completed but ineligible, 3 invalid
+input/configuration, 4 plan drift, and 5 infrastructure failure.`)
 }
 
 func commandFlags(name, usage string) (*flag.FlagSet, *bool) {
@@ -315,6 +320,116 @@ func benchReport(args []string) int {
 	}
 	emit(map[string]any{"reported": true, "path": output, "format": *format}, *jsonMode, "report written: "+output)
 	return 0
+}
+
+func benchSuite(args []string) int {
+	if len(args) == 0 || args[0] == "help" || args[0] == "--help" || args[0] == "-h" {
+		fmt.Fprintln(os.Stderr, "Usage: smaqit-adk bench suite <validate|plan|run> [options] <directory>")
+		return benchExitInvalid
+	}
+	switch args[0] {
+	case "validate":
+		return benchSuiteValidate(args[1:])
+	case "plan":
+		return benchSuitePlan(args[1:])
+	case "run":
+		return benchSuiteRun(args[1:])
+	default:
+		fmt.Fprintf(os.Stderr, "unknown bench suite command %q\n", args[0])
+		return benchExitInvalid
+	}
+}
+func benchSuiteValidate(args []string) int {
+	fs, jsonMode := commandFlags("suite validate", "Usage: smaqit-adk bench suite validate [-json] <directory>")
+	path, err := onePath(fs, args)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return benchExitSuccess
+		}
+		return benchCLIError(err, *jsonMode)
+	}
+	result, err := bench.ValidateSuite(path)
+	if err != nil {
+		return benchConfigError(err, *jsonMode)
+	}
+	emit(result, *jsonMode, fmt.Sprintf("suite validate: %d manifest(s), valid=%t (%s)", len(result.Manifests), result.Valid, path))
+	if !result.Valid {
+		return benchExitInvalid
+	}
+	return 0
+}
+func benchSuitePlan(args []string) int {
+	fs, jsonMode := commandFlags("suite plan", "Usage: smaqit-adk bench suite plan [-json] <directory>")
+	path, err := onePath(fs, args)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return benchExitSuccess
+		}
+		return benchCLIError(err, *jsonMode)
+	}
+	result, err := bench.PlanSuite(path)
+	if err != nil {
+		return benchConfigError(err, *jsonMode)
+	}
+	emit(result, *jsonMode, fmt.Sprintf("suite plan: %d manifest(s), planned=%t (%s)", len(result.Manifests), result.Planned, path))
+	if !result.Planned {
+		return benchExitInvalid
+	}
+	return 0
+}
+func benchSuiteRun(args []string) int {
+	fs, jsonMode := commandFlags("suite run", "Usage: smaqit-adk bench suite run [-json] [-events plain|jsonl|quiet] <directory>")
+	events := fs.String("events", "auto", "lifecycle updates: plain, jsonl, or quiet")
+	path, err := onePath(fs, args)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return benchExitSuccess
+		}
+		return benchCLIError(err, *jsonMode)
+	}
+	eventMode, err := resolveRunEventMode(*events, *jsonMode)
+	if err != nil {
+		return benchCLIError(err, *jsonMode)
+	}
+	renderer := &suiteEventRenderer{mode: eventMode, writer: os.Stdout}
+	result, err := bench.RunSuite(fsContext(), path, bench.SuiteOptions{Observer: renderer.observe})
+	if err != nil {
+		return benchInfrastructureError(err, *jsonMode)
+	}
+	if eventMode != "jsonl" {
+		emit(result, *jsonMode, fmt.Sprintf("suite run: %d passed, %d failed, %d errored (%s)", result.Passed, result.Failed, result.Errored, path))
+	}
+	if result.Errored > 0 {
+		return benchExitInfrastructure
+	}
+	if !result.Eligible() {
+		return benchExitIneligible
+	}
+	return 0
+}
+
+type suiteEventRenderer struct {
+	mode   string
+	writer io.Writer
+}
+
+func (r *suiteEventRenderer) observe(manifestPath string, event bench.RunEvent) {
+	label := filepath.Base(filepath.Dir(manifestPath))
+	switch r.mode {
+	case "jsonl":
+		_ = json.NewEncoder(r.writer).Encode(map[string]any{"manifestPath": manifestPath, "event": event})
+	case "plain":
+		switch event.Type {
+		case "run.started":
+			fmt.Fprintf(r.writer, "bench[%s]: run started (%d attempt(s))\n", label, event.TotalAttempts)
+		case "attempt.completed":
+			fmt.Fprintf(r.writer, "bench[%s]: attempt %d/%d %s (required passed: %t)\n", label, event.CompletedAttempts, event.TotalAttempts, event.Status, event.RequiredPassed != nil && *event.RequiredPassed)
+		case "run.completed":
+			fmt.Fprintf(r.writer, "bench[%s]: run completed (%s)\n", label, event.Outcome)
+		case "run.failed":
+			fmt.Fprintf(r.writer, "bench[%s]: run failed (%s: %s)\n", label, event.Failure.Phase, event.Failure.Message)
+		}
+	}
 }
 
 func fsContext() context.Context { return context.Background() }
