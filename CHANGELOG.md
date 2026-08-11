@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-11
+
+### Added
+
+- `smaqit.bench-run` skill — advanced-tier skill for preflighting, structurally validating, confirming, and running a project's `.smaqit/bench/` suite via `smaqit-adk bench suite`; reports and diagnoses failures.
+- `smaqit.bench-scaffold` skill — advanced-tier skill for authoring a new `.smaqit/bench/` manifest for a skill or agent lacking one; delegates live trial to `smaqit.bench-run`.
+
+### Changed
+
+- `README.md`, `installer/Makefile`, and `installer/main.go` — updated for bench-run and bench-scaffold skill integration.
+
+### Removed
+
+- Legacy `.agents/` skill directory — removed superseded smaqit product extension skills that were never part of the ADK itself.
+
 ## [1.1.0] - 2026-08-10
 
 ### Added
@@ -240,7 +255,8 @@ smaqit-adk is a **generic agent development toolkit**, not tied to any specific 
 
 The [smaQit product](https://github.com/ruifrvaz/smaqit) demonstrates one possible use case (five-layer specification system), but ADK users can create entirely different architectures.
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v1.1.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v1.2.0...HEAD
+[1.2.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v1.1.0...adk-v1.2.0
 [1.1.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v1.0.0...adk-v1.1.0
 [1.0.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.3...adk-v1.0.0
 [0.7.3]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.2...adk-v0.7.3
