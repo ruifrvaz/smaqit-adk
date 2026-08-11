@@ -3,6 +3,10 @@
     {
       "name": "main",
       "path": "."
+    },
+    {
+      "name": "task/028-bench-run-and-scaffold-skills",
+      "path": "../smaqit-adk-wt-task-028-bench-run-and-scaffold-skills"
     }
   ],
   "settings": {
