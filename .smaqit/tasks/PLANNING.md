@@ -4,7 +4,7 @@
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
-| 028 | Bench Run and Scaffold Skills | Not Started | Root-shipped, advanced-tier-only skills: `smaqit.bench-run` automates running `.smaqit/bench/`, `smaqit.bench-scaffold` authors new manifests generically; depends on Task 026 (complete) |
+| 028 | Bench Run and Scaffold Skills | In Progress | Root-shipped, advanced-tier-only skills: `smaqit.bench-run` automates running `.smaqit/bench/`, `smaqit.bench-scaffold` authors new manifests generically; depends on Task 026 (complete) |
 | 027 | Migrate to Global User-Level Installation (Learned from smaqit-extensions) | Not Started | Ported from smaqit-extensions Task 023 + its 2 patch fixes; open design questions on tier selection and skills path need resolving during planning |
 | 025 | README Documents Non-Existent CLI Commands | Not Started | README documents `smaqit-adk create-agent`/`create-skill`; no such cases in the dispatch — confirm deliberate removal, then correct docs |
 | 018 | Level Skills Completion | Not Started | `smaqit.new-principle` shipped in adk-v0.6.0; remaining: new-template, new-rules, L0 definition file pattern |

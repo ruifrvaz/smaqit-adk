@@ -1,7 +1,9 @@
 # Bench Run and Scaffold Skills
 
-**Status:** Not Started
+**Status:** In Progress
 **Created:** 2026-08-11
+**Started:** 2026-08-11
+**Mode:** Assisted
 
 ## Description
 
@@ -48,8 +50,22 @@ Task 026 shipped the underlying `bench suite validate|plan|run` engine capabilit
 17. Update `.github/copilot-instructions.md`'s Skill Catalog table and the top-level `README.md`'s advanced-tier description to list both new skills.
 
 ## Known Issues Triage
+**Triaged:** 2026-08-11
+**Tools searched:** Codex CLI (openai/codex)
+**Result:** Advisory
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+### Blocking Issues
+None
+
+### Advisory Issues
+- [#33543 Problems with WSL Sandbox](https://github.com/openai/codex/issues/33543) — `openai/codex` — opened 2026-07-16 — bug, windows-os, sandbox, CLI. Attached report describes nested-child-process stalls specifically under the host-managed `workspace-write` sandbox on WSL2 (this machine's platform). Not applicable as filed: every existing and planned Bench manifest pins `--sandbox danger-full-access` (bypasses this sandbox entirely), per `.smaqit/bench/README.md`'s reusable Codex block. Re-check if `smaqit.bench-scaffold` is ever changed to default to a sandboxed mode instead.
+- [#36570 exec: approvals_reviewer = "auto_review" silently defeats an explicit --sandbox](https://github.com/openai/codex/issues/36570) — `openai/codex` — opened 2026-08-02 — bug, sandbox, exec, CLI, config. Already known from Task 026; already mitigated by pinning `--sandbox danger-full-access` explicitly in every manifest.
+
+### Historical (Closed)
+- [#26723 Codex Desktop on Windows/WSL2 cannot run sandboxed commands in WSL projects](https://github.com/openai/codex/issues/26723) — `openai/codex` — closed (completed). Concerns the Windows Desktop app bridging into WSL2, not the CLI run natively inside a WSL2 shell (this project's actual usage) — different execution context, not directly relevant.
+
+### Unresolvable Tools
+None
 
 ## Acceptance Criteria
 
