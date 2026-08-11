@@ -23,6 +23,12 @@ var adkCreateSkillFS embed.FS
 //go:embed skills/smaqit.new-principle/SKILL.md
 var adkNewPrincipleSkillFile []byte
 
+//go:embed skills/smaqit.bench-run/SKILL.md
+var adkBenchRunSkillFile []byte
+
+//go:embed skills/smaqit.bench-scaffold/SKILL.md
+var adkBenchScaffoldSkillFile []byte
+
 //go:embed framework
 var adkFrameworkFS embed.FS
 
@@ -108,11 +114,13 @@ func cmdHelp() {
 	fmt.Println("        .github/agents/smaqit.L0.agent.md         (principle curator)")
 	fmt.Println("        .github/agents/smaqit.L1.agent.md         (template compiler)")
 	fmt.Println("        .github/skills/smaqit.new-principle/      (framework authoring skill)")
+	fmt.Println("        .github/skills/smaqit.bench-run/          (run a project's .smaqit/bench/ suite)")
+	fmt.Println("        .github/skills/smaqit.bench-scaffold/     (author a new bench manifest)")
 	fmt.Println("        .smaqit/framework/                        (framework principle files)")
 	fmt.Println()
 	fmt.Println("  smaqit-adk uninstall [lite|advanced]")
 	fmt.Println("      lite:     removes L2 agent, create skills, .smaqit/ entirely")
-	fmt.Println("      advanced: removes L0/L1 agents, new-principle skill, .smaqit/framework/")
+	fmt.Println("      advanced: removes L0/L1 agents, new-principle/bench-run/bench-scaffold skills, .smaqit/framework/")
 	fmt.Println("      (no arg): removes everything installed")
 	fmt.Println()
 	fmt.Println("  smaqit-adk version   Show smaqit-adk version")
@@ -251,8 +259,28 @@ func cmdAdvanced(targetDir string) {
 		os.Exit(1)
 	}
 
+	// Install bench-run and bench-scaffold skills to .github/skills/
+	benchRunDir := filepath.Join(".github", "skills", "smaqit.bench-run")
+	if err := os.MkdirAll(benchRunDir, 0755); err != nil {
+		fmt.Printf("Error creating directory %s: %v\n", benchRunDir, err)
+		os.Exit(1)
+	}
+	if err := os.WriteFile(filepath.Join(benchRunDir, "SKILL.md"), adkBenchRunSkillFile, 0644); err != nil {
+		fmt.Printf("Error writing bench-run skill: %v\n", err)
+		os.Exit(1)
+	}
+	benchScaffoldDir := filepath.Join(".github", "skills", "smaqit.bench-scaffold")
+	if err := os.MkdirAll(benchScaffoldDir, 0755); err != nil {
+		fmt.Printf("Error creating directory %s: %v\n", benchScaffoldDir, err)
+		os.Exit(1)
+	}
+	if err := os.WriteFile(filepath.Join(benchScaffoldDir, "SKILL.md"), adkBenchScaffoldSkillFile, 0644); err != nil {
+		fmt.Printf("Error writing bench-scaffold skill: %v\n", err)
+		os.Exit(1)
+	}
+
 	fmt.Printf("✓ smaqit-adk %s advanced installed\n", Version)
-	fmt.Println("Use /smaqit.create-agent, /smaqit.create-skill, and /smaqit.new-principle in Copilot chat.")
+	fmt.Println("Use /smaqit.create-agent, /smaqit.create-skill, /smaqit.new-principle, /smaqit.bench-run, and /smaqit.bench-scaffold in Copilot chat.")
 }
 
 // copyEmbedDir copies all files from an embed.FS rooted at src into the dst directory on disk.
@@ -313,6 +341,8 @@ func cmdUninstall(tier string) {
 		fmt.Println("  \u2022 .github/agents/smaqit.L0.agent.md")
 		fmt.Println("  \u2022 .github/agents/smaqit.L1.agent.md")
 		fmt.Println("  \u2022 .github/skills/smaqit.new-principle/")
+		fmt.Println("  \u2022 .github/skills/smaqit.bench-run/")
+		fmt.Println("  \u2022 .github/skills/smaqit.bench-scaffold/")
 		fmt.Println("  \u2022 .smaqit/framework/")
 	}
 	if removeLite {
@@ -345,13 +375,18 @@ func cmdUninstall(tier string) {
 				fmt.Printf("\u2713 Removed %s\n", path)
 			}
 		}
-		// Remove new-principle skill dir
-		newPrincipleDir := filepath.Join(".github", "skills", "smaqit.new-principle")
-		if err := os.RemoveAll(newPrincipleDir); err != nil && !os.IsNotExist(err) {
-			fmt.Printf("Error removing %s: %v\n", newPrincipleDir, err)
-			errors++
-		} else {
-			fmt.Printf("\u2713 Removed %s\n", newPrincipleDir)
+		// Remove new-principle, bench-run, and bench-scaffold skill dirs
+		for _, dir := range []string{
+			filepath.Join(".github", "skills", "smaqit.new-principle"),
+			filepath.Join(".github", "skills", "smaqit.bench-run"),
+			filepath.Join(".github", "skills", "smaqit.bench-scaffold"),
+		} {
+			if err := os.RemoveAll(dir); err != nil && !os.IsNotExist(err) {
+				fmt.Printf("Error removing %s: %v\n", dir, err)
+				errors++
+			} else {
+				fmt.Printf("\u2713 Removed %s\n", dir)
+			}
 		}
 		// Remove framework
 		frameworkDir := filepath.Join(".smaqit", "framework")

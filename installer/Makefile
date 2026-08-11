@@ -25,6 +25,9 @@ prepare:
 	@cp ../skills/smaqit.create-agent/SKILL.md skills/smaqit.create-agent/
 	@cp ../skills/smaqit.create-skill/SKILL.md skills/smaqit.create-skill/
 	@cp ../skills/smaqit.create-skill/scripts/validate-skill.go skills/smaqit.create-skill/scripts/
+	@mkdir -p skills/smaqit.bench-run && mkdir -p skills/smaqit.bench-scaffold
+	@cp ../skills/smaqit.bench-run/SKILL.md skills/smaqit.bench-run/
+	@cp ../skills/smaqit.bench-scaffold/SKILL.md skills/smaqit.bench-scaffold/
 	@rm -rf templates/skills && mkdir -p templates/skills/compiled
 	@cp ../templates/skills/base-skill.template.md templates/skills/
 	@cp ../templates/skills/compiled/skill.rules.md templates/skills/compiled/

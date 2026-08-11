@@ -129,7 +129,7 @@ Skills live in `skills/` at the ADK root. Two tiers:
 
 **Lite-tier skills** (`smaqit.create-agent`, `smaqit.create-skill`) — installed by `smaqit-adk lite` into `.github/skills/`. These gather name and purpose from the user, scan the repository for context, infer a complete specification, write a definition file to `.smaqit/definitions/`, and invoke `smaqit.L2` to compile the agent or skill. Templates are required at runtime and are installed to `.smaqit/templates/`.
 
-**Advanced-tier skill** (`smaqit.new-principle`) — not installed by `lite`. Requires L0, L1, framework files at runtime (installed to `.smaqit/framework/` by `smaqit-adk advanced`).
+**Advanced-tier skills** (`smaqit.new-principle`, `smaqit.bench-run`, `smaqit.bench-scaffold`) — not installed by `lite`. `new-principle` requires L0, L1, framework files at runtime (installed to `.smaqit/framework/` by `smaqit-adk advanced`). `bench-run`/`bench-scaffold` operate a consuming project's own `.smaqit/bench/` suite via the shipped `smaqit-adk bench` engine — they require no additional runtime files beyond the `smaqit-adk` binary itself and a `codex` install for live execution.
 
 ### ADK-Shipped Skills
 
@@ -138,6 +138,8 @@ Skills live in `skills/` at the ADK root. Two tiers:
 | `smaqit.create-agent` | Lite | Yes | Gather name+purpose, infer spec, write definition file, invoke L2 to compile agent |
 | `smaqit.create-skill` | Lite | Yes | Gather name+purpose, infer spec, write definition file, invoke L2 to compile skill |
 | `smaqit.new-principle` | Advanced | No | Add or refine a principle in the ADK framework files |
+| `smaqit.bench-run` | Advanced | No | Preflight, structurally validate, confirm, and run a project's `.smaqit/bench/` suite; report and diagnose failures |
+| `smaqit.bench-scaffold` | Advanced | No | Author a new `.smaqit/bench/` manifest for a skill/agent lacking one; delegates any live trial to `smaqit.bench-run` |
 
 ### Skill Format
 
