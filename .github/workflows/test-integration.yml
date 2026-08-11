@@ -60,8 +60,10 @@ jobs:
           test ! -f .github/agents/smaqit.L0.agent.md || (echo "Error: L0 agent should not be installed by lite" && exit 1)
           test ! -f .github/agents/smaqit.L1.agent.md || (echo "Error: L1 agent should not be installed by lite" && exit 1)
 
-          # new-principle skill must NOT be installed by lite
+          # new-principle, bench-run, and bench-scaffold skills must NOT be installed by lite
           test ! -f .github/skills/smaqit.new-principle/SKILL.md || (echo "Error: new-principle skill should not be installed by lite" && exit 1)
+          test ! -f .github/skills/smaqit.bench-run/SKILL.md || (echo "Error: bench-run skill should not be installed by lite" && exit 1)
+          test ! -f .github/skills/smaqit.bench-scaffold/SKILL.md || (echo "Error: bench-scaffold skill should not be installed by lite" && exit 1)
 
           # Prompts directory must NOT be created by lite
           test ! -d .github/prompts || (echo "Error: .github/prompts/ should not be created by lite" && exit 1)
@@ -93,6 +95,8 @@ jobs:
 
           # Advanced skills (installed to .github/skills/)
           test -f .github/skills/smaqit.new-principle/SKILL.md || (echo "Error: smaqit.new-principle/SKILL.md not found" && exit 1)
+          test -f .github/skills/smaqit.bench-run/SKILL.md || (echo "Error: smaqit.bench-run/SKILL.md not found" && exit 1)
+          test -f .github/skills/smaqit.bench-scaffold/SKILL.md || (echo "Error: smaqit.bench-scaffold/SKILL.md not found" && exit 1)
 
           echo "✓ Advanced-tier ADK structure validated"
 

@@ -1,0 +1,76 @@
+schemaVersion: 1
+name: smaqit-new-principle
+# Dogfood suite for skills/smaqit.new-principle/SKILL.md, scaffolded via
+# smaqit.bench-scaffold as the Task 028 live demonstration. See
+# ../../README.md for the reusable-Codex-block convention and the
+# generic given.files/given.directories staging pattern this manifest
+# follows.
+#
+# smaqit.new-principle delegates entirely to the smaqit.L0 agent, which
+# edits framework/*.md files in place. Given.Directories/Given.Files stage
+# read-only reference material (the skill + the L0 agent instructions);
+# a setup step separately materializes a writable copy of framework/ at
+# its conventional path, since staged inputs cannot be edited in place —
+# see smaqit.bench-scaffold/SKILL.md's "When the target edits files, not
+# just reads them" note.
+cases:
+  - id: add-principle
+    given:
+      prompt:
+        file: prompts/add-principle.md
+      directories:
+        - id: skill
+          source: ../../../../skills/smaqit.new-principle
+        - id: framework-src
+          source: ../../../../framework
+      files:
+        - id: l0agent
+          source: ../../../../agents/smaqit.L0.agent.md
+    expect:
+      - id: principle-added
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "grep -rl 'Fail Fast:' framework/*.md"]
+variants:
+  - id: with-artifact
+    adapter: process
+    setup:
+      - executable: sh
+        arguments:
+          - "-c"
+          - "mkdir -p {workspace}/framework && cp {input:framework-src}/*.md {workspace}/framework/"
+    process:
+      executable: codex
+      arguments:
+        - exec
+        - --sandbox
+        - danger-full-access
+        - --skip-git-repo-check
+        - --cd
+        - "{workspace}"
+        - "{taskFile}"
+      inputMode: argument
+  - id: without-artifact
+    adapter: process
+    process:
+      executable: codex
+      arguments:
+        - exec
+        - --sandbox
+        - danger-full-access
+        - --skip-git-repo-check
+        - --cd
+        - "{workspace}"
+        - "{taskFile}"
+      inputMode: argument
+    intendedDifferences:
+      - Runs without framework/ materialized in the workspace and without the new-principle skill or L0 agent staged — no framework files exist to edit and no ADK principle-authoring guidance is available, establishing the no-artifact baseline.
+execution:
+  repetitions: 1
+  timeoutSeconds: 600
+comparison:
+  minimumRequiredPassRate: 1
+output:
+  directory: ../../runs/skills-new-principle

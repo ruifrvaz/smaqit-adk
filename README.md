@@ -148,7 +148,7 @@ Then it compiles and writes `.github/skills/[name]/SKILL.md`.
 |---------|-------------|
 | `smaqit-adk bench <validate\|plan\|run\|grade\|compare\|report>` | Run config-first local evaluations and comparisons |
 | `smaqit-adk lite [dir]` | Install lite-tier agents and skills into `.github/` |
-| `smaqit-adk advanced [dir]` | Install full ADK (framework, templates, Level agents) into `.smaqit/` |
+| `smaqit-adk advanced [dir]` | Install full ADK (framework, templates, Level agents, plus `smaqit.bench-run`/`smaqit.bench-scaffold` skills) |
 | `smaqit-adk create-agent [--output <dir>]` | Create a new agent interactively (isolated CLI context) |
 | `smaqit-adk create-skill [--output <dir>]` | Create a new skill interactively (isolated CLI context) |
 | `smaqit-adk help` | Show detailed command help |
