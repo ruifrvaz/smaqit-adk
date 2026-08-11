@@ -1,8 +1,9 @@
 # Bench Run and Scaffold Skills
 
-**Status:** In Progress
+**Status:** Completed
 **Created:** 2026-08-11
 **Started:** 2026-08-11
+**Completed:** 2026-08-11
 **Mode:** Assisted
 
 ## Description
@@ -69,29 +70,37 @@ None
 
 ## Acceptance Criteria
 
-- [ ] `smaqit.bench-run` and `smaqit.bench-scaffold` exist under root `skills/`, pass `skills/smaqit.create-skill/scripts/validate-skill.go`, and are installed by `smaqit-adk advanced` but not `smaqit-adk lite`
-- [ ] `smaqit.bench-run` automates preflight → structural validate → confirm → execute → report, never executes a live Codex run without explicit user confirmation, and stops cleanly (no live spend) when `codex` is missing/unauthenticated or a manifest fails structural validation
-- [ ] On a failing run, `smaqit.bench-run` distinguishes infra/crash flakes (citing known gotchas) from genuine content failures, using actual grade messages and trace logs as evidence
-- [ ] `smaqit.bench-scaffold` detects a project's skill/agent root generically (`.github/skills|agents/` first, root `skills|agents/` fallback) and produces a structurally-valid `bench.yaml` (verified via `bench validate`) for at least one of the three currently-uncovered smaqit-adk targets (`smaqit.new-principle`, `smaqit.L0`, `smaqit.L1`)
-- [ ] Manifests produced by `smaqit.bench-scaffold` stage artifacts via `Given.Files`/`Given.Directories` by default (not a repo-specific dev-binary trick), apply the reusable Codex block by construction, and delegate any live trial run to `smaqit.bench-run`
-- [ ] `installer/main.go`, `installer/Makefile`, and CI structure checks correctly gate both skills to advanced tier only, verified by installing `advanced` and `lite` into throwaway directories and checking presence/absence
-- [ ] At least one live end-to-end demonstration: `smaqit.bench-run` executed against the existing `.smaqit/bench/` suite in this repo reports the real, current outcome
+- [x] `smaqit.bench-run` and `smaqit.bench-scaffold` exist under root `skills/`, pass `skills/smaqit.create-skill/scripts/validate-skill.go`, and are installed by `smaqit-adk advanced` but not `smaqit-adk lite`
+- [x] `smaqit.bench-run` automates preflight → structural validate → confirm → execute → report, never executes a live Codex run without explicit user confirmation, and stops cleanly (no live spend) when `codex` is missing/unauthenticated or a manifest fails structural validation
+- [x] On a failing run, `smaqit.bench-run` distinguishes infra/crash flakes (citing known gotchas) from genuine content failures, using actual grade messages and trace logs as evidence
+- [x] `smaqit.bench-scaffold` detects a project's skill/agent root generically (`.github/skills|agents/` first, root `skills|agents/` fallback) and produces a structurally-valid `bench.yaml` (verified via `bench validate`) for at least one of the three currently-uncovered smaqit-adk targets (`smaqit.new-principle`, `smaqit.L0`, `smaqit.L1`)
+- [x] Manifests produced by `smaqit.bench-scaffold` stage artifacts via `Given.Files`/`Given.Directories` by default (not a repo-specific dev-binary trick), apply the reusable Codex block by construction, and delegate any live trial run to `smaqit.bench-run`
+- [x] `installer/main.go`, `installer/Makefile`, and CI structure checks correctly gate both skills to advanced tier only, verified by installing `advanced` and `lite` into throwaway directories and checking presence/absence
+- [x] At least one live end-to-end demonstration: `smaqit.bench-run` executed against the existing `.smaqit/bench/` suite in this repo reports the real, current outcome
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Wrote definition files at `.smaqit/definitions/skills/smaqit.bench-{run,scaffold}.md`, then compiled both via two isolated subagents each acting as `smaqit.L2` (reading its real `agents/smaqit.L2.agent.md`, `templates/skills/base-skill.template.md`, `templates/skills/compiled/skill.rules.md`), writing to root `skills/[name]/SKILL.md` — L2's own native output path for this repo, not `.github/skills/` (that path is `smaqit.create-skill`'s consumer-project-specific override).
+- Wired `installer/main.go` (embed directives, `cmdAdvanced()` install block, `cmdUninstall()` removal, `cmdHelp()` text) and `installer/Makefile`'s `prepare` target, mirroring the existing `smaqit.new-principle` pattern exactly.
+- Extended `.github/workflows/test-integration.yml`'s advanced/lite boundary assertions; updated `.github/copilot-instructions.md`'s Skill Catalog table and `README.md`'s advanced-tier command description.
+- Scaffolded `.smaqit/bench/skills/smaqit.new-principle/bench.yaml` (+ prompt) as the `bench-scaffold` live demonstration target, covering the first of the three previously-uncovered targets.
+- Ran a live end-to-end `bench-run` demonstration against the 3 pre-existing dogfood manifests (scope chosen by the user over including the new, untrialed manifest): `smaqit.create-skill` and `smaqit.L2` came back winner; `smaqit.create-agent` came back inconclusive, diagnosed via grade JSON and submission inspection as a genuine, pre-existing content-format issue unrelated to this task (Codex wrote `[?, note]` instead of the bare `[?]` the grader's regex expects).
 
 **Decisions made:**
-- TBD
+- Mechanical correction to the task's own Design Decision text: `given.files`/`given.directories` stage into a read-only `.smaqit-bench-input/` directory beside the harness workspace, never at the artifact's literal conventional path — verified directly against `src/bench/workspace.go`. Manifests must reference staged content via the `{input:<id>}` placeholder explicitly in the prompt, not via a "if staged at `.github/skills/<id>/SKILL.md`" phrasing (that only applies to Task 026's repo-specific `setup:`-based installer trick). A target that needs *editing*, not just reading (e.g. `new-principle` editing `framework/*.md`), additionally needs a `setup: cp` step to materialize a writable copy at the real path. Folded into `smaqit.bench-scaffold`'s SKILL.md as a documented mechanic.
+- User corrected the initial implementation: both skills were originally hand-written (passed `validate-skill.go` but weren't produced via the ADK's own tooling). Rebuilt via the actual `definition → smaqit.L2` compilation chain instead, since `smaqit.new-skill` (the documented ADK-contributor tool) turned out not to exist anywhere in the repo — a doc-vs-reality gap of the same shape as Task 025, but for skills rather than CLI commands.
+- Root-detection logic (`.github/skills|agents/` first, root `skills|agents/` fallback) kept as originally designed after explicit user confirmation that it matches current, live-verified installer behavior; Task 027's global-install migration for smaqit-adk's own product remains unstarted and was correctly not assumed.
+- Fixed a global, out-of-repo bug in `~/.claude/skills/smaqit.utils.worktree/scripts/*.sh` (7 of 9 scripts resolved the git repo from their own file location rather than the caller's cwd, broken by the user-level skills migration) — required to unblock `task.start` itself, not part of this task's scope but necessary to do any of this work.
 
 **Blockers encountered:**
-- TBD
+- None that stopped the task; the `smaqit.new-skill` non-existence and the hand-written-vs-compiled correction were resolved within the session via user clarification.
 
 **Follow-up identified:**
-- TBD
+- Consider a task to reconcile README.md's "ADK Source (Expert Use)" section, which documents `smaqit.new-skill`/`smaqit.new-agent` as existing tools when neither is actually implemented — the same class of problem Task 025 already tracks for CLI commands, but for skills.
+- The `smaqit.create-agent` dogfood manifest (pre-existing, from Task 026, untouched this session) has a live content-level flake: Codex's ambiguity-flagging output (`[?, note]`) doesn't match the grader's exact bare-`[?]` regex. Worth a small follow-up to loosen the grader or tighten the prompt's format instruction.
+- `.smaqit/bench/skills/smaqit.new-principle/bench.yaml` is structurally valid but has not been live-trialed; a future session should run it via `smaqit.bench-run` and iterate if it fails, the same way Task 026's three manifests needed live iteration.
+- `smaqit.L0`/`smaqit.L1` remain uncovered by any bench manifest — natural next targets for `smaqit.bench-scaffold`.
 
 ## Files to Create / Modify
 

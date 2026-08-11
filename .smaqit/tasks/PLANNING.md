@@ -4,7 +4,6 @@
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
-| 028 | Bench Run and Scaffold Skills | In Progress | Root-shipped, advanced-tier-only skills: `smaqit.bench-run` automates running `.smaqit/bench/`, `smaqit.bench-scaffold` authors new manifests generically; depends on Task 026 (complete) |
 | 027 | Migrate to Global User-Level Installation (Learned from smaqit-extensions) | Not Started | Ported from smaqit-extensions Task 023 + its 2 patch fixes; open design questions on tier selection and skills path need resolving during planning |
 | 025 | README Documents Non-Existent CLI Commands | Not Started | README documents `smaqit-adk create-agent`/`create-skill`; no such cases in the dispatch — confirm deliberate removal, then correct docs |
 | 018 | Level Skills Completion | Not Started | `smaqit.new-principle` shipped in adk-v0.6.0; remaining: new-template, new-rules, L0 definition file pattern |
@@ -14,6 +13,7 @@
 
 | ID | Title | Completed | Notes |
 |----|-------|-----------|-------|
+| 028 | Bench Run and Scaffold Skills | 2026-08-11 | Root-shipped, advanced-tier-only `smaqit.bench-run`/`smaqit.bench-scaffold`, compiled via `smaqit.L2` from `.smaqit/definitions/skills/` (not hand-written — `smaqit.new-skill` doesn't actually exist despite README/Task 009 claiming it does); live-verified 2 winners + 1 diagnosed-inconclusive against the 3 pre-existing dogfood manifests; scaffolded first `smaqit.new-principle` manifest (structurally valid, not yet live-trialed) |
 | 026 | HarnessBench Skill and Agent Evaluation Suite | 2026-08-10 | Shipped a `bench suite validate\|plan\|run` engine capability plus 3 `.smaqit/bench/` dogfood manifests (2 skills + 1 agent); `make evals` verified live against the authenticated Codex CLI, 3/3 passed; found/fixed a real `Command.Environment` engine gap; removed the legacy Copilot SDK runner and dependency; supersedes 020/021 |
 | 023 | HarnessBench Phase 1 — `smaqit-adk bench` Subcommand | 2026-08-10 | Shipped plan-first local evaluation/benchmark CLI with multimodal cases, generic process harnesses, deterministic grading, immutable evidence, lifecycle events, examples, CI coverage, and Codex E2E validation |
 | 024 | Repair Broken Eval Artifact References | 2026-08-06 | Historical Copilot SDK repair: 5 evals repointed/rewritten and two runner bugs fixed; final tally 2/7. The runner and its remaining permission defect are superseded by Task 026. |
