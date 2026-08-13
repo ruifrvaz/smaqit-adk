@@ -1,6 +1,6 @@
 schemaVersion: 1
 name: smaqit-l2
-# Dogfood suite for agents/smaqit.L2.agent.md. See ../../MIGRATION.md for how
+# Dogfood suite for agents/smaqit.L2.md. See ../../MIGRATION.md for how
 # this maps from the legacy tests/evals/agents/smaqit.L2/*.json cases, and
 # ../../README.md for the with/without-artifact and reusable-Codex-block
 # conventions this manifest follows.
@@ -9,48 +9,70 @@ cases:
     given:
       prompt:
         file: prompts/compile-base-agent.md
+      files:
+        - id: l2
+          source: ../../../../agents/smaqit.L2.md
+        - id: template
+          source: ../../../../templates/agents/base-agent.template.md
+        - id: rules
+          source: ../../../../templates/agents/compiled/base.rules.md
     expect:
       - id: definition-written
         type: file
         actual: "file:.smaqit/definitions/agents/qa-helper.md"
         operator: exists
-      - id: compiled-agent-written
+      - id: compiled-claude-written
         type: file
-        actual: "file:agents/qa-helper.agent.md"
+        actual: "file:.claude/agents/qa-helper.md"
+        operator: exists
+      - id: compiled-codex-written
+        type: file
+        actual: "file:.codex/agents/qa-helper.toml"
         operator: exists
       - id: no-unresolved-placeholders
         type: command
         actual: submission
         command:
           executable: sh
-          arguments: ["-c", "! grep -qE '\\[(DOMAIN|PREFIX|PHASE)\\]' agents/qa-helper.agent.md 2>/dev/null"]
+          arguments: ["-c", "! grep -qE '\\[(DOMAIN|PREFIX|PHASE)\\]' .claude/agents/qa-helper.md .codex/agents/qa-helper.toml 2>/dev/null"]
       - id: has-must-section
-        type: text
-        actual: "file:agents/qa-helper.agent.md"
-        operator: contains
-        value: "MUST"
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "grep -q 'MUST' .claude/agents/qa-helper.md"]
       - id: has-must-not-section
-        type: text
-        actual: "file:agents/qa-helper.agent.md"
-        operator: contains
-        value: "MUST NOT"
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "grep -q 'MUST NOT' .claude/agents/qa-helper.md"]
   - id: reject-unresolved-placeholders
     given:
       prompt:
         file: prompts/reject-unresolved-placeholders.md
+      files:
+        - id: l2
+          source: ../../../../agents/smaqit.L2.md
+        - id: template
+          source: ../../../../templates/agents/base-agent.template.md
+        - id: rules
+          source: ../../../../templates/agents/compiled/base.rules.md
     expect:
       - id: no-placeholder-file-written
         type: command
         actual: submission
         command:
           executable: sh
-          arguments: ["-c", "! grep -qE '\\[(DOMAIN|PREFIX|PHASE)\\]' agents/incomplete-agent.agent.md 2>/dev/null"]
+          arguments: ["-c", "! grep -qE '\\[(DOMAIN|PREFIX|PHASE)\\]' .claude/agents/incomplete-agent.md .codex/agents/incomplete-agent.toml 2>/dev/null"]
 variants:
   - id: with-artifact
     adapter: process
     setup:
-      - executable: ../../../../installer/dist/smaqit-adk-dev
-        arguments: ["lite", "{workspace}"]
+      - executable: sh
+        arguments:
+          - "-c"
+          - "mkdir -p {workspace}/.smaqit/templates/agents/compiled && cp {input:template} {workspace}/.smaqit/templates/agents/base-agent.template.md && cp {input:rules} {workspace}/.smaqit/templates/agents/compiled/base.rules.md"
     process:
       executable: codex
       arguments:
@@ -76,7 +98,7 @@ variants:
         - "{taskFile}"
       inputMode: argument
     intendedDifferences:
-      - Runs without smaqit.L2's own agent file or compilation templates staged — no ADK compilation guidance is available, establishing the no-artifact baseline. Native discovery of L2's rules is not claimed.
+      - Runs without ADK compilation templates materialized at .smaqit/templates/ in the workspace — the conventional L1 input path is empty, establishing the no-artifact baseline. Native discovery of L2's rules is not claimed.
 execution:
   repetitions: 1
   timeoutSeconds: 600

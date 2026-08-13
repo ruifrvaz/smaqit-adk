@@ -16,37 +16,60 @@ cases:
     given:
       prompt:
         text: |
-          I need to create a new base agent. If this project has an ADK
-          agent-authoring skill staged at
-          .github/skills/smaqit.create-agent/SKILL.md, read it first and
-          follow it exactly — do not invent your own approach instead. Its
-          name is qa-helper and its purpose is answering questions about the
-          project's QA process. If your workflow calls for asking a
+          I need to create a new base agent. The ADK agent-authoring skill
+          is staged at `{input:skill}/SKILL.md` — read it first and follow
+          it exactly, do not invent your own approach instead. That skill
+          invokes the `smaqit.L2` compiler agent as a subagent; in this
+          sandbox `smaqit.L2` is not registered as a spawnable custom
+          agent, so instead read its body directly at `{input:l2}` and
+          apply its compilation instructions yourself.
+
+          Its name is qa-helper and its purpose is answering questions about
+          the project's QA process. If your workflow calls for asking a
           clarifying question, treat "qa-helper" as the answer and proceed —
           you are running non-interactively via `codex exec` and there is no
           further input coming.
+      directories:
+        - id: skill
+          source: ../../../../skills/smaqit.create-agent
+      files:
+        - id: l2
+          source: ../../../../agents/smaqit.L2.md
     expect:
       - id: definition-written
         type: file
         actual: "file:.smaqit/definitions/agents/qa-helper.md"
         operator: exists
-      - id: compiled-agent-written
+      - id: compiled-claude-written
         type: file
-        actual: "file:.github/agents/qa-helper.agent.md"
+        actual: "file:.claude/agents/qa-helper.md"
+        operator: exists
+      - id: compiled-codex-written
+        type: file
+        actual: "file:.codex/agents/qa-helper.toml"
         operator: exists
   - id: ambiguity-flagging
     given:
       prompt:
         text: |
-          Create an agent. If this project has an ADK agent-authoring skill
-          staged at .github/skills/smaqit.create-agent/SKILL.md, read it
-          first and follow it exactly — do not invent your own approach
-          instead. If your workflow calls for asking a clarifying question
-          about its name, answer "helper" and proceed — you are running
-          non-interactively via `codex exec` and there is no further input
-          coming. Infer the rest of the specification yourself; where
-          something is genuinely ambiguous, flag it in the written definition
-          rather than asking about it.
+          Create an agent. The ADK agent-authoring skill is staged at
+          `{input:skill}/SKILL.md` — read it first and follow it exactly, do
+          not invent your own approach instead. That skill invokes the
+          `smaqit.L2` compiler agent as a subagent; in this sandbox
+          `smaqit.L2` is not registered as a spawnable custom agent, so
+          instead read its body directly at `{input:l2}` and apply its
+          compilation instructions yourself. If your workflow calls for
+          asking a clarifying question about its name, answer "helper" and
+          proceed — you are running non-interactively via `codex exec` and
+          there is no further input coming. Infer the rest of the
+          specification yourself; where something is genuinely ambiguous,
+          flag it in the written definition rather than asking about it.
+      directories:
+        - id: skill
+          source: ../../../../skills/smaqit.create-agent
+      files:
+        - id: l2
+          source: ../../../../agents/smaqit.L2.md
     expect:
       - id: definition-written
         type: file
@@ -62,8 +85,10 @@ variants:
   - id: with-artifact
     adapter: process
     setup:
-      - executable: ../../../../installer/dist/smaqit-adk-dev
-        arguments: ["lite", "{workspace}"]
+      - executable: sh
+        arguments:
+          - "-c"
+          - "mkdir -p {workspace}/.agents/skills && cp -r {input:skill} {workspace}/.agents/skills/"
     process:
       executable: codex
       arguments:
@@ -89,7 +114,7 @@ variants:
         - "{taskFile}"
       inputMode: argument
     intendedDifferences:
-      - Runs without smaqit-adk lite installed — no smaqit.create-agent skill or compilation templates are staged, establishing the no-artifact baseline. Native discovery of the skill is not claimed.
+      - Runs without the smaqit.create-agent skill materialized at .agents/skills/ in the workspace — no ADK agent-authoring guidance is available at its conventional project-local path, establishing the no-artifact baseline. Native discovery of the skill is not claimed.
 execution:
   repetitions: 1
   timeoutSeconds: 600

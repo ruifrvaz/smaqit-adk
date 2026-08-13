@@ -45,7 +45,7 @@ Bench copies declared inputs into a read-only `.smaqit-bench-input/` directory b
 
 > "The project's ADK skill-authoring skill is staged at `{input:skill}/SKILL.md` — read it first and follow it exactly. Do not invent your own approach instead."
 
-Do not phrase this as "if staged at `.github/skills/<id>/SKILL.md`, read it" — that phrasing only works for the three manifests Task 026 built for smaqit-adk's own repo, which stage via a `setup:` command running the actual ADK installer (`smaqit-adk-dev lite {workspace}`) directly against the workspace root instead of a declared input asset. That trick is a documented special case, not something a shipped skill can assume works in an arbitrary consuming project — this skill's manifests default to `given.files`/`given.directories` plus explicit `{input:<id>}` prompting instead.
+Do not phrase this as "if staged at `.github/skills/<id>/SKILL.md`, read it" — smaqit-adk's own pre-Task-027 dogfood manifests used to install directly into the workspace root via a `setup:` step running the then-existent `lite` installer command rather than a declared input asset. That command no longer exists, so this skill's manifests always use `given.files`/`given.directories` plus explicit `{input:<id>}` prompting.
 
 **Without-artifact variant** (only when the manifest is doing a with/without comparison, not a single-variant evaluation) — never reference `{input:<id>}` in its prompt, and its `setup` removes the staged copy before the harness runs:
 

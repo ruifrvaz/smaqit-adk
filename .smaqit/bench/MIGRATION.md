@@ -10,7 +10,7 @@ Legacy: `001_gather_name_first.json`, `002_confirmation_before_compile.json`, `0
 
 **Retained → `.smaqit/bench/skills/smaqit.create-agent/bench.yaml`:**
 - Definition file is written to `.smaqit/definitions/agents/<name>.md` covering the required sections (file + content-presence expectation) — from 001.
-- Compilation reaches `.github/agents/<name>.agent.md` (file-existence expectation) — from 001.
+- Compilation reaches `.claude/agents/<name>.md` and `.codex/agents/<name>.toml` (file-existence expectations) — from 001.
 - A vague request still produces a definition file at `.smaqit/definitions/agents/<name>.md` (file-existence expectation) — from 003.
 - At least one field in that definition file is suffixed with `[?]` and an inline uncertainty note (text/regex-presence expectation for `\[\?\]`) — from 003.
 
@@ -28,7 +28,7 @@ Legacy: `001_full_gathering_flow.json`, `002_reject_first_person_description.jso
 
 **Retained → `.smaqit/bench/skills/smaqit.create-skill/bench.yaml`:**
 - Definition file is written to `.smaqit/definitions/skills/<name>.md` covering the required sections (file + content-presence expectation) — from 001.
-- Compilation reaches `.github/skills/<name>/SKILL.md` (file-existence expectation) — from 001.
+- Compilation reaches `.agents/skills/<name>/SKILL.md` and `.claude/skills/<name>/SKILL.md` (file-existence expectations) — from 001.
 - The compiled skill's validator (`scripts/validate-skill.go`) runs and exits `0` before completion (command expectation) — from 001 and 002 combined (both asserted this; 002 had no other content).
 
 **Retired (conversational):**
@@ -41,8 +41,8 @@ Legacy: `001_full_gathering_flow.json`, `002_reject_first_person_description.jso
 Legacy: `001_compile_base_agent.json`, `002_reject_unresolved_placeholders.json`.
 
 **Retained → `.smaqit/bench/agents/smaqit.L2/bench.yaml`:**
-- The compiled agent file contains no unresolved placeholders (`[DOMAIN]`, `[PREFIX]`, `[PHASE]`) — text/regex-absence expectation against the compiled file. Covers both 001's positive criterion and forbidden criterion (same check, framed twice in the legacy file) and 002's "does not write a file containing placeholders" / forbidden pair.
-- The compiled agent file contains `MUST` and `MUST NOT` directive sections (text/section-presence expectation) — from 001.
+- The compiled agent files contain no unresolved placeholders (`[DOMAIN]`, `[PREFIX]`, `[PHASE]`) — regex-absence expectation against the compiled outputs (`.claude/agents/<name>.md`, `.codex/agents/<name>.toml`). Covers both 001's positive criterion and forbidden criterion (same check, framed twice in the legacy file) and 002's "does not write a file containing placeholders" / forbidden pair.
+- The compiled Claude agent file contains `MUST` and `MUST NOT` directive sections (command expectation) — from 001.
 
 **Retired (conversational or non-deterministic):**
 - "Outputs the compiled agent content in the chat response" (001) — literally requires content to appear in chat.

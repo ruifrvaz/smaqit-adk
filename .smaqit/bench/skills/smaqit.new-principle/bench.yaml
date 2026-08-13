@@ -25,7 +25,7 @@ cases:
           source: ../../../../framework
       files:
         - id: l0agent
-          source: ../../../../agents/smaqit.L0.agent.md
+          source: ../../../../agents/smaqit.L0.md
     expect:
       - id: principle-added
         type: command
@@ -66,7 +66,7 @@ variants:
         - "{taskFile}"
       inputMode: argument
     intendedDifferences:
-      - Runs without framework/ materialized in the workspace and without the new-principle skill or L0 agent staged — no framework files exist to edit and no ADK principle-authoring guidance is available, establishing the no-artifact baseline.
+      - Runs without framework/ materialized in the workspace — no framework files exist to edit, establishing the no-artifact baseline.
 execution:
   repetitions: 1
   timeoutSeconds: 600

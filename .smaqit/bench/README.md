@@ -1,6 +1,7 @@
 # smaqit-adk's own HarnessBench suite
 
-This directory is smaqit-adk **dogfooding** its own `smaqit-adk bench` engine against its own skills and agents. It is not ADK-shipped product source — the engine itself lives in `src/bench`/`src/benchcli` and ships in the binary. This directory is this repo's local data, in the same sense `.smaqit/tasks/` or `.smaqit/compendium.md` are: state a project keeps about itself, not something `smaqit-adk lite`/`advanced` writes into a consumer's project.
+This directory is smaqit-adk **dogfooding** its own `smaqit-adk bench` engine against its own skills and agents. It is not ADK-shipped product source — the engine itself lives in `src/bench`/`src/benchcli` and ships in the binary. This directory is this repo's local data, in the same sense `.smaqit/tasks/` or `.smaqit/compendium.md` are: state a project keeps about itself, not something the global installer
+writes into a consuming project.
 
 See [`MIGRATION.md`](MIGRATION.md) for how the legacy Copilot-SDK eval suite's scenarios map onto the manifests here.
 
@@ -19,7 +20,7 @@ See [`MIGRATION.md`](MIGRATION.md) for how the legacy Copilot-SDK eval suite's s
 └── README.md
 ```
 
-Skill suites live under `skills/<skill-id>/`; agent suites (flat files, no natural directory of their own) live under `agents/<agent-id>/`, matching the ID used in `skills/<skill-id>/SKILL.md` or `agents/<agent-id>.agent.md` at the repo root. One `bench.yaml` per target unless a target has genuinely distinct scenarios worth splitting into multiple manifests.
+Skill suites live under `skills/<skill-id>/`; agent suites (flat files, no natural directory of their own) live under `agents/<agent-id>/`, matching the ID used in `skills/<skill-id>/SKILL.md` or `agents/<agent-id>.md` at the repo root. One `bench.yaml` per target unless a target has genuinely distinct scenarios worth splitting into multiple manifests.
 
 ## Case naming
 
@@ -67,7 +68,7 @@ There's no templating in Bench for this — every manifest that drives `codex ex
 - **Pin a non-interactive sandbox/approval mode explicitly.** Bench's `process` adapter has no PTY and no approval-relay — if `codex exec` waits on an approval prompt, the run hangs until Bench's own timeout kills it (`openai/codex#36570`: `approvals_reviewer` can silently defeat an explicit `--sandbox` flag). Don't rely on defaults.
 - **Pass `--skip-git-repo-check`.** Confirmed live: Codex refuses to run at all ("Not inside a trusted directory") outside a Git repository, and Bench's disposable workspace is a plain temp directory, never a repo.
 - **Set an explicit `timeoutSeconds`** on `execution` rather than trusting the 300s default — `codex exec` has a known stall report (`openai/codex#28476`). A bounded timeout turns a stall into a clean `timedOut` status instead of an indefinite hang.
-- **Point the harness at the staged artifact explicitly.** Staging a skill/agent file into the workspace is not enough on its own — confirmed live, Codex's own repo-exploration habits (e.g. `rg --files`, which hides dotfiles by default) can miss content under `.github/`/`.smaqit/`, and generic wording like "create a skill" can collide with Codex's own built-in skill-authoring feature. Prompts should say e.g. "if this project has an ADK skill-authoring skill staged at `.github/skills/<id>/SKILL.md`, read it first and follow it exactly" — phrased conditionally so the same prompt is honest for the without-artifact variant too, where nothing is staged.
+- **Point the harness at the staged artifact explicitly.** Staging a skill/agent file into the workspace is not enough on its own — confirmed live, Codex's own repo-exploration habits (e.g. `rg --files`, which hides dotfiles by default) can miss content under `.agents/`/`.smaqit/`, and generic wording like "create a skill" can collide with Codex's own built-in skill-authoring feature. Prompts should say e.g. "the ADK skill-authoring skill is staged at `{input:skill}/SKILL.md` — read it first and follow it exactly", referencing the declared-input placeholder rather than a project-relative path.
 
 ## Command graders and Snap-packaged toolchains
 

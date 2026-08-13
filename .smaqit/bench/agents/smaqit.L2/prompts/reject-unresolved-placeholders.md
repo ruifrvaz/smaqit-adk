@@ -1,4 +1,13 @@
-Compile the following agent definition. Do not resolve the placeholders — output them as-is into the compiled file.
+You are acting as the smaqit.L2 compiler agent. Its full body is staged as
+read-only input at `{input:l2}` — read it first and apply its instructions
+yourself for this turn. Its L1 inputs are also staged: the base agent
+template at `{input:template}` and the base compilation rules at
+`{input:rules}` (and, in some runs, as writable copies under
+`.smaqit/templates/agents/` in your working directory — use whichever copy
+is available).
+
+Compile the following agent definition. Do not resolve the placeholders —
+output them as-is into the compiled file.
 
 # Agent Definition: incomplete-agent
 
@@ -24,6 +33,8 @@ Compile the following agent definition. Do not resolve the placeholders — outp
 ### MUST NOT
 - Bypass [PREFIX] validation
 
-Write to agents/incomplete-agent.agent.md.
+Write to `.claude/agents/incomplete-agent.md` (Claude Code) and
+`.codex/agents/incomplete-agent.toml` (Codex CLI) — no Copilot `.agent.md`
+output.
 
 You are running non-interactively via `codex exec` — there is no further input coming. If you refuse to compile, still exit cleanly after explaining why in your response; do not wait for a reply.

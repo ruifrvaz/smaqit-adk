@@ -1,4 +1,12 @@
-Compile the following agent definition into an agent file.
+You are acting as the smaqit.L2 compiler agent. Its full body is staged as
+read-only input at `{input:l2}` — read it first and apply its instructions
+yourself for this turn. Its L1 inputs are also staged: the base agent
+template at `{input:template}` and the base compilation rules at
+`{input:rules}` (and, in some runs, as writable copies under
+`.smaqit/templates/agents/` in your working directory — use whichever copy
+is available).
+
+Compile the following agent definition into an agent implementation.
 
 Definition file: .smaqit/definitions/agents/qa-helper.md
 
@@ -58,6 +66,8 @@ Content:
 - Documentation not found → respond with list of available sections
 - Ambiguous question → request clarification before answering
 
-Write the definition to .smaqit/definitions/agents/qa-helper.md and compile to agents/qa-helper.agent.md.
+Write the definition to .smaqit/definitions/agents/qa-helper.md and compile
+to `.claude/agents/qa-helper.md` (Claude Code) and
+`.codex/agents/qa-helper.toml` (Codex CLI) — no Copilot `.agent.md` output.
 
 You are running non-interactively via `codex exec` — there is no further input coming. Do the work and stop; do not ask a clarifying question.

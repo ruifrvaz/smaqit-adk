@@ -12,13 +12,25 @@ cases:
       prompt:
         text: |
           I need to create a new skill for adding framework principles to the
-          ADK. If this project has an ADK skill-authoring skill staged at
-          .github/skills/smaqit.create-skill/SKILL.md, read it first and
-          follow it exactly — do not use your own built-in skill-authoring
-          tooling instead. If your workflow calls for asking a clarifying
-          question about its name, answer "smaqit.new-principle" and
-          proceed — you are running non-interactively via `codex exec` and
-          there is no further input coming.
+          ADK. The ADK skill-authoring skill is staged at
+          `{input:skill}/SKILL.md` — read it first and follow it exactly, do
+          not use your own built-in skill-authoring tooling instead. That
+          skill invokes the `smaqit.L2` compiler agent as a subagent; in
+          this sandbox `smaqit.L2` is not registered as a spawnable custom
+          agent, so instead read its body directly at `{input:l2}` and
+          apply its compilation instructions yourself. The skill's
+          validation step will be performed by an external grader, so focus
+          on writing the definition and compiling the skill. If your
+          workflow calls for asking a clarifying question about its name,
+          answer "smaqit.new-principle" and proceed — you are running
+          non-interactively via `codex exec` and there is no further input
+          coming.
+      directories:
+        - id: skill
+          source: ../../../../skills/smaqit.create-skill
+      files:
+        - id: l2
+          source: ../../../../agents/smaqit.L2.md
     expect:
       - id: definition-written
         type: file
@@ -26,7 +38,11 @@ cases:
         operator: exists
       - id: compiled-skill-written
         type: file
-        actual: "file:.github/skills/smaqit.new-principle/SKILL.md"
+        actual: "file:.agents/skills/smaqit.new-principle/SKILL.md"
+        operator: exists
+      - id: compiled-skill-claude-written
+        type: file
+        actual: "file:.claude/skills/smaqit.new-principle/SKILL.md"
         operator: exists
       - id: validator-passes
         type: command
@@ -40,13 +56,15 @@ cases:
           # retry once"). A plain compiled binary needs no environment at all
           # and sidesteps Snap entirely. See .smaqit/bench/README.md.
           executable: ../../../../installer/dist/validate-skill
-          arguments: ["./.github/skills/smaqit.new-principle/SKILL.md"]
+          arguments: ["./.claude/skills/smaqit.new-principle/SKILL.md"]
 variants:
   - id: with-artifact
     adapter: process
     setup:
-      - executable: ../../../../installer/dist/smaqit-adk-dev
-        arguments: ["lite", "{workspace}"]
+      - executable: sh
+        arguments:
+          - "-c"
+          - "mkdir -p {workspace}/.agents/skills && cp -r {input:skill} {workspace}/.agents/skills/"
     process:
       executable: codex
       arguments:
@@ -72,7 +90,7 @@ variants:
         - "{taskFile}"
       inputMode: argument
     intendedDifferences:
-      - Runs without smaqit-adk lite installed — no smaqit.create-skill skill or compilation templates are staged, establishing the no-artifact baseline. Native discovery of the skill is not claimed.
+      - Runs without the smaqit.create-skill skill materialized at .agents/skills/ in the workspace — no ADK skill-authoring guidance is available at its conventional project-local path, establishing the no-artifact baseline. Native discovery of the skill is not claimed.
 execution:
   repetitions: 1
   timeoutSeconds: 600
