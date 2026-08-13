@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-08-13
+
 ### Changed — Breaking
 
 - **Global, multi-platform installation replaces per-project `lite`/`advanced` tiers entirely.** `smaqit-adk lite`/`advanced`/`init` no longer exist. `install.sh` now installs everything automatically after downloading the binary — no project-facing install command remains. Global targets: `smaqit.L0`/`L1`/`L2` to `~/.claude/agents/` and `~/.codex/agents/` (respecting `CLAUDE_CONFIG_DIR`/`CODEX_HOME`); all 5 ADK skills to `~/.agents/skills/` (shared with Codex CLI and GitHub Copilot) and `~/.claude/skills/`; compilation templates and framework principle files to `~/.agents/smaqit-adk/`. No project directory ever receives an ADK artifact.
@@ -273,7 +275,8 @@ smaqit-adk is a **generic agent development toolkit**, not tied to any specific 
 
 The [smaQit product](https://github.com/ruifrvaz/smaqit) demonstrates one possible use case (five-layer specification system), but ADK users can create entirely different architectures.
 
-[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v1.2.0...HEAD
+[Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v2.0.0...HEAD
+[2.0.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v1.2.0...adk-v2.0.0
 [1.2.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v1.1.0...adk-v1.2.0
 [1.1.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v1.0.0...adk-v1.1.0
 [1.0.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v0.7.3...adk-v1.0.0
