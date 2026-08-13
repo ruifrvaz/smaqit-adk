@@ -159,6 +159,19 @@ verify_installation() {
     info "Verified installation: ${installed_version}"
 }
 
+# Trigger the global install (agents, skills, templates, framework) via the
+# binary's internal --install-global flag. Referenced inline via
+# ${INSTALL_DIR}/smaqit-adk — never through an intermediate variable defined
+# in another function's scope, since exactly that class of bug (a $target
+# variable that fell out of scope) shipped a broken installer once before in
+# the sibling smaqit-extensions project, downloading the binary successfully
+# but silently never installing anything globally.
+install_global() {
+    if ! "${INSTALL_DIR}/smaqit-adk" --install-global; then
+        error "Global install failed"
+    fi
+}
+
 # Check if install directory is in PATH
 check_path() {
     if [[ ":$PATH:" != *":${INSTALL_DIR}:"* ]]; then
@@ -185,18 +198,20 @@ main() {
     download_binary
     install_binary
     verify_installation
+    install_global
     check_path
-    
+
     echo ""
     info "Installation complete!"
     echo ""
-    echo "Get started:"
-    echo "  smaqit-adk lite       # Initialize lite tier in your project"
-    echo "  smaqit-adk --help     # View available commands"
+    echo "Installed globally:"
+    echo "  smaqit.L0/L1/L2  -> ~/.claude/agents/, ~/.codex/agents/"
+    echo "  5 ADK skills     -> ~/.agents/skills/, ~/.claude/skills/"
+    echo "  templates/framework -> ~/.agents/smaqit-adk/"
     echo ""
-    echo "Next steps:"
-    echo "  1. Run 'smaqit-adk create-agent' to create a new agent from the CLI"
-    echo "  2. Or run 'smaqit-adk lite' in a project, then say 'create a new agent' in VS Code Copilot chat"
+    echo "Get started:"
+    echo "  In Claude Code or Codex CLI, say 'create a new agent' or 'create a new skill'"
+    echo "  smaqit-adk --help     # View available commands"
     echo ""
 }
 

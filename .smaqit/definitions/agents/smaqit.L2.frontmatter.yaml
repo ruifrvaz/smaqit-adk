@@ -1,0 +1,7 @@
+claude:
+  name: smaqit-L2
+  description: Level 2 Compiler - Compiles Level 1 template directives and definition files into concrete agent and skill implementations
+  tools: Bash, Read, Write, Edit, Grep, Glob, Task, TodoWrite
+codex:
+  name: smaqit.L2
+  description: Level 2 Compiler - Compiles Level 1 template directives and definition files into concrete agent and skill implementations

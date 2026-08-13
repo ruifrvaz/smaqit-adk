@@ -1,28 +1,28 @@
 # smaQit Agent Development Kit
 
-smaQit-adk is an **Agent Development Kit** for GitHub Copilot. It ships everything you need to create custom agents and skills — either from the command line or directly inside VS Code.
+smaQit-adk is an **Agent Development Kit**. It ships a compilation framework (principles → templates → agents) and the tools to create custom agents and skills — installed once, globally, and available in every project you work in.
+
+## Compatibility
+
+| Platform | Support |
+|----------|---------|
+| Claude Code | Compiled `.md` subagents at `~/.claude/agents/`; skills at `~/.claude/skills/`. Native subagent invocation. |
+| Codex CLI | Compiled `.toml` custom agents at `~/.codex/agents/`; skills at `~/.agents/skills/`. Native named-agent spawning. |
+| GitHub Copilot | `AGENTS.md` (root, canonical instructions) and `~/.agents/skills/` — both accepted standards Copilot already reads natively. Routing skills fall back to reading the Claude-format agent body directly when invoking L0/L1/L2. |
 
 ## What is smaQit-adk?
 
-smaQit-adk has two tiers:
+A single global install puts:
 
-**Lite tier** — Zero-config VS Code integration. Run `smaqit-adk lite` once in your project to install two agents and two routing skills. No framework files, no templates, no Level agents required.
+- 3 Level agents (`smaqit.L0`, `smaqit.L1`, `smaqit.L2`) into `~/.claude/agents/` and `~/.codex/agents/`
+- 5 skills (`smaqit.create-agent`, `smaqit.create-skill`, `smaqit.new-principle`, `smaqit.bench-run`, `smaqit.bench-scaffold`) into `~/.agents/skills/` and `~/.claude/skills/`
+- Compilation templates and framework principle files into `~/.agents/smaqit-adk/`
 
-- **`smaqit.create-agent`** — Interactively gathers specs and writes a `.agent.md` into `.github/agents/`
-- **`smaqit.create-skill`** — Interactively gathers specs and writes a `SKILL.md` into `.github/skills/`
-
-Activate either by saying "create a new agent" (or skill) in Copilot chat — no `@`-switching required.
-
-**Advanced tier** — A globally installed CLI that creates agents and skills from any project directory, with no VS Code required. Each command runs in a fully isolated LLM context — no project agent instructions, no session history, no contamination.
-
-- **`smaqit-adk create-agent`** — Interactive gathering + compilation, writes `.agent.md` into the current project
-- **`smaqit-adk create-skill`** — Interactive gathering + compilation, writes `SKILL.md` into the current project
-
-Both tiers produce the same compiled output. The difference is how they get there.
+No per-project install step, no tiers. Say "create a new agent" (or skill) in Claude Code or Codex, in any project, and the routing skill takes it from there.
 
 ## What can you build with smaQit-adk?
 
-- Custom Copilot agents for any domain (Q&A bots, specification agents, implementation agents)
+- Custom agents for any domain (Q&A bots, specification agents, implementation agents), compiled for Claude Code and Codex CLI
 - Skills that package domain knowledge as reusable slash-command workflows
 - Agent-based development workflows for your team
 
@@ -36,13 +36,14 @@ Both tiers produce the same compiled output. The difference is how they get ther
 curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit-adk/main/install.sh | bash
 ```
 
+This downloads the `smaqit-adk` binary to `~/.local/bin/` and immediately installs agents, skills, templates, and framework files to their global locations. Nothing is written into your project directory.
+
 Or build from source:
 
 ```bash
 git clone https://github.com/ruifrvaz/smaqit-adk
 cd smaqit-adk/installer
 make build
-./dist/smaqit-adk-dev init
 ```
 
 Product implementation lives under `src/`. The `installer/` directory is the Make-driven packaging and embedded-artifact staging boundary; it delegates benchmark commands to the source module.
@@ -61,38 +62,6 @@ smaqit-adk bench run examples/bench/single-eval/bench.yaml
 
 One variant produces an evaluation; multiple variants produce a controlled comparison. `bench run` displays lifecycle progress by default; agents and applications can use `-events jsonl` for ordered machine-readable state updates. See [Benchmarking and evaluation](docs/wiki/benchmarking.md) for the manifest, process adapter, scoring, artifacts, security model, and application-facing interfaces.
 
-### Install the ADK
-
-1. **Initialize ADK in your project:**
-
-```bash
-smaqit-adk lite
-```
-
-This installs two agents and two routing skills:
-```
-.github/
-├── agents/
-│   ├── smaqit.create-agent.agent.md
-│   └── smaqit.create-skill.agent.md
-└── skills/
-    ├── smaqit.create-agent/
-    │   └── SKILL.md
-    └── smaqit.create-skill/
-        └── SKILL.md
-```
-
-That's it — no framework files, no templates, no Level agents.
-
-2. **Create a new agent:**
-
-Open GitHub Copilot chat and say:
-```
-Create a new agent for [your purpose]
-```
-
-Copilot activates the `smaqit.create-agent` skill, which invokes `@smaqit.create-agent` as a subagent to gather your specs and compile the agent file — in a clean, isolated context.
-
 ## Creating Agents and Skills
 
 ### Create an agent
@@ -105,8 +74,6 @@ or explicitly:
 /smaqit.create-agent
 ```
 
-Copilot activates the skill and invokes `@smaqit.create-agent` as a subagent.
-
 `smaqit.create-agent` gathers 8 specification sections interactively:
 1. Identity (name, description, tools)
 2. Purpose
@@ -117,7 +84,7 @@ Copilot activates the skill and invokes `@smaqit.create-agent` as a subagent.
 7. Completion criteria
 8. Failure scenarios
 
-Then it compiles and writes `.github/agents/[name].agent.md`.
+Then it compiles and writes both a Claude Code `.md` subagent and a Codex CLI `.toml` custom agent.
 
 > **Note:** `smaqit.create-agent` compiles **base agents** — agents with foundation behaviors customized for a specific purpose. For specification or implementation agents (which require ADK extension rules), use the full ADK compilation chain (see [ADK Source](#adk-source-expert-use)).
 
@@ -131,8 +98,6 @@ or explicitly:
 /smaqit.create-skill
 ```
 
-Copilot activates the skill and invokes `@smaqit.create-skill` as a subagent.
-
 `smaqit.create-skill` gathers 5 specification sections:
 1. Identity (name, description, version)
 2. Steps with fragility levels
@@ -140,64 +105,44 @@ Copilot activates the skill and invokes `@smaqit.create-skill` as a subagent.
 4. Scope
 5. Failure handling
 
-Then it compiles and writes `.github/skills/[name]/SKILL.md`.
+Then it compiles and writes `SKILL.md` — a single, cross-platform format already compatible with Claude Code, Codex CLI, and GitHub Copilot, with no per-platform variants needed.
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
 | `smaqit-adk bench <validate\|plan\|run\|grade\|compare\|report>` | Run config-first local evaluations and comparisons |
-| `smaqit-adk lite [dir]` | Install lite-tier agents and skills into `.github/` |
-| `smaqit-adk advanced [dir]` | Install full ADK (framework, templates, Level agents, plus `smaqit.bench-run`/`smaqit.bench-scaffold` skills) |
-| `smaqit-adk create-agent [--output <dir>]` | Create a new agent interactively (isolated CLI context) |
-| `smaqit-adk create-skill [--output <dir>]` | Create a new skill interactively (isolated CLI context) |
 | `smaqit-adk help` | Show detailed command help |
-| `smaqit-adk uninstall [lite\|advanced]` | Remove smaqit-adk agents and skills from project |
+| `smaqit-adk uninstall` | Remove smaqit-adk's global agents, skills, templates, and framework files |
 | `smaqit-adk version` | Show ADK version |
+
+Global installation has no user-facing subcommand — it happens automatically when `install.sh` runs.
 
 ## Agents and Skills
 
 | Artifact | Invocation | Purpose |
 |----------|------------|---------|
-| `smaqit.create-agent` (skill) | "create a new agent" or `/smaqit.create-agent` | Routes to the subagent |
-| `smaqit.create-skill` (skill) | "create a new skill" or `/smaqit.create-skill` | Routes to the subagent |
-| `smaqit.create-agent` (agent) | Invoked as subagent by the skill | Gather specs and compile `.agent.md` |
-| `smaqit.create-skill` (agent) | Invoked as subagent by the skill | Gather specs and compile `SKILL.md` |
+| `smaqit.create-agent` (skill) | "create a new agent" or `/smaqit.create-agent` | Routes to `smaqit.L2` |
+| `smaqit.create-skill` (skill) | "create a new skill" or `/smaqit.create-skill` | Routes to `smaqit.L2` |
+| `smaqit.new-principle` (skill) | "add a principle" or `/smaqit.new-principle` | Routes to `smaqit.L0` |
+| `smaqit.L0` / `smaqit.L1` / `smaqit.L2` (agents) | Invoked as subagents by the above skills | Maintain the framework, compile templates, compile agents and skills |
 
-## CLI (Advanced Tier)
-
-The CLI is installed globally and can be used from any project directory without VS Code or the Copilot extension.
-
-```bash
-# Create a new agent
-smaqit-adk create-agent
-
-# Create a new skill
-smaqit-adk create-skill
-
-# Override output location
-smaqit-adk create-agent --output path/to/dir
-```
-
-Each command opens an interactive session. The LLM context is isolated: only ADK artifacts are loaded — no project `.github/` files, no session history. You answer questions in the terminal; the compiled file is written into your project when gathering is complete.
-
-**Auth:** Set `COPILOT_GITHUB_TOKEN`, `GH_TOKEN`, or `GITHUB_TOKEN`, or log in with `gh auth login` / the VS Code GitHub Copilot extension (credentials are reused automatically).
+On Claude Code and Codex CLI, routing is a native subagent/custom-agent call against the compiled file. On GitHub Copilot, which has no dedicated compiled agent file, the routing skill instructs it to read the Claude-format agent body directly and follow it inline for the current turn — same content, no native subagent context isolation.
 
 ## ADK Source (Expert Use)
 
-For framework extension, specification agents, implementation agents, or direct compilation chain access, the ADK ships the full source:
+For framework extension, specification agents, implementation agents, or direct compilation chain access, contributors work with the ADK's own source directly:
 
-- **`smaqit.new-agent`** — Gather agent specs interactively in VS Code, write a definition file to `.smaqit/definitions/`, and invoke L2 to compile. Produces a full audit trail (definition file + compilation log).
-- **`smaqit.new-skill`** — Same workflow for skills.
-
-These skills require the full ADK stack at runtime (L2, framework files, templates). They are not installed by `smaqit-adk lite` and are intended for ADK contributors and expert users operating the full compilation chain.
+1. Write a definition file to `.smaqit/definitions/agents/[name].md` or `.smaqit/definitions/skills/[name].md` — the same shape `smaqit.create-agent`/`create-skill` would produce
+2. Invoke `smaqit.L2` as a subagent to compile it
 
 See the ADK source at `agents/`, `skills/`, `framework/`, and `templates/` for the full L0 → L1 → L2 compilation chain.
 
 ## Philosophy
 
-- **Self-contained agents** — No framework files needed in the consuming project
+- **Globally installed, project-agnostic** — one install, every project
 - **Compilation-based** — Principles → Templates → Agents (the compilation chain is internalized, not distributed)
+- **Multi-platform by construction** — Claude Code and Codex CLI compiled natively; GitHub Copilot compatible via accepted standards (`AGENTS.md`, `~/.agents/skills/`)
 - **Subagent isolation** — Clean context via subagent invocation is a first-class design goal
 - **Generic by design** — No domain-specific assumptions
 - **Traceable** — Clear L0 → L1 → L2 lineage (visible in the ADK source)

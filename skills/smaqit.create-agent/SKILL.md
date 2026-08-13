@@ -1,8 +1,8 @@
 ---
 name: smaqit.create-agent
-description: Generates a compiled custom agent definition file from a name and project context — infers a complete agent specification covering role, directives, scope, and failure handling; writes a definition file; and invokes smaqit.L2 to produce a ready-to-use .agent.md file.
+description: Generates a compiled custom agent definition file from a name and project context — infers a complete agent specification covering role, directives, scope, and failure handling; writes a definition file; and invokes smaqit.L2 to produce Claude Code and Codex CLI agent files.
 metadata:
-  version: "2.0.0"
+  version: "3.0.0"
 ---
 
 # Create Agent
@@ -16,7 +16,7 @@ Ask the user for the agent **name** in a single message (lowercase, hyphens allo
 ### 2. Scan
 
 Before writing anything, read:
-- All existing files in `.github/agents/` — for naming conventions and tool patterns already used in this project
+- All existing files in `.claude/agents/` and `.codex/agents/` — for naming conventions and tool patterns already used in this project
 - Project README — for domain, stack, and conventions
 - Any project manifests or config files that reveal project structure
 
@@ -42,20 +42,25 @@ The definition file must cover:
 
 ### 4. Compile
 
-Invoke `smaqit.L2` as a subagent with:
-> "Compile the agent definition at `.smaqit/definitions/agents/[name].md`. Write the compiled agent to `.github/agents/[name].agent.md`. After compilation, list any fields annotated with `[?]` and suggest a resolution for each."
+Invoke `smaqit.L2`:
+- **On Claude Code or Codex CLI:** invoke it as a native subagent/custom-agent call.
+- **On GitHub Copilot** (no dedicated compiled `smaqit.L2` file exists): read `~/.claude/agents/smaqit-L2.md`'s body directly and follow its instructions inline for this turn, as if it had been invoked as a subagent.
+
+Pass the instruction:
+> "Compile the agent definition at `.smaqit/definitions/agents/[name].md`. Write the compiled agent to `.claude/agents/[name].md` (Claude Code) and `.codex/agents/[name].toml` (Codex CLI) — no Copilot `.agent.md` output. After compilation, list any fields annotated with `[?]` and suggest a resolution for each."
 
 ### 5. Report
 
 After L2 completes, report to the user:
-- Path of the compiled agent file
+- Paths of both compiled agent files
 - Any `[?]`-annotated items and L2's suggested resolutions
 - How to adjust: edit `.smaqit/definitions/agents/[name].md` and re-invoke `/smaqit.create-agent`, or switch to `smaqit.L2` directly
 
 ## Output
 
 - `.smaqit/definitions/agents/[name].md` — inferred specification (scaffolding)
-- `.github/agents/[name].agent.md` — compiled agent file (source of truth)
+- `.claude/agents/[name].md` — compiled Claude Code agent file (source of truth)
+- `.codex/agents/[name].toml` — compiled Codex CLI agent file (source of truth)
 
 ## Scope
 
@@ -67,13 +72,13 @@ Does not create skills, framework files, templates, or Level agents. Does not mo
 - [ ] Repository scanned for context
 - [ ] Definition file written to `.smaqit/definitions/agents/[name].md`
 - [ ] `smaqit.L2` invoked and compilation completed
-- [ ] Compiled agent exists at `.github/agents/[name].agent.md`
+- [ ] Compiled agent exists at `.claude/agents/[name].md` and `.codex/agents/[name].toml`
 
 ## Failure Handling
 
 | Situation | Action |
 |-----------|--------|
 | Name not provided | Request before proceeding |
-| `.smaqit/templates/` not present | Inform the user that ADK templates are required — run `smaqit-adk lite` in this repository first |
+| `~/.agents/smaqit-adk/templates/` not present | Inform the user that ADK templates are required — run the smaqit-adk installer (`install.sh`) first |
 | Output artifact already exists | Report the conflict; do not overwrite without user confirmation |
 | L2 invocation fails | Report the error and include the path to the definition file so the user can inspect or correct it |

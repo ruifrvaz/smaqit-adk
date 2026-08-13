@@ -14,7 +14,7 @@ Guides authoring a new `.smaqit/bench/{skills,agents}/<id>/bench.yaml` manifest 
 
 ### 1. Detect the skill/agent root
 
-Check `.github/skills/` + `.github/agents/` first — the standard install location for `smaqit-adk lite`/`advanced` in a consuming project. If neither exists, fall back to root `skills/`/`agents/` (smaqit-adk's own dev-repo convention). If neither location resolves unambiguously, ask the user where the project's skills/agents live.
+Check `.agents/skills/` + `.claude/skills/` and `.claude/agents/`/`.codex/agents/` first — the project-local locations `smaqit.create-agent`/`smaqit.create-skill` write a consuming project's own custom artifacts to (smaqit-adk itself installs nothing into any project directory; only project-local custom agents/skills ever live there). If none exist, fall back to root `skills/`/`agents/` (smaqit-adk's own dev-repo convention, used by its dogfood suite). If neither location resolves unambiguously, ask the user where the project's skills/agents live.
 
 ### 2. Select target
 
@@ -98,9 +98,9 @@ Authors manifests only. Does not execute a full suite run or reimplement `smaqit
 
 ## Examples
 
-**Input:** User invokes `smaqit.bench-scaffold` in a project where `.github/skills/my-skill/SKILL.md` exists with no corresponding `.smaqit/bench/skills/my-skill/bench.yaml`.
+**Input:** User invokes `smaqit.bench-scaffold` in a project where `.claude/skills/my-skill/SKILL.md` exists with no corresponding `.smaqit/bench/skills/my-skill/bench.yaml`.
 
-**Output:** The skill detects `.github/skills/` as the root, lists `my-skill` as an uncovered target, reads `my-skill/SKILL.md`, drafts `.smaqit/bench/skills/my-skill/bench.yaml` staging `my-skill`'s directory via `given.directories` with an explicit `{input:skill}` reference in the prompt and the reusable Codex block, runs `bench validate` (passes), and asks whether to run a live trial via `smaqit.bench-run`.
+**Output:** The skill detects `.claude/skills/` as the root, lists `my-skill` as an uncovered target, reads `my-skill/SKILL.md`, drafts `.smaqit/bench/skills/my-skill/bench.yaml` staging `my-skill`'s directory via `given.directories` with an explicit `{input:skill}` reference in the prompt and the reusable Codex block, runs `bench validate` (passes), and asks whether to run a live trial via `smaqit.bench-run`.
 
 ## Gotchas
 
@@ -109,7 +109,7 @@ Authors manifests only. Does not execute a full suite run or reimplement `smaqit
 
 ## Completion
 
-- [ ] Skill/agent root detected (`.github/skills|agents/` or root `skills|agents/`, or resolved by asking)
+- [ ] Skill/agent root detected (project-local `.agents/skills|.claude/skills|.claude/agents|.codex/agents` or root `skills|agents/`, or resolved by asking)
 - [ ] Target selected; confirmed it has no existing manifest, or the user chose to extend one
 - [ ] Target's `SKILL.md`/`.agent.md` read in full before drafting
 - [ ] Manifest stages the target artifact via `given.files`/`given.directories`, with the prompt referencing `{input:<id>}` explicitly
@@ -121,7 +121,7 @@ Authors manifests only. Does not execute a full suite run or reimplement `smaqit
 
 | Situation | Action |
 |-----------|--------|
-| Neither `.github/skills\|agents/` nor root `skills\|agents/` resolves unambiguously | Ask the user where the project's skills/agents live |
+| Neither the project-local skill/agent locations nor root `skills\|agents/` resolves unambiguously | Ask the user where the project's skills/agents live |
 | Chosen target already has a manifest | Ask whether to add a case to it instead of creating a new manifest |
 | A manifest, `prompts/*.md` file, or other output artifact already exists at the write path | Confirm with the user before overwriting |
 | Structural validation fails | Report diagnostics; fix the manifest before offering a live trial |
