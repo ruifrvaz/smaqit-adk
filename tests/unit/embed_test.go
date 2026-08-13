@@ -1,75 +1,75 @@
 package unit_test
 
 import (
-	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
-// expectedFiles is the exhaustive list of files that must be present after lite.
+// expectedFiles is the exhaustive list of files that must be present after
+// --install-global, relative to HOME.
 var expectedFiles = []string{
-	// Lite-tier compiled agent
-	".github/agents/smaqit.L2.agent.md",
+	filepath.Join(".claude", "agents", "smaqit-L0.md"),
+	filepath.Join(".claude", "agents", "smaqit-L1.md"),
+	filepath.Join(".claude", "agents", "smaqit-L2.md"),
+	filepath.Join(".codex", "agents", "smaqit.L0.toml"),
+	filepath.Join(".codex", "agents", "smaqit.L1.toml"),
+	filepath.Join(".codex", "agents", "smaqit.L2.toml"),
+	filepath.Join(".agents", "skills", "smaqit.create-agent", "SKILL.md"),
+	filepath.Join(".claude", "skills", "smaqit.create-agent", "SKILL.md"),
+	filepath.Join(".agents", "smaqit-adk", "templates", "agents", "base-agent.template.md"),
+	filepath.Join(".agents", "smaqit-adk", "framework", "SMAQIT.md"),
 }
 
-// sourceDirMap maps installed path prefixes (relative to the init target dir)
-// to source path prefixes (relative to the tests/unit/ package directory).
-var sourceDirMap = []struct {
-	installedDir string
-	sourceDir    string
-}{
-	{".github/agents", "../../agents"},
-}
-
-// TestEmbedCompleteness verifies that every expected file is present after lite.
+// TestEmbedCompleteness verifies that every expected file is present after
+// a global install.
 func TestEmbedCompleteness(t *testing.T) {
-	dir := t.TempDir()
-	mustLite(t, dir)
+	home := mustInstallGlobal(t)
 
 	for _, f := range expectedFiles {
-		if _, err := os.Stat(filepath.Join(dir, f)); err != nil {
+		if _, err := os.Stat(filepath.Join(home, f)); err != nil {
 			t.Errorf("expected file not installed: %s", f)
 		}
 	}
 }
 
-// TestEmbedContentMatchesSource verifies that every installed file is
-// byte-for-byte identical to its source in the repo root. This catches
+// TestEmbedSkillsContentMatchesSource verifies that installed skill files
+// (format-identical across platforms, so a single source of truth) are
+// byte-for-byte identical to their source in the repo root. This catches
 // drift between make prepare output and the source artifacts.
-func TestEmbedContentMatchesSource(t *testing.T) {
-	dir := t.TempDir()
-	mustLite(t, dir)
+func TestEmbedSkillsContentMatchesSource(t *testing.T) {
+	home := mustInstallGlobal(t)
 
-	for _, mapping := range sourceDirMap {
-		installedAbs := filepath.Join(dir, mapping.installedDir)
-		err := filepath.WalkDir(installedAbs, func(absPath string, d os.DirEntry, err error) error {
+	for _, installedRoot := range []string{
+		filepath.Join(home, ".agents", "skills"),
+		filepath.Join(home, ".claude", "skills"),
+	} {
+		err := filepath.WalkDir(installedRoot, func(absPath string, d os.DirEntry, err error) error {
 			if err != nil || d.IsDir() {
 				return err
 			}
-			relPath, _ := filepath.Rel(installedAbs, absPath)
+			relPath, _ := filepath.Rel(installedRoot, absPath)
 
 			installed, readErr := os.ReadFile(absPath)
 			if readErr != nil {
-				t.Errorf("cannot read installed file %s/%s: %v", mapping.installedDir, relPath, readErr)
+				t.Errorf("cannot read installed file %s: %v", absPath, readErr)
 				return nil
 			}
 
-			sourcePath := filepath.Join(mapping.sourceDir, relPath)
+			sourcePath := filepath.Join("..", "..", "skills", relPath)
 			source, readErr := os.ReadFile(sourcePath)
 			if readErr != nil {
-				t.Errorf("cannot read source file %s/%s: %v", mapping.sourceDir, relPath, readErr)
+				t.Errorf("cannot read source file %s: %v", sourcePath, readErr)
 				return nil
 			}
 
-			if !bytes.Equal(installed, source) {
-				t.Errorf("content mismatch: installed %s/%s differs from source %s/%s",
-					mapping.installedDir, relPath, mapping.sourceDir, relPath)
+			if string(installed) != string(source) {
+				t.Errorf("content mismatch: installed %s differs from source %s", absPath, sourcePath)
 			}
 			return nil
 		})
 		if err != nil && !os.IsNotExist(err) {
-			t.Errorf("walking installed dir %s: %v", mapping.installedDir, err)
+			t.Errorf("walking installed dir %s: %v", installedRoot, err)
 		}
 	}
 }

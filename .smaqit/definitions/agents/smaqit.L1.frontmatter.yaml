@@ -1,0 +1,7 @@
+claude:
+  name: smaqit-L1
+  description: Level 1 Template Compiler - Compiles Level 0 principles into Level 1 template directives while maintaining placeholder structure
+  tools: Bash, Read, Write, Edit, Grep, Glob, TodoWrite
+codex:
+  name: smaqit.L1
+  description: Level 1 Template Compiler - Compiles Level 0 principles into Level 1 template directives while maintaining placeholder structure

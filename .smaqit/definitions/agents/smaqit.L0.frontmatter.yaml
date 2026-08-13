@@ -1,0 +1,7 @@
+claude:
+  name: smaqit-L0
+  description: Level 0 Principle Curator - Maintains framework purity by validating and guiding principle additions and refinements
+  tools: Bash, Read, Write, Edit, Grep, Glob, WebFetch, TodoWrite
+codex:
+  name: smaqit.L0
+  description: Level 0 Principle Curator - Maintains framework purity by validating and guiding principle additions and refinements

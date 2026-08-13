@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — Breaking
+
+- **Global, multi-platform installation replaces per-project `lite`/`advanced` tiers entirely.** `smaqit-adk lite`/`advanced`/`init` no longer exist. `install.sh` now installs everything automatically after downloading the binary — no project-facing install command remains. Global targets: `smaqit.L0`/`L1`/`L2` to `~/.claude/agents/` and `~/.codex/agents/` (respecting `CLAUDE_CONFIG_DIR`/`CODEX_HOME`); all 5 ADK skills to `~/.agents/skills/` (shared with Codex CLI and GitHub Copilot) and `~/.claude/skills/`; compilation templates and framework principle files to `~/.agents/smaqit-adk/`. No project directory ever receives an ADK artifact.
+- **GitHub Copilot is no longer an authored compilation target.** `.github/copilot-instructions.md` is removed; `AGENTS.md` at the repo root is now canonical (Copilot reads it natively via `chat.useAgentsMdFile`). Copilot compatibility is via `AGENTS.md` and the shared `~/.agents/skills/` path, not a dedicated compiled agent file. Routing skills invoke `smaqit.L0`/`L1`/`L2` as a native subagent on Claude Code/Codex CLI, or read the Claude-format body directly and follow it inline on Copilot.
+- `smaqit.create-agent`'s compiled output is now two files (`.claude/agents/[name].md`, `.codex/agents/[name].toml`, project-local) instead of one Copilot `.agent.md`. `smaqit.create-skill`'s output is written to both `.agents/skills/[name]/SKILL.md` and `.claude/skills/[name]/SKILL.md` (identical content — `SKILL.md` is already cross-platform).
+- `smaqit-adk uninstall` no longer takes a `lite`/`advanced` argument — it removes whatever of the above is actually present, prompting once, and never touches unrelated content in the shared skills/agents directories.
+- README repositioned from "an Agent Development Kit for GitHub Copilot" to "an Agent Development Kit," with a compatibility table for Claude Code / Codex CLI / GitHub Copilot.
+
+### Added
+
+- A Go generator (`installer/generate-agents.go`, run via `make prepare`) renders `smaqit.L0`/`L1`/`L2` from one shared, platform-neutral body (`agents/*.md`) plus per-platform metadata (`.smaqit/definitions/agents/*.frontmatter.yaml`) into Claude `.md` and Codex `.toml` output — mirrors the split-source pattern validated in the sibling `smaqit` project, never hand-duplicated per platform.
+- `docs/wiki/agent-frontmatter.md` rewritten as a multi-platform metadata reference (Claude YAML frontmatter, Codex TOML fields, Copilot's `AGENTS.md`-based compatibility path) — previously Copilot-only.
+
+### Removed
+
+- `.github/copilot-instructions.md` — content migrated into root `AGENTS.md`.
+- Copilot `.agent.md` output entirely, for both the ADK's own agents and `smaqit.create-agent`'s compiled output.
+
 ## [1.2.0] - 2026-08-11
 
 ### Added

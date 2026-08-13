@@ -31,82 +31,56 @@ jobs:
         working-directory: installer
         run: make test-bench-examples
 
-      - name: Test lite installation
+      - name: Test global installation
         working-directory: installer
         run: |
-          mkdir -p test-project-lite
-          cd test-project-lite
-          ../dist/smaqit-adk-dev lite
+          mkdir -p test-home
+          HOME="$(pwd)/test-home" ./dist/smaqit-adk-dev --install-global
 
-      - name: Validate lite-tier ADK structure
-        working-directory: installer/test-project-lite
-        run: |
-          # L2 compiler agent
-          test -f .github/agents/smaqit.L2.agent.md || (echo "Error: smaqit.L2.agent.md not found" && exit 1)
-
-          # Lite-tier routing skills (2)
-          test -f .github/skills/smaqit.create-agent/SKILL.md || (echo "Error: smaqit.create-agent/SKILL.md not found" && exit 1)
-          test -f .github/skills/smaqit.create-skill/SKILL.md || (echo "Error: smaqit.create-skill/SKILL.md not found" && exit 1)
-
-          # Compilation templates
-          test -d .smaqit/templates || (echo "Error: .smaqit/templates/ not found" && exit 1)
-
-          echo "✓ All lite-tier ADK files validated"
-
-      - name: Verify lite-tier install boundaries
-        working-directory: installer/test-project-lite
-        run: |
-          # Level 0 and 1 agents must NOT be installed by lite
-          test ! -f .github/agents/smaqit.L0.agent.md || (echo "Error: L0 agent should not be installed by lite" && exit 1)
-          test ! -f .github/agents/smaqit.L1.agent.md || (echo "Error: L1 agent should not be installed by lite" && exit 1)
-
-          # new-principle, bench-run, and bench-scaffold skills must NOT be installed by lite
-          test ! -f .github/skills/smaqit.new-principle/SKILL.md || (echo "Error: new-principle skill should not be installed by lite" && exit 1)
-          test ! -f .github/skills/smaqit.bench-run/SKILL.md || (echo "Error: bench-run skill should not be installed by lite" && exit 1)
-          test ! -f .github/skills/smaqit.bench-scaffold/SKILL.md || (echo "Error: bench-scaffold skill should not be installed by lite" && exit 1)
-
-          # Prompts directory must NOT be created by lite
-          test ! -d .github/prompts || (echo "Error: .github/prompts/ should not be created by lite" && exit 1)
-
-          echo "✓ Lite-tier install boundaries verified"
-
-      - name: Test advanced installation
+      - name: Validate global ADK structure
         working-directory: installer
         run: |
-          mkdir -p test-project-advanced
-          cd test-project-advanced
-          ../dist/smaqit-adk-dev advanced
+          HOME="$(pwd)/test-home"
 
-      - name: Validate advanced-tier ADK structure
-        working-directory: installer/test-project-advanced
+          # Level agents — Claude Code and Codex CLI, never Copilot
+          test -f "$HOME/.claude/agents/smaqit-L0.md" || (echo "Error: smaqit-L0.md not found" && exit 1)
+          test -f "$HOME/.claude/agents/smaqit-L1.md" || (echo "Error: smaqit-L1.md not found" && exit 1)
+          test -f "$HOME/.claude/agents/smaqit-L2.md" || (echo "Error: smaqit-L2.md not found" && exit 1)
+          test -f "$HOME/.codex/agents/smaqit.L0.toml" || (echo "Error: smaqit.L0.toml not found" && exit 1)
+          test -f "$HOME/.codex/agents/smaqit.L1.toml" || (echo "Error: smaqit.L1.toml not found" && exit 1)
+          test -f "$HOME/.codex/agents/smaqit.L2.toml" || (echo "Error: smaqit.L2.toml not found" && exit 1)
+          test ! -d "$HOME/.copilot/agents" || (echo "Error: no Copilot agent directory should be created" && exit 1)
+
+          # All 5 skills, in both the shared (Copilot+Codex) and Claude paths
+          for skill in smaqit.create-agent smaqit.create-skill smaqit.new-principle smaqit.bench-run smaqit.bench-scaffold; do
+            test -f "$HOME/.agents/skills/$skill/SKILL.md" || (echo "Error: .agents/skills/$skill/SKILL.md not found" && exit 1)
+            test -f "$HOME/.claude/skills/$skill/SKILL.md" || (echo "Error: .claude/skills/$skill/SKILL.md not found" && exit 1)
+          done
+
+          # Framework and templates, namespaced under smaqit-adk's own global data dir
+          test -d "$HOME/.agents/smaqit-adk/framework" || (echo "Error: .agents/smaqit-adk/framework/ not found" && exit 1)
+          test -f "$HOME/.agents/smaqit-adk/framework/AGENTS.md" || (echo "Error: AGENTS.md not found in framework" && exit 1)
+          test -d "$HOME/.agents/smaqit-adk/templates" || (echo "Error: .agents/smaqit-adk/templates/ not found" && exit 1)
+          test -f "$HOME/.agents/smaqit-adk/templates/agents/base-agent.template.md" || (echo "Error: base-agent.template.md not found" && exit 1)
+
+          echo "✓ All global ADK files validated"
+
+      - name: Verify no project-directory installation
         run: |
-          # Level agents (installed to .github/agents/)
-          test -f .github/agents/smaqit.L0.agent.md || (echo "Error: smaqit.L0.agent.md not found" && exit 1)
-          test -f .github/agents/smaqit.L1.agent.md || (echo "Error: smaqit.L1.agent.md not found" && exit 1)
-          test -f .github/agents/smaqit.L2.agent.md || (echo "Error: smaqit.L2.agent.md not found" && exit 1)
+          mkdir -p test-project && cd test-project
+          test ! -d .github/agents || (echo "Error: .github/agents/ should never be created" && exit 1)
+          test ! -d .github/skills || (echo "Error: .github/skills/ should never be created" && exit 1)
+          test ! -d .claude/agents || (echo "Error: .claude/agents/ should not be created by global install" && exit 1)
+          test ! -d .smaqit/framework || (echo "Error: .smaqit/framework/ should not be created by global install" && exit 1)
+          echo "✓ No project-directory artifacts created"
 
-          # Framework
-          test -d .smaqit/framework || (echo "Error: .smaqit/framework/ not found" && exit 1)
-          test -f .smaqit/framework/AGENTS.md || (echo "Error: AGENTS.md not found in framework" && exit 1)
-
-          # Templates
-          test -d .smaqit/templates || (echo "Error: .smaqit/templates/ not found" && exit 1)
-          test -f .smaqit/templates/agents/base-agent.template.md || (echo "Error: base-agent.template.md not found" && exit 1)
-
-          # Advanced skills (installed to .github/skills/)
-          test -f .github/skills/smaqit.new-principle/SKILL.md || (echo "Error: smaqit.new-principle/SKILL.md not found" && exit 1)
-          test -f .github/skills/smaqit.bench-run/SKILL.md || (echo "Error: smaqit.bench-run/SKILL.md not found" && exit 1)
-          test -f .github/skills/smaqit.bench-scaffold/SKILL.md || (echo "Error: smaqit.bench-scaffold/SKILL.md not found" && exit 1)
-
-          echo "✓ Advanced-tier ADK structure validated"
-
-      - name: Verify advanced-tier boundaries
-        working-directory: installer/test-project-advanced
+      - name: Verify global uninstall
+        working-directory: installer
         run: |
-          # Lite-tier .github/ content must NOT be re-installed by advanced separately
-          # (they are installed via installLiteComponents, so they will exist — just not duplicated)
-
-          # Prompts directory must NOT be created by advanced
-          test ! -d .github/prompts || (echo "Error: .github/prompts/ should not be created by advanced" && exit 1)
-
-          echo "✓ Advanced-tier install boundaries verified"
+          HOME="$(pwd)/test-home"
+          echo "y" | HOME="$HOME" ./dist/smaqit-adk-dev uninstall
+          test ! -f "$HOME/.claude/agents/smaqit-L2.md" || (echo "Error: smaqit-L2.md should be removed after uninstall" && exit 1)
+          test ! -d "$HOME/.agents/smaqit-adk" || (echo "Error: .agents/smaqit-adk/ should be removed after uninstall" && exit 1)
+          # Shared parent directories must survive uninstall
+          test -d "$HOME/.agents/skills" || (echo "Error: shared .agents/skills/ directory should survive uninstall" && exit 1)
+          echo "✓ Global uninstall verified"

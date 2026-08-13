@@ -26,58 +26,55 @@ Use **smaQit** (product) when building applications with existing pre-compiled a
 ## Installation
 
 ```bash
-# Install ADK
 curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit-adk/main/install.sh | bash
-
-# Initialize ADK project
-smaqit-adk lite
 ```
 
-## ADK Project Structure
+This installs everything globally in one step — no separate project-initialization command.
 
-After `smaqit-adk lite`, you'll have:
+## ADK Global Installation
 
-```
-.github/
-├── agents/
-│   ├── smaqit.create-agent.agent.md
-│   └── smaqit.create-skill.agent.md
-└── skills/
-    ├── smaqit.create-agent/
-    │   └── SKILL.md
-    └── smaqit.create-skill/
-        └── SKILL.md
-```
-
-After `smaqit-adk advanced`, you'll have:
+After `install.sh`, you'll have:
 
 ```
-.smaqit/
-├── agents/
-│   ├── smaqit.L0.agent.md
-│   ├── smaqit.L1.agent.md
-│   └── smaqit.L2.agent.md
-├── framework/                    # 5 framework principle files
+~/.claude/agents/
+├── smaqit-L0.md
+├── smaqit-L1.md
+└── smaqit-L2.md
+~/.codex/agents/
+├── smaqit.L0.toml
+├── smaqit.L1.toml
+└── smaqit.L2.toml
+~/.agents/skills/            # Codex CLI + GitHub Copilot
+├── smaqit.create-agent/SKILL.md
+├── smaqit.create-skill/SKILL.md
+├── smaqit.new-principle/SKILL.md
+├── smaqit.bench-run/SKILL.md
+└── smaqit.bench-scaffold/SKILL.md
+~/.claude/skills/             # Claude Code (identical content, second destination)
+├── smaqit.create-agent/SKILL.md
+├── smaqit.create-skill/SKILL.md
+├── smaqit.new-principle/SKILL.md
+├── smaqit.bench-run/SKILL.md
+└── smaqit.bench-scaffold/SKILL.md
+~/.agents/smaqit-adk/
+├── framework/                # 5 framework principle files
 │   ├── SMAQIT.md
 │   ├── AGENTS.md
 │   ├── ARTIFACTS.md
 │   ├── TEMPLATES.md
 │   └── SKILLS.md
-├── templates/
-│   └── agents/
-│       ├── base-agent.template.md
-│       ├── specification-agent.template.md
-│       ├── implementation-agent.template.md
-│       └── compiled/
-│           ├── base.rules.md
-│           ├── specification.rules.md
-│           └── implementation.rules.md
-└── skills/
-    ├── smaqit.new-agent/
-    │   └── SKILL.md
-    └── smaqit.new-skill/
-        └── SKILL.md
+└── templates/
+    └── agents/
+        ├── base-agent.template.md
+        ├── specification-agent.template.md
+        ├── implementation-agent.template.md
+        └── compiled/
+            ├── base.rules.md
+            ├── specification.rules.md
+            └── implementation.rules.md
 ```
+
+No project directory receives any of this. Custom agents/skills a project creates via `smaqit.create-agent`/`create-skill` land project-locally instead — see [README](../../README.md).
 
 ## Level Agent Architecture
 
@@ -101,13 +98,11 @@ smaqit-adk uses a **three-level compilation chain**:
 - Clarifying architectural rationale
 - Defining new concepts or mappings
 - Updating framework files (`framework/*.md`)
-- Invoked as subagent by skills that require principle changes, or switched to directly
+- Invoked by the `smaqit.new-principle` skill, or switched to directly by expert users
 
 ### Level 1 (L1): Templates
 
 **Purpose:** Compile L0 principles into directive-based templates with structure.
-
-**Agent:** `/smaqit.L1`
 
 **Compilation mechanism:**
 - Generic templates (`templates/agents/*.template.md`) with placeholders
@@ -120,77 +115,63 @@ smaqit-adk uses a **three-level compilation chain**:
 - Creating or updating agent templates (`templates/agents/*.template.md`)
 - Creating or updating compilation rules (`templates/agents/compiled/*.rules.md`)
 - Compiling L0 principles into structured directives
-- Invoked as subagent by skills that require template changes, or switched to directly
+- Switched to directly by expert users — no skill currently routes to L1 automatically
 
 ### Level 2 (L2): Compiled Agents
 
-**Purpose:** Compile L1 templates into concrete project agents.
+**Purpose:** Compile L1 templates into concrete project agents, rendered for both Claude Code (`.md`) and Codex CLI (`.toml`) from the same merged content.
 
-**Agent:** `/smaqit.L2`
-
-**Compilation mechanism (3-way merge):**
+**Compilation mechanism (3-way merge, then dual-platform render):**
 1. Generic agent template (`base-agent.template.md`, `specification-agent.template.md`, or `implementation-agent.template.md`)
 2. Corresponding compilation rules (`base.rules.md`, `specification.rules.md`, or `implementation.rules.md`)
 3. Gathered specifications — provided via context when invoked as subagent, or gathered interactively when invoked directly
+4. Render the merged content into `.claude/agents/[name].md` and `.codex/agents/[name].toml` — no Copilot output
 
 **When to use Agent-L2:**
-- Invoked as subagent by `smaqit.new-agent` skill after specification gathering completes
+- Invoked by `smaqit.create-agent`/`smaqit.create-skill` after specification gathering completes
 - Switched to directly by expert users for compilation work
+
+**Invocation is platform-conditional:** on Claude Code or Codex CLI, a skill invokes a Level agent as a native subagent/custom-agent call against its compiled file (`~/.claude/agents/smaqit-L0.md` etc., `~/.codex/agents/smaqit.L0.toml` etc.). On GitHub Copilot, which has no dedicated compiled Level-agent file, the skill instead reads the Claude-format body directly and follows it inline for the current turn — same content, no native subagent context isolation.
 
 ## Creating a New Agent
 
-### Using the smaqit.new-agent skill
+### Using the smaqit.create-agent skill
 
 1. **Invoke the skill:**
 
-In GitHub Copilot chat, type `/smaqit.new-agent` or say *"I need to create a new agent"*.
+Say *"create a new agent for [purpose]"* or use `/smaqit.create-agent`.
 
-The skill guides you interactively through specification gathering (name, description, tools, directives, scope, completion criteria, failure scenarios), then instructs the active agent to invoke Agent-L2 as a subagent to perform the 3-way compilation.
+The skill infers a complete specification from the name and project context (role, directives, scope, completion criteria, failure scenarios), writes it to `.smaqit/definitions/agents/[name].md`, then invokes Agent-L2 to perform the 3-way compilation and dual-platform render.
 
 2. **Compile L1 template (if needed):**
 
-```
-/smaqit.L1
-```
-
-Agent-L1 will:
+Switch to `smaqit.L1` directly (no routing skill exists for this yet). Agent-L1 will:
 - Create or update agent template in `templates/agents/`
 - Create or update compilation rules in `templates/agents/compiled/`
 - Document L0 principles that informed the template
 
 3. **Compile L2 agent:**
 
-```
-/smaqit.L2
-```
-
-Agent-L2 will:
+Switch to `smaqit.L2` directly, or let `smaqit.create-agent` invoke it. Agent-L2 will:
 - Read template and compilation rules
-- Merge with agent creation prompt into concrete agent in `agents/` or `.github/agents/`
+- Merge with agent creation prompt into concrete agent
+- Render both `.claude/agents/[name].md` and `.codex/agents/[name].toml`
 - Validate output structure
 
 ## Modifying Existing Agents
 
 ### Updating principles (L0)
 
-To change framework philosophy or concepts:
-
-```
-/smaqit.L0
-```
+To change framework philosophy or concepts, use `/smaqit.new-principle` or switch to `smaqit.L0` directly.
 
 Provide context about which principle to modify and why. Agent-L0 will:
-- Update relevant framework file (`framework/*.md`)
+- Update relevant framework file (`framework/*.md`, installed globally — a change applies across every project on the machine)
 - Preserve principle purity (no directives or implementation details)
 - Document rationale
 
 ### Updating templates (L1)
 
-To change agent structure or directives:
-
-```
-/smaqit.L1
-```
+To change agent structure or directives, switch to `smaqit.L1` directly.
 
 Provide context about which template or compilation rules to modify. Agent-L1 will:
 - Update agent template or compilation rules
@@ -199,15 +180,12 @@ Provide context about which template or compilation rules to modify. Agent-L1 wi
 
 ### Recompiling agents (L2)
 
-After L0 or L1 changes, recompile agents:
-
-```
-/smaqit.L2
-```
+After L0 or L1 changes, recompile agents by switching to `smaqit.L2` directly.
 
 Agent-L2 will:
 - Read updated templates and compilation rules
 - Merge into concrete agent(s)
+- Re-render both platform outputs
 - Validate output
 
 ## Release Choreography
@@ -246,7 +224,7 @@ Each level has a precise content type. Applying the wrong type to a level is con
 | **Invariant** | What is always true when this principle is applied? | Declarative present-tense | L0 `framework/` |
 | **Vocabulary / Catalog** | What named things exist and what do they mean? | Definitions, tables, placeholder lists | L1 `templates/agents/compiled/*.rules.md` |
 | **Directive** | What must an agent do? | MUST / MUST NOT / SHOULD | L1 `templates/agents/compiled/*.rules.md` |
-| **Compiled output** | Concrete executable agent | Filled template, no placeholders | L2 `agents/` or project `.github/agents/` |
+| **Compiled output** | Concrete executable agent | Filled template, no placeholders | L2 `.claude/agents/*.md` and `.codex/agents/*.toml` (project) |
 
 **Invariant vs directive:** An invariant states what is *true* about a compliant agent in declarative present-tense. A directive instructs what an agent must *do* using MUST/MUST NOT/SHOULD. L1 reads invariants and compiles them into directives — invariant language never appears in L1 output.
 

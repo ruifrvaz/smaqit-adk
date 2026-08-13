@@ -17,8 +17,7 @@ prepare:
 	@rm -rf templates/agents && mkdir -p templates/agents/compiled
 	@cp ../templates/agents/*.template.md templates/agents/
 	@cp ../templates/agents/compiled/*.rules.md templates/agents/compiled/
-	@rm -rf agents && mkdir -p agents
-	@cp ../agents/*.agent.md agents/
+	@go run generate-agents.go
 	@rm -rf skills && mkdir -p skills/smaqit.new-principle
 	@cp ../skills/smaqit.new-principle/SKILL.md skills/smaqit.new-principle/
 	@mkdir -p skills/smaqit.create-agent && mkdir -p skills/smaqit.create-skill/scripts
@@ -78,16 +77,21 @@ clean:
 
 REPO_ROOT = ..
 
-# Smoke-test installation scaffold (preserved from original 'test' target)
+# Smoke-test global installation scaffold (preserved from original 'test'
+# target). HOME is sandboxed to test-project/ so this never touches the
+# real developer machine's global agent/skill directories.
 .PHONY: test-scaffold
 test-scaffold: build
-	@echo "Testing ADK installation..."
+	@echo "Testing ADK global installation..."
 	@mkdir -p test-project
-	@cd test-project && ../$(DIST_DIR)/$(DEV_BINARY_NAME) lite
+	@HOME=$(CURDIR)/test-project $(CURDIR)/$(DIST_DIR)/$(DEV_BINARY_NAME) --install-global
 	@echo "✓ Test installation complete"
 	@echo "Validating structure..."
-	@test -d test-project/.github/agents || (echo "✗ Missing .github/agents" && exit 1)
-	@test -d test-project/.github/skills/smaqit.create-agent || (echo "✗ Missing .github/skills/smaqit.create-agent" && exit 1)
+	@test -f test-project/.claude/agents/smaqit-L2.md || (echo "✗ Missing .claude/agents/smaqit-L2.md" && exit 1)
+	@test -f test-project/.codex/agents/smaqit.L2.toml || (echo "✗ Missing .codex/agents/smaqit.L2.toml" && exit 1)
+	@test -d test-project/.agents/skills/smaqit.create-agent || (echo "✗ Missing .agents/skills/smaqit.create-agent" && exit 1)
+	@test -d test-project/.claude/skills/smaqit.create-agent || (echo "✗ Missing .claude/skills/smaqit.create-agent" && exit 1)
+	@test ! -d test-project/.copilot/agents || (echo "✗ Copilot agent directory should not be created" && exit 1)
 	@echo "✓ Structure validation passed"
 	@rm -rf test-project
 	@echo "✓ Test complete"
