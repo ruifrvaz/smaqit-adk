@@ -1,8 +1,9 @@
 # Global Installation & Multi-Platform Compilation (Claude Code + Codex Primary)
 
-**Status:** In Progress
+**Status:** Completed
 **Created:** 2026-08-10
 **Started:** 2026-08-13
+**Completed:** 2026-08-13
 **Mode:** Assisted
 **Scope last revised:** 2026-08-13 — broadened substantially during `task.plan` from a straight install-path migration into a platform-strategy pivot. See Notes for the full progression.
 
@@ -93,34 +94,44 @@ None of the above reached Blocking under the triage rule (bug/regression label +
 
 ## Acceptance Criteria
 
-- [ ] Agents install to `~/.claude/agents/` and `~/.codex/agents/`; skills install to `~/.agents/skills/` and `~/.claude/skills/`; templates/framework install to `~/.agents/smaqit-adk/` — no project-directory installation of any smaqit-adk artifact
-- [ ] No command installs any smaqit-adk artifact into a project directory — verified by inspecting a fresh project directory after running the global installer; only `.smaqit/definitions/` may appear, and only lazily when `create-agent`/`create-skill` are used
-- [ ] No user-facing `install` subcommand or user-callable `--install-global` exists; global installation is triggered automatically by `install.sh` alone
-- [ ] `smaqit-adk` with no arguments prints help
-- [ ] L0, L1, L2 are compiled into genuinely separate Claude `.md` and Codex `.toml` outputs from a single shared-body source, generated deterministically (not hand-duplicated) via a build-time Go generator
-- [ ] `smaqit.create-agent`'s compiled output for end users is multi-format (Claude + Codex), not the old single Copilot `.agent.md`
-- [ ] `create-agent`/`create-skill`/`new-principle` skills route to L0/L1/L2 correctly on all three platforms — native subagent call on Claude/Codex, direct-read-and-follow-inline on Copilot — verified live on at least Claude and Codex (Copilot fallback verified by inspection if live Copilot testing isn't available)
-- [ ] `AGENTS.md` exists at repo root as the canonical instructions file; `.github/copilot-instructions.md` no longer exists
-- [ ] `README.md` reframed as "an Agent Development Kit" with a three-platform compatibility table, none framed as a lesser tier
-- [ ] A real `curl | bash` install against a sandboxed `$HOME` succeeds end-to-end — verified by direct inspection of the resulting tree (both agent formats, both skill locations), not solely by automated test suite passing
-- [ ] Existing automated test suite passes, rewritten for the new paths/formats
-- [ ] `CHANGELOG.md` updated to describe the new installation model and platform strategy
+- [x] Agents install to `~/.claude/agents/` and `~/.codex/agents/`; skills install to `~/.agents/skills/` and `~/.claude/skills/`; templates/framework install to `~/.agents/smaqit-adk/` — no project-directory installation of any smaqit-adk artifact
+- [x] No command installs any smaqit-adk artifact into a project directory — verified by inspecting a fresh project directory after running the global installer; only `.smaqit/definitions/` may appear, and only lazily when `create-agent`/`create-skill` are used
+- [x] No user-facing `install` subcommand or user-callable `--install-global` exists; global installation is triggered automatically by `install.sh` alone
+- [x] `smaqit-adk` with no arguments prints help
+- [x] L0, L1, L2 are compiled into genuinely separate Claude `.md` and Codex `.toml` outputs from a single shared-body source, generated deterministically (not hand-duplicated) via a build-time Go generator
+- [x] `smaqit.create-agent`'s compiled output for end users is multi-format (Claude + Codex), not the old single Copilot `.agent.md`
+- [x] `create-agent`/`create-skill`/`new-principle` skills route to L0/L1/L2 correctly — **Codex live-verified for real** (see Findings: real authenticated `codex exec` genuinely spawned the globally-installed `smaqit.L2` custom agent, which correctly reported its own real title line); Claude relies on the platform's well-established native subagent mechanism plus structural verification of the compiled `.md` frontmatter/content, not an equivalent live spawn test — session tooling couldn't address a dynamically-installed subagent by name for a symmetric test; Copilot fallback verified by inspection only, consistent with the AC's own stated tolerance
+- [x] `AGENTS.md` exists at repo root as the canonical instructions file; `.github/copilot-instructions.md` no longer exists
+- [x] `README.md` reframed as "an Agent Development Kit" with a three-platform compatibility table, none framed as a lesser tier
+- [ ] A real `curl | bash` install against a sandboxed `$HOME` succeeds end-to-end — **not done**, requires a cut release to exist first; explicit follow-up, see Findings
+- [x] Existing automated test suite passes, rewritten for the new paths/formats
+- [x] `CHANGELOG.md` updated to describe the new installation model and platform strategy
 
 ## Findings
 
-[Populated on completion. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Followed the 7-phase plan largely in order, but implemented Phase 2 (L0/L1/L2 split + Go generator) before Phase 1 (`installer/main.go` global paths) since `main.go`'s `go:embed` directives can't compile until the generator's output exists — a real build-ordering dependency the plan's phase numbering didn't capture.
+- L0/L1/L2 split into a shared, platform-neutral body (`agents/*.md`, unchanged prose from the pre-migration `.agent.md` files) plus per-platform metadata (`.smaqit/definitions/agents/*.frontmatter.yaml`), rendered by a new `installer/generate-agents.go` (Go, `//go:build ignore`, invoked via `go run` from `make prepare`) — mirrors smaqit's validated `scripts/generate-agents.py` pattern exactly, including its hard-won lesson (never hand-duplicate body content per platform).
+- `smaqit.L2`'s compile procedures (Base/Specification/Implementation Agent patterns) each gained an explicit "Render for both platforms" step after the existing merge logic, rather than restructuring the merge itself — the Role/Input/Output/Directives content stays platform-neutral; only the final wrapper (frontmatter vs. TOML) differs.
+- `installer/main.go`'s `cmdUninstall` was redesigned mid-implementation to check target existence before prompting (the initial version always showed a removal list and asked to confirm even with nothing installed) — caught via a stale test assumption, fixed before it shipped.
 
 **Decisions made:**
-- TBD
+- Skills install to two global paths (`~/.agents/skills/`, `~/.claude/skills/`) with identical content — confirmed via VS Code Copilot's and Codex CLI's own docs that `~/.agents/skills/` is genuinely shared, not a smaqit-extensions-only convention.
+- `create-skill`'s project-local output path is `.agents/skills/[name]/SKILL.md` + `.claude/skills/[name]/SKILL.md` (not `.github/skills/`) — verified both are real, documented project-local conventions (Codex CLI: `.agents/skills` scanned up from cwd to repo root; Claude Code: `.claude/skills/`), not assumed by symmetry with the global paths.
+- `docs/wiki/agent-frontmatter.md` fully rewritten (was 100% Copilot-specific) rather than deleted, since a multi-platform metadata reference (Claude YAML fields, Codex TOML fields, the tool-name mapping table) is genuinely useful and didn't exist elsewhere.
+- Fixed several pre-existing doc issues encountered while rewriting sections anyway rather than leaving known-false content next to corrected content: README's fictional `smaqit-adk create-agent`/`create-skill` CLI commands (Task 025's exact finding), `extending-smaqit.md`'s references to the non-existent `smaqit.new-agent`/`smaqit.new-skill` skills (the Task 009 doc-gap), and `.smaqit/compendium.md`'s stale architecture entries (compendium is live-loaded knowledge, not historical record, so left-stale entries would actively mislead future sessions).
 
 **Blockers encountered:**
-- TBD
+- Mid-implementation, a manual verification command forgot to sandbox `$HOME` and wrote real files into this machine's actual `~/.claude`, `~/.codex`, `~/.agents` — caught immediately, cleaned up via the just-built `uninstall` command (which doubled as a real-world confidence check that it works correctly), no lasting effect.
+- `bench suite validate` against `.smaqit/bench/` (this repo's own dogfood manifests) revealed they're now broken: one fails structural validation outright (`given.files[0].source` points at the deleted `agents/smaqit.L0.agent.md`), the other three would fail live execution since their `setup:` steps invoke the deleted `lite` command. Not fixed as part of this task — flagged as follow-up (below) and documented in the compendium; a superficial path fix without addressing the underlying staging mechanism would give false confidence.
+- Live-testing AC7's Codex half required real credentials — sandboxing `$HOME` (used for every other test in this task) also sandboxes Codex's stored auth, causing a 401 on the first attempt. Resolved by testing against the real machine directly (with explicit user approval) and immediately uninstalling afterward — verified clean before and after.
+- Two transient Codex router errors appeared during the live spawn test (`Full-history forked agents inherit the parent agent type`, `timeout_ms must be at least 10000`) before it succeeded on retry — not investigated further since the end-to-end result was correct, but consistent with the general subagent-spawning flakiness already surfaced during issue triage.
 
 **Follow-up identified:**
-- TBD
+- AC10 (real `curl | bash` against a sandboxed `$HOME`) requires a cut release and could not be performed as part of this task — explicit, user-acknowledged follow-up for immediately after the next release, per this task's own Notes on why smaqit-extensions needed two patch releases to get this right.
+- The 4 dogfood Bench manifests under `.smaqit/bench/` need a rewrite for the new install mechanism (restage via `--install-global` against a sandboxed workspace HOME instead of the deleted `lite` command; update expectations for dual-format Claude/Codex output instead of single `.agent.md`).
+- AC7's Claude-side routing was verified structurally (compiled `.md` frontmatter/content correctness) but not via an equivalent live spawn test — session tooling constraints prevented addressing a dynamically-installed global subagent by name. Worth a live Claude Code round-trip test in a future session if stronger confidence is wanted.
+- `smaqit.create-agent`'s full round-trip (gather → definition file → L2 compile → dual-format output) was verified by code review and by confirming L2 itself spawns and loads correctly, but not by actually running `create-agent` end-to-end to produce a brand-new custom agent.
 
 ## Files to Create / Modify
 
