@@ -4,7 +4,7 @@
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
-| 027 | Migrate to Global User-Level Installation (Learned from smaqit-extensions) | Not Started | Ported from smaqit-extensions Task 023 + its 2 patch fixes; open design questions on tier selection and skills path need resolving during planning |
+| 027 | Global Installation & Multi-Platform Compilation (Claude Code + Codex Primary) | In Progress | Broadened during planning: Claude+Codex become the authored targets, Copilot deprioritized (AGENTS.md-only, fresh decision this session), compiler output for end users also goes multi-format |
 | 025 | README Documents Non-Existent CLI Commands | Not Started | README documents `smaqit-adk create-agent`/`create-skill`; no such cases in the dispatch — confirm deliberate removal, then correct docs |
 | 018 | Level Skills Completion | Not Started | `smaqit.new-principle` shipped in adk-v0.6.0; remaining: new-template, new-rules, L0 definition file pattern |
 | 019 | Cross-Level Compilation (smaqit.compile) | Not Started | smaqit.compile.principle/template/agent skills; L0→L1→L2 chain via subagents; depends on Task 018 |
