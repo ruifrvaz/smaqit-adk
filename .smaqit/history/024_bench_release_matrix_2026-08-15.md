@@ -1,7 +1,7 @@
 # Bench Release Matrix
 
-**Date:** 2026-08-15  
-**Session focus:** Complete Bench v2/release recovery, establish evaluation terminology, and plan scenario-matrix authoring.  
+**Date:** 2026-08-15
+**Session focus:** Complete Bench v2/release recovery, establish evaluation terminology, and plan scenario-matrix authoring.
 **Tasks completed/referenced:** 029 completed; 030 completed earlier in the parent flow; 031 created; extensions Task 028 planned.
 
 ## Actions Taken
