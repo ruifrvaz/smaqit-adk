@@ -17,7 +17,7 @@ prepare:
 	@rm -rf templates/agents && mkdir -p templates/agents/compiled
 	@cp ../templates/agents/*.template.md templates/agents/
 	@cp ../templates/agents/compiled/*.rules.md templates/agents/compiled/
-	@go run generate-agents.go
+	@GOOS= GOARCH= CGO_ENABLED= go run generate-agents.go
 	@rm -rf skills && mkdir -p skills/smaqit.new-principle
 	@cp ../skills/smaqit.new-principle/SKILL.md skills/smaqit.new-principle/
 	@mkdir -p skills/smaqit.create-agent && mkdir -p skills/smaqit.create-skill/scripts

@@ -30,16 +30,19 @@ jobs:
     steps:
       - name: Extract version
         id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          if [[ "${{ github.event_name }}" == "push" ]]; then
+          if [[ "$EVENT_NAME" == "push" ]]; then
             # Triggered by tag push (local release)
             VERSION="${GITHUB_REF#refs/tags/adk-v}"
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-            echo "skip_tag=true" >> $GITHUB_OUTPUT
-            echo "✓ Extracted version from tag: $VERSION"
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "skip_tag=true" >> "$GITHUB_OUTPUT"
+            echo "✓ Extracted version from tag: ${VERSION}"
           else
             # Triggered by PR merge (PR-based release)
-            TITLE="${{ github.event.pull_request.title }}"
+            TITLE="$PR_TITLE"
             if [[ "$TITLE" =~ [Pp]repare[[:space:]]release[[:space:]]adk-v([0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?) ]]; then
               VERSION="${BASH_REMATCH[1]}"
             elif [[ "$TITLE" =~ [Pp]repare[[:space:]]release[[:space:]]v([0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?) ]]; then
@@ -49,19 +52,22 @@ jobs:
             elif [[ "$TITLE" =~ [Rr]elease[[:space:]]v([0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?) ]]; then
               VERSION="${BASH_REMATCH[1]}"
             else
-              echo "⚠️  Could not extract version from PR title: $TITLE"
+              echo "⚠️  Could not extract version from PR title: ${TITLE}"
               echo "Expected format: 'Prepare release vX.Y.Z', 'Release vX.Y.Z', or with 'adk-' prefix"
               exit 1
             fi
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-            echo "skip_tag=false" >> $GITHUB_OUTPUT
-            echo "✓ Extracted version from PR title: $VERSION"
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "skip_tag=false" >> "$GITHUB_OUTPUT"
+            echo "✓ Extracted version from PR title: ${VERSION}"
           fi
 
   tag:
     name: Create Tag
-    needs: prepare
-    if: needs.prepare.outputs.skip_tag == 'false'
+    needs: [prepare, build]
+    if: |
+      needs.prepare.outputs.skip_tag == 'false' &&
+      needs.prepare.result == 'success' &&
+      needs.build.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -88,11 +94,10 @@ jobs:
 
   build:
     name: Build Binaries
-    needs: [prepare, tag]
+    needs: prepare
     if: |
       always() &&
-      needs.prepare.result == 'success' &&
-      (needs.tag.result == 'success' || needs.tag.result == 'skipped')
+      needs.prepare.result == 'success'
     runs-on: ubuntu-latest
 
     strategy:
@@ -120,17 +125,14 @@ jobs:
 
       - name: Build binary
         working-directory: installer
-        env:
-          GOOS: ${{ matrix.os }}
-          GOARCH: ${{ matrix.arch }}
-          CGO_ENABLED: 0
         run: |
           make prepare
           OUTPUT="dist/smaqit-adk_${{ matrix.os }}_${{ matrix.arch }}"
           if [ "${{ matrix.os }}" = "windows" ]; then
             OUTPUT="${OUTPUT}.exe"
           fi
-          go build -ldflags="-X main.Version=v${{ needs.prepare.outputs.version }}" -o "$OUTPUT"
+          GOOS="${{ matrix.os }}" GOARCH="${{ matrix.arch }}" CGO_ENABLED=0 \
+            go build -ldflags="-X main.Version=v${{ needs.prepare.outputs.version }}" -o "$OUTPUT"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -140,12 +142,13 @@ jobs:
 
   release:
     name: Create GitHub Release
-    needs: [prepare, build]
+    needs: [prepare, build, tag]
     runs-on: ubuntu-latest
     if: |
       always() &&
       needs.prepare.result == 'success' &&
-      needs.build.result == 'success'
+      needs.build.result == 'success' &&
+      (needs.tag.result == 'success' || needs.tag.result == 'skipped')
 
     steps:
       - name: Checkout code
@@ -167,7 +170,7 @@ jobs:
           awk "/## \[${VERSION}\]/{flag=1;next}/## \[/{flag=0}flag" CHANGELOG.md > release_notes.md
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: adk-v${{ needs.prepare.outputs.version }}
           files: release/*
