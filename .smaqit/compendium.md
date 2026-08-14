@@ -40,6 +40,14 @@ If a case needs the harness to *edit* common source material (for example, a pri
 
 ---
 
+**Which comparison shapes can Bench express today, and what must stay controlled?**
+
+Bench executes `Cases × Variants × repetitions`; a single Variant is an evaluation, while named Variants in one manifest are the candidates in a comparison. Artifact A/B uses variant treatments. Prompt A/B keeps one shared Case prompt and supplies each candidate prompt as a same-ID variant treatment. Model A/B and harness/version A/B differ through each Variant's explicit process executable, arguments, or non-secret configured environment. A factorial comparison is one explicitly named Variant per candidate tuple, such as `model-a__prompt-b`.
+
+Keep the Case prompt, fixture, preparation, shared inputs, expectations, graders, budgets, and non-candidate environment fixed. A suite aggregates independent manifests but never establishes a winner across them; place every claimed comparison in one manifest. Bench currently ranks compound Variant IDs, rather than validating factor completeness or calculating per-factor effects. See `docs/wiki/benchmarking.md` for the canonical scenario matrix once it is added.
+
+---
+
 **Why does a Bench `command`-type expectation or grader need an explicit `environment` block, and what's the `go run` gotcha?**
 
 `Setup` commands, command-type graders, and command-type expectations run with a completely empty environment by default — not even `PATH` or `HOME` — unless the manifest sets `command.environment.inherit`/`.set`. Most POSIX tools (`sh`, `grep`, `test`, `rm`) don't need one, but anything that does (like `go run`) will fail without it. On a Snap-packaged Go toolchain (`/snap/bin/go -> /usr/bin/snap`, common on Ubuntu), `go run` fails even with a correct environment, because Bench's process-group isolation (needed for reliable timeout/kill handling) collides with Snap's own confinement locking. The reliable fix for a Go-based grader is to pre-compile it into a plain binary at build time and point the command grader at that binary, rather than invoking `go run` during grading.
