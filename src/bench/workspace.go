@@ -14,11 +14,14 @@ import (
 const inputDirectoryName = ".smaqit-bench-input"
 
 type Workspace struct {
-	Root       string
-	InputRoot  string
-	TaskFile   string
-	Inputs     map[string]string
-	InputKinds map[string]string
+	Root           string
+	InputRoot      string
+	TreatmentRoot  string
+	BriefFile      string
+	Inputs         map[string]string
+	InputKinds     map[string]string
+	Treatments     map[string]string
+	TreatmentKinds map[string]string
 }
 
 func prepareWorkspace(c Case) (*Workspace, error) {
@@ -26,12 +29,56 @@ func prepareWorkspace(c Case) (*Workspace, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create workspace: %w", err)
 	}
-	w := &Workspace{Root: root, InputRoot: filepath.Join(root, inputDirectoryName), Inputs: map[string]string{}, InputKinds: map[string]string{}}
+	w := &Workspace{
+		Root: root, InputRoot: filepath.Join(root, inputDirectoryName),
+		Inputs: map[string]string{}, InputKinds: map[string]string{},
+		Treatments: map[string]string{}, TreatmentKinds: map[string]string{},
+	}
+	w.TreatmentRoot = filepath.Join(w.InputRoot, "treatment")
 	fail := func(err error) (*Workspace, error) { _ = removeWorkspace(root); return nil, err }
 	if c.Fixture != nil {
-		if err := copyDirectory(c.Fixture.Source, root, nil); err != nil {
+		destination := root
+		if c.Fixture.Destination != "" && c.Fixture.Destination != "." {
+			destination, err = containedPath(root, c.Fixture.Destination)
+			if err != nil {
+				return fail(fmt.Errorf("resolve fixture destination: %w", err))
+			}
+		}
+		if err := copyDirectory(c.Fixture.Source, destination, nil); err != nil {
 			return fail(fmt.Errorf("copy fixture: %w", err))
 		}
+		if err := makeFixtureWritable(destination); err != nil {
+			return fail(fmt.Errorf("make fixture writable: %w", err))
+		}
+	}
+	return w, nil
+}
+
+func prepareReferenceWorkspace(root string, c Case, v Variant) (*Workspace, func(), error) {
+	sidecarRoot, err := os.MkdirTemp("", "smaqit-bench-references-")
+	if err != nil {
+		return nil, nil, fmt.Errorf("create grading sidecar: %w", err)
+	}
+	cleanup := func() { _ = removeWorkspace(sidecarRoot) }
+	w := &Workspace{
+		Root: root, InputRoot: filepath.Join(sidecarRoot, inputDirectoryName),
+		Inputs: map[string]string{}, InputKinds: map[string]string{},
+		Treatments: map[string]string{}, TreatmentKinds: map[string]string{},
+	}
+	w.TreatmentRoot = filepath.Join(w.InputRoot, "treatment")
+	if err := stageWorkspaceInputs(c, v, w); err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	return w, cleanup, nil
+}
+
+func stageWorkspaceInputs(c Case, v Variant, w *Workspace) error {
+	fail := func(err error) error { return err }
+	if _, err := os.Lstat(w.InputRoot); err == nil {
+		return fail(fmt.Errorf("reserved Bench sidecar already exists before staging: %s", w.InputRoot))
+	} else if !os.IsNotExist(err) {
+		return fail(err)
 	}
 	if err := os.MkdirAll(w.InputRoot, 0700); err != nil {
 		return fail(err)
@@ -41,16 +88,13 @@ func prepareWorkspace(c Case) (*Workspace, error) {
 		return fail(err)
 	}
 	for _, named := range []struct {
-		kind   string
-		assets []InputAsset
+		kind, group string
+		assets      []InputAsset
 	}{
-		{"spec", c.Given.Specs}, {"file", c.Given.Files}, {"directory", c.Given.Directories}, {"image", c.Given.Images},
+		{"spec", "specs", c.Given.Specs}, {"file", "files", c.Given.Files}, {"directory", "directories", c.Given.Directories}, {"image", "images", c.Given.Images},
 	} {
 		for _, asset := range named.assets {
-			destination := asset.Destination
-			if destination == "" {
-				destination = filepath.Join(named.kind+"s", asset.ID+filepath.Ext(asset.Source))
-			}
+			destination := effectiveInputDestination(named.group, asset.ID, asset.Source, asset.Destination)
 			target, err := containedPath(w.InputRoot, destination)
 			if err != nil {
 				return fail(fmt.Errorf("stage input %s: %w", asset.ID, err))
@@ -75,15 +119,42 @@ func prepareWorkspace(c Case) (*Workspace, error) {
 			w.InputKinds[asset.ID] = label
 		}
 	}
-	w.TaskFile = filepath.Join(w.InputRoot, "task.md")
-	envelope := renderTaskEnvelope(c.ID, prompt, w.Inputs, w.InputKinds)
-	if err := os.WriteFile(w.TaskFile, []byte(envelope), 0400); err != nil {
+	for _, treatment := range v.Treatment {
+		target, err := containedPath(w.TreatmentRoot, treatment.ID)
+		if err != nil {
+			return fail(fmt.Errorf("stage treatment %s: %w", treatment.ID, err))
+		}
+		info, err := os.Lstat(treatment.Source)
+		if err != nil {
+			return fail(err)
+		}
+		if info.IsDir() {
+			err = copyDirectory(treatment.Source, target, nil)
+		} else {
+			err = copyFile(treatment.Source, target, info.Mode().Perm())
+		}
+		if err != nil {
+			return fail(fmt.Errorf("stage treatment %s: %w", treatment.ID, err))
+		}
+		w.Treatments[treatment.ID] = target
+		label := "artifact"
+		if info.IsDir() {
+			label = "directory"
+		}
+		if treatment.MediaType != "" {
+			label += "; " + treatment.MediaType
+		}
+		w.TreatmentKinds[treatment.ID] = label
+	}
+	w.BriefFile = filepath.Join(w.InputRoot, "brief.md")
+	brief := renderCaseBrief(c.ID, prompt, w.Inputs, w.InputKinds, w.Treatments, w.TreatmentKinds)
+	if err := os.WriteFile(w.BriefFile, []byte(brief), 0400); err != nil {
 		return fail(err)
 	}
 	if err := makeReadOnly(w.InputRoot); err != nil {
 		return fail(err)
 	}
-	return w, nil
+	return nil
 }
 
 func promptText(p Prompt) (string, error) {
@@ -97,19 +168,34 @@ func promptText(p Prompt) (string, error) {
 	return string(b), nil
 }
 
-func renderTaskEnvelope(caseID, prompt string, inputs, mapKinds map[string]string) string {
+func renderCaseBrief(caseID, prompt string, inputs, inputKinds, treatments, treatmentKinds map[string]string) string {
 	var b strings.Builder
-	b.WriteString("# Task\n\n")
+	b.WriteString("# Case brief\n\n")
 	fmt.Fprintf(&b, "Case: %s\n\n", caseID)
 	b.WriteString(prompt)
-	b.WriteString("\n\n# Declared inputs\n")
+	b.WriteString("\n\n# Shared declared inputs\n")
 	ids := make([]string, 0, len(inputs))
 	for id := range inputs {
 		ids = append(ids, id)
 	}
 	sort.Strings(ids)
 	for _, id := range ids {
-		fmt.Fprintf(&b, "- %s (%s): %s\n", id, mapKinds[id], inputs[id])
+		fmt.Fprintf(&b, "- %s (%s): %s\n", id, inputKinds[id], inputs[id])
+	}
+	if len(ids) == 0 {
+		b.WriteString("- None.\n")
+	}
+	b.WriteString("\n# Variant treatment artifacts\n")
+	ids = ids[:0]
+	for id := range treatments {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	for _, id := range ids {
+		fmt.Fprintf(&b, "- %s (%s): %s\n", id, treatmentKinds[id], treatments[id])
+	}
+	if len(ids) == 0 {
+		b.WriteString("- None.\n")
 	}
 	return b.String()
 }
@@ -133,6 +219,9 @@ func copyFile(source, target string, mode fs.FileMode) error {
 	}
 	if info.Mode()&os.ModeSymlink != 0 {
 		return fmt.Errorf("symlinks are not allowed: %s", source)
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("non-regular files are not allowed: %s", source)
 	}
 	if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
 		return err
@@ -182,6 +271,9 @@ func copyDirectory(source, target string, exclude func(string) bool) error {
 		}
 		if entry.IsDir() {
 			return os.MkdirAll(destination, info.Mode().Perm())
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("non-regular files are not allowed: %s", path)
 		}
 		return copyFile(path, destination, info.Mode().Perm())
 	})
@@ -237,6 +329,25 @@ func makeWritable(root string) error {
 			return os.Chmod(path, 0700)
 		}
 		return os.Chmod(path, 0600)
+	})
+}
+
+func makeFixtureWritable(root string) error {
+	return filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		mode := info.Mode().Perm()
+		if entry.IsDir() {
+			mode |= 0700
+		} else {
+			mode |= 0200
+		}
+		return os.Chmod(path, mode)
 	})
 }
 

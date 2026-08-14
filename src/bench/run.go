@@ -180,16 +180,38 @@ func runAttempt(parent context.Context, experimentID, experimentDirectory string
 			result = finishFailure(result, "cleanup", cleanupErr)
 		}
 	}()
-	taskBytes, err := os.ReadFile(workspace.TaskFile)
-	if err != nil {
-		return finishFailure(result, "workspace", err)
-	}
-	task := string(taskBytes)
-	request := RunRequest{Run: planned, Variant: variant, Workspace: workspace, Task: task, TraceDir: traceDirectory}
 	if err := os.MkdirAll(runDirectory, 0755); err != nil {
 		return finishFailure(result, "artifacts", err)
 	}
-	requestArtifact := map[string]any{"schemaVersion": 1, "runId": planned.RunID, "caseId": planned.CaseID, "variantId": planned.VariantID, "workspace": "<ephemeral>", "task": task, "inputIds": inputIDs(workspace.Inputs), "environmentNames": environmentNames(variant)}
+	ctx, cancel := context.WithTimeout(parent, time.Duration(p.Manifest.Execution.TimeoutSeconds)*time.Second)
+	defer cancel()
+	prepareRequest := RunRequest{Run: planned, Variant: variant, Workspace: workspace, TraceDir: traceDirectory}
+	for i, command := range caseConfig.Prepare {
+		prepareResult, err := executeCommand(ctx, command, prepareRequest, fmt.Sprintf("prepare-%02d", i+1))
+		if err != nil {
+			return finishFailure(result, "prepare", err)
+		}
+		if prepareResult.ExitCode != 0 {
+			return finishFailure(result, "prepare", fmt.Errorf("command exited %d", prepareResult.ExitCode))
+		}
+	}
+	baseline, err := snapshotTree(workspace.Root)
+	if err != nil {
+		return finishFailure(result, "workspace", err)
+	}
+	if err := writeJSONAtomic(filepath.Join(runDirectory, "repository", "baseline-tree.json"), baseline); err != nil {
+		return finishFailure(result, "artifacts", err)
+	}
+	if err := stageWorkspaceInputs(caseConfig, variant, workspace); err != nil {
+		return finishFailure(result, "workspace", err)
+	}
+	briefBytes, err := os.ReadFile(workspace.BriefFile)
+	if err != nil {
+		return finishFailure(result, "workspace", err)
+	}
+	caseBrief := string(briefBytes)
+	request := RunRequest{Run: planned, Variant: variant, Workspace: workspace, CaseBrief: caseBrief, TraceDir: traceDirectory}
+	requestArtifact := map[string]any{"schemaVersion": 2, "runId": planned.RunID, "caseId": planned.CaseID, "variantId": planned.VariantID, "workspace": "<ephemeral>", "caseBrief": caseBrief, "inputIds": inputIDs(workspace.Inputs), "treatmentIds": inputIDs(workspace.Treatments), "environmentNames": environmentNames(variant)}
 	if variant.Process != nil {
 		resolvedArguments, renderErr := renderArguments(variant.Process.Arguments, request)
 		if renderErr != nil {
@@ -201,24 +223,6 @@ func runAttempt(parent context.Context, experimentID, experimentDirectory string
 	}
 	if err := writeJSONAtomic(filepath.Join(runDirectory, "request.json"), requestArtifact); err != nil {
 		return finishFailure(result, "artifacts", err)
-	}
-	baseline, err := snapshotTree(workspace.Root)
-	if err != nil {
-		return finishFailure(result, "workspace", err)
-	}
-	if err := writeJSONAtomic(filepath.Join(runDirectory, "repository", "baseline-tree.json"), baseline); err != nil {
-		return finishFailure(result, "artifacts", err)
-	}
-	ctx, cancel := context.WithTimeout(parent, time.Duration(p.Manifest.Execution.TimeoutSeconds)*time.Second)
-	defer cancel()
-	for i, command := range variant.Setup {
-		setupResult, err := executeCommand(ctx, command, request, fmt.Sprintf("setup-%02d", i+1))
-		if err != nil {
-			return finishFailure(result, "setup", err)
-		}
-		if setupResult.ExitCode != 0 {
-			return finishFailure(result, "setup", fmt.Errorf("command exited %d", setupResult.ExitCode))
-		}
 	}
 	selectedAdapter, err := adapterFor(variant)
 	if err != nil {
@@ -293,7 +297,7 @@ func runAttempt(parent context.Context, experimentID, experimentDirectory string
 				return finishFailure(result, "grader", err)
 			}
 			gradeRequest := gradingRequest
-			gradeRequest.Workspace = &Workspace{Root: copyRoot, InputRoot: workspace.InputRoot, TaskFile: workspace.TaskFile, Inputs: workspace.Inputs}
+			gradeRequest.Workspace = &Workspace{Root: copyRoot, InputRoot: workspace.InputRoot, TreatmentRoot: workspace.TreatmentRoot, BriefFile: workspace.BriefFile, Inputs: workspace.Inputs, InputKinds: workspace.InputKinds, Treatments: workspace.Treatments, TreatmentKinds: workspace.TreatmentKinds}
 			gr, err := executeCommand(ctx, grader.Command, gradeRequest, "grader-"+grader.ID)
 			os.RemoveAll(copyRoot)
 			if err != nil {

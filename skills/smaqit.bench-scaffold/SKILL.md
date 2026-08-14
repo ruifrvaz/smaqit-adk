@@ -1,20 +1,21 @@
 ---
 name: smaqit.bench-scaffold
-description: Authors a new `.smaqit/bench/` manifest for a skill or agent that doesn't have one yet — detects the project's skill/agent root generically, drafts a self-contained single-shot Codex prompt that stages the target artifact as a declared Bench input, structurally validates the result, and delegates any optional live trial to `smaqit.bench-run`.
+description: Authors a new `.smaqit/bench/` manifest for a skill or agent that doesn't have one yet — detects the project's skill/agent root generically, drafts a self-contained single-shot Codex prompt that stages the target artifact as a variant treatment, structurally validates the result, and delegates any optional live trial to `smaqit.bench-run`.
 metadata:
-  version: "0.1.0"
-compatibility: Requires no additional runtime dependencies beyond the smaqit-adk binary for authoring/validation; an optional live trial requires codex on PATH, delegated to smaqit.bench-run.
+  version: "0.2.0"
 ---
 
 # Bench Scaffold
 
 Guides authoring a new `.smaqit/bench/{skills,agents}/<id>/bench.yaml` manifest for a skill or agent lacking one, working generically against any consuming project's layout.
 
+Structural authoring and validation require only the smaqit-adk binary. An optional live trial also requires an authenticated `codex` executable on `PATH` and is delegated to `smaqit.bench-run`.
+
 ## Steps
 
 ### 1. Detect the skill/agent root
 
-Check `.github/skills/` + `.github/agents/` first — the standard install location for `smaqit-adk lite`/`advanced` in a consuming project. If neither exists, fall back to root `skills/`/`agents/` (smaqit-adk's own dev-repo convention). If neither location resolves unambiguously, ask the user where the project's skills/agents live.
+Check `.agents/skills/` + `.claude/skills/` and `.claude/agents/`/`.codex/agents/` first — the project-local locations `smaqit.create-agent`/`smaqit.create-skill` write a consuming project's own custom artifacts to (smaqit-adk itself installs nothing into any project directory; only project-local custom agents/skills ever live there). If none exist, fall back to root `skills/`/`agents/` (smaqit-adk's own dev-repo convention, used by its dogfood suite). If neither location resolves unambiguously, ask the user where the project's skills/agents live.
 
 ### 2. Select target
 
@@ -22,7 +23,7 @@ List targets under the detected root that have no `.smaqit/bench/{skills,agents}
 
 ### 3. Understand the target
 
-Read the target's `SKILL.md` or `.agent.md` in full — its purpose, steps, and any subagent it invokes.
+Read the target's `SKILL.md` or agent source `.md` file in full — its purpose, steps, and any subagent it invokes.
 
 ### 4. Draft the manifest
 
@@ -30,40 +31,36 @@ Write `.smaqit/bench/{skills,agents}/<id>/bench.yaml` (plus any `prompts/*.md` f
 
 **Case prompts** — self-contained, single-shot. Bench's `process` adapter is non-interactive with no multi-turn `ask_user` relay: pre-supply any answer a human would normally give across turns, and tell the harness explicitly not to wait for further input.
 
-**Staging the target artifact** — declare it as a case-level `given.files` (single-file agent) or `given.directories` (skill directory) input asset:
+**Staging the target artifact** — for a with/without comparison, declare it on the with-artifact variant as a treatment:
 
 ```yaml
-given:
-  prompt:
-    file: prompts/case-name.md
-  directories:
-    - id: skill
-      source: ../../../../skills/<target-id>   # relative to this bench.yaml
+variants:
+  - id: with-artifact
+    adapter: process
+    treatment:
+      - id: skill
+        source: ../../../../skills/<target-id>   # relative to this bench.yaml
+    intendedDifferences:
+      - Exposes the target skill as the variant treatment.
 ```
 
-Bench copies declared inputs into a read-only `.smaqit-bench-input/` directory beside the actual harness workspace — **not** at the artifact's real project-relative path (`.github/skills/<id>/SKILL.md` inside the workspace itself). The harness only ever sees the staged copy through the resolved `{input:<id>}` absolute-path placeholder. The prompt **must** reference that placeholder explicitly:
+Bench copies treatments into the read-only `.smaqit-bench-input/` sidecar — **not** at the artifact's real project-relative path. The rendered Case brief appends a `# Variant treatment artifacts` table with each available ID and resolved absolute path. Prompt text is preserved verbatim, so the prompt **must** name the treatment ID and direct the harness to the path listed there:
 
-> "The project's ADK skill-authoring skill is staged at `{input:skill}/SKILL.md` — read it first and follow it exactly. Do not invent your own approach instead."
+> "If the variant treatment table lists `skill`, read its SKILL.md first and follow it exactly. If the treatment set is empty, do not search global ADK paths."
 
-Do not phrase this as "if staged at `.github/skills/<id>/SKILL.md`, read it" — that phrasing only works for the three manifests Task 026 built for smaqit-adk's own repo, which stage via a `setup:` command running the actual ADK installer (`smaqit-adk-dev lite {workspace}`) directly against the workspace root instead of a declared input asset. That trick is a documented special case, not something a shipped skill can assume works in an arbitrary consuming project — this skill's manifests default to `given.files`/`given.directories` plus explicit `{input:<id>}` prompting instead.
+Do not assume a project-relative artifact path or prompt-body placeholder interpolation. Use the Case brief's treatment table and conditional wording so the same raw prompt is accurate for both variants.
 
-**Without-artifact variant** (only when the manifest is doing a with/without comparison, not a single-variant evaluation) — never reference `{input:<id>}` in its prompt, and its `setup` removes the staged copy before the harness runs:
+**Without-artifact variant** — omit `treatment`; the Case brief will render an explicit empty set. Never remove or copy evaluation artifacts with shell setup commands.
+
+**When the target edits files, not just reads them** — declare a common writable fixture and place it at its conventional workspace-relative destination:
 
 ```yaml
-setup:
-  - executable: rm
-    arguments: ["-rf", "{input:skill}"]
+fixture:
+  source: ../../../../framework
+  destination: framework
 ```
 
-**When the target edits files, not just reads them** — `given.files`/`given.directories` stage into a read-only area outside the harness's actual working tree; the harness only ever sees them through `{input:<id>}`, and cannot write back into them. If the case needs a writable starting tree (e.g. framework files a principle-authoring skill edits in place), add a `setup:` step that copies the staged read-only input into the workspace at its conventional path before the harness runs:
-
-```yaml
-setup:
-  - executable: sh
-    arguments: ["-c", "mkdir -p {workspace}/framework && cp {input:framework-src}/*.md {workspace}/framework/"]
-```
-
-The prompt then tells the harness the writable copy is at its normal relative path (`framework/*.md`), distinct from the read-only skill/agent guidance it reaches via `{input:<id>}`.
+Use Case-level `prepare` only for deterministic common preparation that must run after fixture copy and before the baseline snapshot. Preparation is shared by every variant and can use `{workspace}` and `{caseId}` only; it must never encode a hidden treatment.
 
 **Expectations** — prefer `command`-type checks over bare `text`-type for anything that might not exist; a `text` expectation crashes rather than failing gracefully against a missing file.
 
@@ -98,21 +95,21 @@ Authors manifests only. Does not execute a full suite run or reimplement `smaqit
 
 ## Examples
 
-**Input:** User invokes `smaqit.bench-scaffold` in a project where `.github/skills/my-skill/SKILL.md` exists with no corresponding `.smaqit/bench/skills/my-skill/bench.yaml`.
+**Input:** User invokes `smaqit.bench-scaffold` in a project where `.claude/skills/my-skill/SKILL.md` exists with no corresponding `.smaqit/bench/skills/my-skill/bench.yaml`.
 
-**Output:** The skill detects `.github/skills/` as the root, lists `my-skill` as an uncovered target, reads `my-skill/SKILL.md`, drafts `.smaqit/bench/skills/my-skill/bench.yaml` staging `my-skill`'s directory via `given.directories` with an explicit `{input:skill}` reference in the prompt and the reusable Codex block, runs `bench validate` (passes), and asks whether to run a live trial via `smaqit.bench-run`.
+**Output:** The skill detects `.claude/skills/` as the root, lists `my-skill` as an uncovered target, reads `my-skill/SKILL.md`, drafts `.smaqit/bench/skills/my-skill/bench.yaml` staging `my-skill` as the with-artifact treatment with conditional treatment-table wording in the prompt and the reusable Codex block, runs `bench validate` (passes), and asks whether to run a live trial via `smaqit.bench-run`.
 
 ## Gotchas
 
-- `given.files`/`given.directories` stage into a read-only directory beside the workspace, never at the artifact's literal project-relative path — see Step 4. Getting this wrong produces a manifest that structurally validates but fails every live run.
+- `treatment` and shared `given` assets stage read-only in the Bench sidecar, never at the artifact's literal project-relative path — see Step 4. Use the correct Case-brief table in prompts. Getting this wrong produces a manifest that structurally validates but fails every live run.
 - The reusable Codex process block in `.smaqit/bench/README.md` is the canonical, tested source — copy it, don't reconstruct it from memory.
 
 ## Completion
 
-- [ ] Skill/agent root detected (`.github/skills|agents/` or root `skills|agents/`, or resolved by asking)
+- [ ] Skill/agent root detected (project-local `.agents/skills|.claude/skills|.claude/agents|.codex/agents` or root `skills|agents/`, or resolved by asking)
 - [ ] Target selected; confirmed it has no existing manifest, or the user chose to extend one
-- [ ] Target's `SKILL.md`/`.agent.md` read in full before drafting
-- [ ] Manifest stages the target artifact via `given.files`/`given.directories`, with the prompt referencing `{input:<id>}` explicitly
+- [ ] Target's `SKILL.md`/agent source `.md` file read in full before drafting
+- [ ] Manifest stages the target artifact via the with-artifact variant's `treatment`, with conditional prompt wording that names the treatment ID and table
 - [ ] Reusable Codex process block copied verbatim, not hand-rolled
 - [ ] `bench validate` passes on the new manifest
 - [ ] Live trial offered; if accepted, delegated to `smaqit.bench-run`
@@ -121,11 +118,11 @@ Authors manifests only. Does not execute a full suite run or reimplement `smaqit
 
 | Situation | Action |
 |-----------|--------|
-| Neither `.github/skills\|agents/` nor root `skills\|agents/` resolves unambiguously | Ask the user where the project's skills/agents live |
+| Neither the project-local skill/agent locations nor root `skills\|agents/` resolves unambiguously | Ask the user where the project's skills/agents live |
 | Chosen target already has a manifest | Ask whether to add a case to it instead of creating a new manifest |
 | A manifest, `prompts/*.md` file, or other output artifact already exists at the write path | Confirm with the user before overwriting |
 | Structural validation fails | Report diagnostics; fix the manifest before offering a live trial |
 | User declines a live trial | Report the manifest as scaffolded-but-unverified; stop cleanly |
 | Invoking `smaqit.bench-run` for the live trial fails outright | Report the failure with context; do not silently retry |
 | Live trial (via `smaqit.bench-run`) surfaces a genuine `src/bench` limitation | Report it precisely with the reproducing case; recommend a follow-up task rather than patching the engine inline |
-| Target's `SKILL.md`/`.agent.md` is missing or unreadable | Stop; report the path that could not be read |
+| Target's `SKILL.md`/agent source `.md` file is missing or unreadable | Stop; report the path that could not be read |

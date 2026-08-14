@@ -1,4 +1,6 @@
-Compile the following agent definition into an agent file.
+If the Case brief lists a variant treatment artifact named `l2agent`, read and follow its compiler instructions. In that same treatment table, use `base-agent-template` and `base-rules` as the authoritative compilation sources. If those treatments are absent, proceed without ADK guidance and do not search project-global or user-global ADK locations.
+
+Compile the following agent definition into agent files.
 
 Definition file: .smaqit/definitions/agents/qa-helper.md
 
@@ -7,7 +9,7 @@ Content:
 # Agent Definition: qa-helper
 
 **Created:** 2026-03-29
-**Skill:** smaqit.new-agent
+**Skill:** smaqit.create-agent
 
 ## Identity
 
@@ -58,6 +60,6 @@ Content:
 - Documentation not found → respond with list of available sections
 - Ambiguous question → request clarification before answering
 
-Write the definition to .smaqit/definitions/agents/qa-helper.md and compile to agents/qa-helper.agent.md.
+Write the definition to .smaqit/definitions/agents/qa-helper.md and compile to both `.claude/agents/qa-helper.md` and `.codex/agents/qa-helper.toml`.
 
 You are running non-interactively via `codex exec` — there is no further input coming. Do the work and stop; do not ask a clarifying question.

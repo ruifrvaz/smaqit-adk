@@ -2,7 +2,8 @@
 installer/dist/
 installer/framework/
 installer/templates/
-installer/agents/
+installer/agents-claude/
+installer/agents-codex/
 installer/skills/
 
 # Ignore test projects

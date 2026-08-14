@@ -16,7 +16,7 @@ import (
 	"strings"
 )
 
-const PlanSchemaVersion = 1
+const PlanSchemaVersion = 2
 
 type Plan struct {
 	SchemaVersion int           `json:"schemaVersion"`
@@ -106,6 +106,13 @@ func BuildPlan(manifestPath string, m *Manifest) (*Plan, error) {
 			}
 		}
 	}
+	for _, v := range m.Variants {
+		for _, treatment := range v.Treatment {
+			if err := add("treatment", treatment.Source); err != nil {
+				return nil, err
+			}
+		}
+	}
 	for _, g := range m.Graders {
 		for _, a := range g.Assets {
 			if err := add("grader", a); err != nil {
@@ -136,13 +143,13 @@ func BuildPlan(manifestPath string, m *Manifest) (*Plan, error) {
 				return nil, err
 			}
 		}
-		for j := range v.Setup {
-			if err := resolveExecutable(fmt.Sprintf("variant %s setup[%d]", v.ID, j), &v.Setup[j].Executable); err != nil {
+	}
+	for i := range p.Manifest.Cases {
+		for j := range p.Manifest.Cases[i].Prepare {
+			if err := resolveExecutable(fmt.Sprintf("case %s prepare[%d]", p.Manifest.Cases[i].ID, j), &p.Manifest.Cases[i].Prepare[j].Executable); err != nil {
 				return nil, err
 			}
 		}
-	}
-	for i := range p.Manifest.Cases {
 		for j := range p.Manifest.Cases[i].Expect {
 			expectation := &p.Manifest.Cases[i].Expect[j]
 			if expectation.Command != nil {
@@ -217,6 +224,42 @@ func VerifyPlan(p *Plan) error {
 	}
 	return nil
 }
+
+func VerifyReferenceAssets(p *Plan, c Case, v Variant) error {
+	type reference struct{ kind, path string }
+	var references []reference
+	if c.Given.Prompt.File != "" {
+		references = append(references, reference{"prompt", c.Given.Prompt.File})
+	}
+	for _, group := range [][]InputAsset{c.Given.Specs, c.Given.Files, c.Given.Directories, c.Given.Images} {
+		for _, input := range group {
+			references = append(references, reference{"input", input.Source})
+		}
+	}
+	for _, treatment := range v.Treatment {
+		references = append(references, reference{"treatment", treatment.Source})
+	}
+	for _, reference := range references {
+		var asset *AssetDigest
+		for i := range p.Assets {
+			if p.Assets[i].Kind == reference.kind && p.Assets[i].Path == reference.path {
+				asset = &p.Assets[i]
+				break
+			}
+		}
+		if asset == nil {
+			return fmt.Errorf("reference drift: %s %s is missing from the saved plan", reference.kind, reference.path)
+		}
+		digest, err := digestPathExcluding(asset.Path, asset.Excludes)
+		if err != nil {
+			return fmt.Errorf("reference drift: %s %s: %w", reference.kind, reference.path, err)
+		}
+		if digest != asset.SHA256 {
+			return fmt.Errorf("reference drift: %s %s changed", reference.kind, reference.path)
+		}
+	}
+	return nil
+}
 func WritePlan(path string, p *Plan) error { return writeJSONAtomic(path, p) }
 func ReadPlan(path string) (*Plan, error) {
 	data, err := os.ReadFile(path)
@@ -228,6 +271,9 @@ func ReadPlan(path string) (*Plan, error) {
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&p); err != nil {
 		return nil, err
+	}
+	if p.SchemaVersion == 1 {
+		return nil, fmt.Errorf("saved plan schema v1 is unsupported; regenerate the plan from a schema v2 manifest")
 	}
 	if p.SchemaVersion != PlanSchemaVersion {
 		return nil, fmt.Errorf("unsupported plan schema version %d", p.SchemaVersion)

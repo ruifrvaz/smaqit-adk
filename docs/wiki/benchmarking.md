@@ -48,10 +48,10 @@ smaqit-adk's own `.smaqit/bench/` is an example consumer of `bench suite` — it
 
 ## Manifest
 
-The schema is strict YAML with `schemaVersion: 1`; unknown fields fail validation. Paths are resolved relative to the manifest. A minimal evaluation is:
+The schema is strict YAML with `schemaVersion: 2`; unknown fields fail validation. Paths are resolved relative to the manifest. Version 2 uses **Case** for an evaluation scenario, **Prompt** for author-supplied `given.prompt`, and **Case brief** for the rendered prompt plus declared input locations delivered to a harness. A minimal evaluation is:
 
 ```yaml
-schemaVersion: 1
+schemaVersion: 2
 name: greeting
 cases:
   - id: hello
@@ -64,18 +64,24 @@ variants:
     adapter: process
     process:
       executable: my-agent
-      arguments: ["--task-file", "{taskFile}"]
+      arguments: ["--brief-file", "{briefFile}"]
       inputMode: argument
 execution: {repetitions: 3, randomizeOrder: true, seed: 23, timeoutSeconds: 300}
 comparison: {minimumRequiredPassRate: 1, tieThreshold: 0.01}
 output: {directory: ./bench-results}
 ```
 
-Each case supports exactly one inline or file prompt and named `specs`, `files`, `directories`, and `images`. Every input has an `id`, `source`, optional contained `destination`, and optional `mediaType`. A fixture directory is copied into a fresh writable workspace; visible inputs are staged separately and read-only.
+Each Case supports exactly one inline or file prompt and named `specs`, `files`, `directories`, and `images`. Every shared input has an `id`, `source`, optional contained `destination`, and optional `mediaType`. Bench separates three data planes:
 
-The output directory must be outside every fixture and declared input directory. This prevents prior plans, oracle artifacts, and experiment results from entering a later harness workspace and keeps directory hashes stable.
+- `fixture` copies a common source directory into a fresh writable workspace. Its optional `destination` is a safe workspace-relative path; `.` is the default.
+- Case-level `prepare` commands run after fixture copy but before the baseline snapshot and sidecar staging. They are common to every variant and may use only `{workspace}` and `{caseId}`.
+- Variant `treatment` assets are read-only, variant-specific files or directories staged at Bench-managed sidecar paths. They have `id`, `source`, and optional `mediaType` fields—no workspace destination. A variant with treatments must declare `intendedDifferences`; a baseline normally has an empty treatment set.
 
-Process arguments support `{task}`, `{taskFile}`, `{inputRoot}`, `{input:<id>}`, `{workspace}`, `{caseId}`, and `{variantId}`. Placeholders are expanded inside individual argument values. No shell string is evaluated. `inputMode: stdin` also writes the prompt to standard input. Environment inheritance is opt-in by variable name; `environment.set` is intended only for non-secret values.
+Shared `given` inputs are also staged read-only in the sidecar, but unlike treatments they are available to every variant.
+
+The output directory must be outside every fixture, shared input directory, and treatment source directory. This prevents prior plans, oracle artifacts, and experiment results from entering a later harness workspace and keeps directory hashes stable.
+
+Process arguments support `{brief}`, `{briefFile}`, `{inputRoot}`, `{input:<id>}`, `{treatment:<id>}`, `{workspace}`, `{caseId}`, and `{variantId}`. Placeholder IDs are validated against the Case and variant where they are used. Placeholders are expanded inside individual argument values; prompt text itself is not interpolated. `{brief}` and `inputMode: stdin` provide the rendered Case brief, while `{briefFile}` names its read-only file. The Case brief preserves the author prompt and renders separate shared-input and variant-treatment tables; an empty baseline treatment is explicit. No shell string is evaluated. Environment inheritance is opt-in by variable name; `environment.set` is intended only for non-secret values.
 
 ## Expectations and scoring
 
@@ -93,10 +99,10 @@ Optional graders use `type: command`; each returns score `1` for exit code zero 
 
 ## Evidence and re-derivation
 
-An experiment contains its plan, sanitized resolved manifest, ordered `events.jsonl` lifecycle journal, immutable per-run requests/results, bounded stdout/stderr traces, frozen submissions, revisioned grades, aggregate statistics, comparison JSON, and Markdown report. `bench grade`, `bench compare`, and `bench report` create new derived revisions from existing evidence without launching the harness again.
+An experiment contains its plan, sanitized resolved manifest, ordered `events.jsonl` lifecycle journal, immutable per-run requests/results, bounded stdout/stderr traces, frozen submissions, revisioned grades, aggregate statistics, comparison JSON, and Markdown report. `bench grade`, `bench compare`, and `bench report` create new derived revisions without launching the harness again. Because sidecar contents are deliberately not persisted as harness evidence, grade re-derivation verifies the saved digests of referenced prompt files, shared inputs, and treatments before reconstructing a temporary read-only grading sidecar; missing or changed references fail explicitly as reference drift.
 
-Expected values, golden assets, grader assets, saved plans, and output directories are never staged into the harness workspace or task envelope. This protects against accidental disclosure; it is not a sandbox against a malicious same-user process. A local harness has the operating-system permissions of the invoking user. Run only trusted executables and use stronger OS/container isolation for hostile code.
+Expected values, golden assets, grader assets, saved plans, and output directories are never staged into the harness workspace or Case brief. This protects against accidental disclosure; it is not a sandbox against a malicious same-user process. A local harness has the operating-system permissions of the invoking user. Run only trusted executables and use stronger OS/container isolation for hostile code.
 
-For credible comparisons, keep task, fixture, inputs, budgets, and environment constant; declare intended treatment differences; use multiple repetitions; randomize with a recorded seed; and treat ties, missing metrics, or incomplete matrices as inconclusive rather than manufacturing certainty.
+For credible comparisons, keep the Case prompt, fixture, preparation, shared inputs, budgets, and environment constant; vary only declared treatment artifacts; use multiple repetitions; randomize with a recorded seed; and treat ties, missing metrics, or incomplete matrices as inconclusive rather than manufacturing certainty. The entire sidecar is excluded from snapshots, repository metrics, and frozen submissions, so evaluator-provided resources never count as harness output.
 
 Runnable examples are under `examples/bench/`: `single-eval`, `multi-variant`, and the POSIX `process-harness` example.

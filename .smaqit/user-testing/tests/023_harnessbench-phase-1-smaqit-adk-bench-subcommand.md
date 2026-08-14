@@ -91,13 +91,15 @@ Task 023 adds a CLI rather than a daemon, so command discovery is its health che
   grep -q 'events' "$SMAQIT_E2E_EVIDENCE/help-run.log"
   ```
 
-- [ ] Existing ADK installation behavior remains healthy through the installed binary:
+- [ ] Existing global ADK installation behavior remains healthy through the installed binary without touching the real user home:
 
   ```bash
-  smaqit-adk lite "$SMAQIT_E2E_ROOT/lite-project" 2>&1 | tee "$SMAQIT_E2E_EVIDENCE/lite-install.log"
-  test -f "$SMAQIT_E2E_ROOT/lite-project/.github/agents/smaqit.L2.agent.md"
-  test -f "$SMAQIT_E2E_ROOT/lite-project/.github/skills/smaqit.create-agent/SKILL.md"
-  test -f "$SMAQIT_E2E_ROOT/lite-project/.github/skills/smaqit.create-skill/SKILL.md"
+  export SMAQIT_E2E_HOME="$SMAQIT_E2E_ROOT/global-home"
+  HOME="$SMAQIT_E2E_HOME" smaqit-adk --install-global 2>&1 | tee "$SMAQIT_E2E_EVIDENCE/global-install.log"
+  test -f "$SMAQIT_E2E_HOME/.claude/agents/smaqit-L2.md"
+  test -f "$SMAQIT_E2E_HOME/.codex/agents/smaqit.L2.toml"
+  test -f "$SMAQIT_E2E_HOME/.agents/skills/smaqit.create-agent/SKILL.md"
+  test -f "$SMAQIT_E2E_HOME/.claude/skills/smaqit.create-skill/SKILL.md"
   ```
 
 ### Step 3 — Deterministic Generic Process Harness E2E
@@ -120,7 +122,7 @@ Task 023 adds a CLI rather than a daemon, so command discovery is its health che
   ```bash
   smaqit-adk bench plan -json -out "$SMAQIT_E2E_ROOT/control.plan.json" "$SMAQIT_E2E_ROOT/control/bench.yaml" | tee "$SMAQIT_E2E_EVIDENCE/control-plan-command.json"
   jq -e '.planned == true and .runs == 1 and (.planId | length) == 64' "$SMAQIT_E2E_EVIDENCE/control-plan-command.json"
-  jq -e '.schemaVersion == 1 and (.assets | length) >= 3 and (.runs | length) == 1' "$SMAQIT_E2E_ROOT/control.plan.json"
+  jq -e '.schemaVersion == 2 and (.assets | length) >= 3 and (.runs | length) == 1' "$SMAQIT_E2E_ROOT/control.plan.json"
   ```
 
 - [ ] Run the saved plan with its default human-readable progress. The terminal reports start, attempt, progress, completion, and the final evaluation summary:
@@ -161,7 +163,7 @@ Task 023 adds a CLI rather than a daemon, so command discovery is its health che
   test -d "$CONTROL_RUN_DIR/submission"
   grep -q 'named-input' "$CONTROL_RUN_DIR/traces/harness.stdout.log"
   jq -e '.status == "completed" and .requiredPassed == true and .usage.totalTokens == null and .usage.estimatedCost == null' "$CONTROL_RUN_DIR/result.json"
-  jq -e 'has("expect") | not' "$CONTROL_RUN_DIR/request.json"
+  jq -e '.schemaVersion == 2 and (.caseBrief | contains("# Case brief")) and (has("task") | not) and (has("expect") | not)' "$CONTROL_RUN_DIR/request.json"
   test ! -e "$CONTROL_RUN_DIR/submission/.smaqit-bench-input"
   ```
 
@@ -199,7 +201,7 @@ Exact agent input: create `result.txt` in the isolated attempt workspace with `B
 ```bash
 mkdir -p "$SMAQIT_E2E_ROOT/codex"
 cat > "$SMAQIT_E2E_ROOT/codex/bench.yaml" <<'YAML'
-schemaVersion: 1
+schemaVersion: 2
 name: codex-real-agent-smoke
 cases:
   - id: create-marker-file
@@ -241,7 +243,7 @@ variants:
         - workspace-write
         - --color
         - never
-        - "{task}"
+        - "{brief}"
       inputMode: argument
       environment:
         inherit:
@@ -352,7 +354,7 @@ YAML
 
 - `$SMAQIT_E2E_EVIDENCE/session.env` and the retained `$SMAQIT_E2E_ROOT` path.
 - Build and test logs: `src-tests.log`, `build.log`, `make-test.log`, and `tests-module.log`.
-- Installed version and help outputs, plus `lite-install.log` and the isolated lite project tree.
+- Installed version and help outputs, plus `global-install.log` and the isolated global-install home.
 - Deterministic control: validate/plan/run JSON, default human-progress transcript, streamed and persisted lifecycle JSONL, saved plan, full experiment directory, raw-evidence hashes, regrade/comparison/report revisions, and harness traces.
 - Real Codex harness: CLI version/auth status, validate/plan/run JSON, streamed and persisted lifecycle JSONL, full experiment directory, frozen `result.txt`, report, and both copied harness traces.
 - Negative paths: `drift-events.jsonl`, `invalid-validation.json`, `invalid-run-events.jsonl`, and `subset-run.json`, including observed exit codes.

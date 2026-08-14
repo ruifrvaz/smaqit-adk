@@ -3,6 +3,7 @@ package bench
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -153,22 +154,19 @@ func TestRunSuiteClassifiesPassingAndFailingManifestsIndependently(t *testing.T)
 
 func TestRunSuiteArtifactStagingBoundaryProducesAWinner(t *testing.T) {
 	if runtime.GOOS == "windows" {
-		t.Skip("sh/rm fixture is Unix-only")
+		t.Skip("shell fixture is Unix-only")
 	}
 	root := t.TempDir()
 	manifestDir := filepath.Join(root, "boundary")
 	write(t, filepath.Join(manifestDir, "artifact.txt"), "artifact contents")
-	write(t, filepath.Join(manifestDir, "bench.yaml"), `schemaVersion: 1
+	write(t, filepath.Join(manifestDir, "support.txt"), "support contents")
+	write(t, filepath.Join(manifestDir, "bench.yaml"), `schemaVersion: 2
 name: artifact-boundary
 cases:
   - id: probe
     given:
       prompt:
         text: irrelevant
-      files:
-        - id: skill
-          source: ./artifact.txt
-          destination: artifact.txt
     expect:
       - id: sees-artifact
         type: text
@@ -178,21 +176,25 @@ cases:
 variants:
   - id: with-artifact
     adapter: process
+    treatment:
+      - id: skill
+        source: ./artifact.txt
+      - id: support
+        source: ./support.txt
     process:
       executable: sh
-      arguments: ["-c", "test -f {input:skill} && echo present || echo absent"]
+      arguments: ["-c", "grep -q '^- skill ' {briefFile} && grep -q '^- support ' {briefFile} && echo present || echo absent"]
       inputMode: stdin
+    intendedDifferences:
+      - Exposes the skill and every supporting artifact as the variant treatment.
   - id: without-artifact
     adapter: process
     process:
       executable: sh
-      arguments: ["-c", "test -f {input:skill} && echo present || echo absent"]
+      arguments: ["-c", "grep -q '^- skill ' {briefFile} && echo present || echo absent"]
       inputMode: stdin
-    setup:
-      - executable: rm
-        arguments: ["-f", "{input:skill}"]
     intendedDifferences:
-      - Removes the staged artifact before the harness runs.
+      - Has an explicitly empty treatment set.
 execution:
   repetitions: 1
   timeoutSeconds: 5
@@ -216,18 +218,33 @@ output:
 	}
 	var withArtifactPassed, withoutArtifactPassed bool
 	for _, r := range experiment.Results {
+		requestBytes, err := os.ReadFile(filepath.Join(r.ArtifactDirectory, "request.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var request map[string]any
+		if err := json.Unmarshal(requestBytes, &request); err != nil {
+			t.Fatal(err)
+		}
+		treatmentIDs := request["treatmentIds"].([]any)
 		switch r.VariantID {
 		case "with-artifact":
 			withArtifactPassed = r.RequiredPassed
+			if len(treatmentIDs) != 2 {
+				t.Fatalf("with-artifact treatment IDs = %v", treatmentIDs)
+			}
 		case "without-artifact":
 			withoutArtifactPassed = r.RequiredPassed
+			if len(treatmentIDs) != 0 {
+				t.Fatalf("baseline treatment IDs = %v", treatmentIDs)
+			}
 		}
 	}
 	if !withArtifactPassed {
 		t.Fatal("expected the with-artifact run to pass its required expectation (artifact present)")
 	}
 	if withoutArtifactPassed {
-		t.Fatal("expected the without-artifact run to fail its required expectation (artifact removed by setup)")
+		t.Fatal("expected the without-artifact run to fail its required expectation (empty treatment set)")
 	}
 	// The suite still counts this manifest as passed: a "winner" outcome means
 	// one variant is eligible, which is the expected shape for a comparison

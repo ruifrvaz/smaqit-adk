@@ -2,11 +2,12 @@
 name: smaqit.bench-run
 description: Automates running a project's .smaqit/bench/ Bench suite end-to-end — preflight checks, structural validation, a plain-chat confirmation gate, live execution, pass/fail/inconclusive reporting, and failure diagnosis against known gotchas before treating anything as a novel bug.
 metadata:
-  version: "0.1.0"
-compatibility: Requires the codex CLI on PATH, authenticated, for live execution; structural validation (Steps 1-2) requires only the smaqit-adk binary.
+  version: "0.2.0"
 ---
 
 # Bench Run
+
+Structural validation requires only the smaqit-adk binary. Live execution requires an authenticated `codex` executable on `PATH`.
 
 ## Steps
 
@@ -99,7 +100,7 @@ Runs and reports on an existing `.smaqit/bench/` suite. Does not author new mani
 
 ## Gotchas
 
-- Staged inputs in Bench manifests (`given.files`/`given.directories`) land in a read-only area outside the harness's actual working directory, reachable only via the `{input:<id>}` placeholder — this matters when diagnosing a failure that references staged content.
+- Shared `given` inputs and variant `treatment` artifacts land in separate read-only Case-brief tables within a Bench-managed, submission-excluded subtree under the workspace root. Diagnose staged-content failures against the relevant table and ID; `{input:<id>}` and `{treatment:<id>}` expand only in permitted process arguments, not in raw prompt text.
 - `codex exec` requires `--sandbox danger-full-access` and `--skip-git-repo-check` in every process-variant block used by this repo's manifests; a failure that looks like a hang is often a missing one of these flags on a *new* manifest, not a `bench-run` bug.
 
 ## Completion
@@ -126,4 +127,3 @@ Runs and reports on an existing `.smaqit/bench/` suite. Does not author new mani
 | A command grader fails specifically on `go run` | Check the Snap/Go toolchain conflict documented in `.smaqit/bench/README.md` before treating it as a content failure |
 | `src/bench` has a genuine limitation, not a known gotcha | Report it precisely with the reproducing manifest/case; recommend a follow-up task rather than patching the engine inline |
 | `.smaqit/bench/` does not exist in this project | Report there is no suite to run; suggest `smaqit.bench-scaffold` |
-</content>

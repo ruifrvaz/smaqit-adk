@@ -1,4 +1,4 @@
-schemaVersion: 1
+schemaVersion: 2
 name: smaqit-create-skill
 # Dogfood suite for skills/smaqit.create-skill/SKILL.md. See ../../MIGRATION.md
 # for how this maps from the legacy
@@ -12,22 +12,40 @@ cases:
       prompt:
         text: |
           I need to create a new skill for adding framework principles to the
-          ADK. If this project has an ADK skill-authoring skill staged at
-          .github/skills/smaqit.create-skill/SKILL.md, read it first and
-          follow it exactly — do not use your own built-in skill-authoring
-          tooling instead. If your workflow calls for asking a clarifying
-          question about its name, answer "smaqit.new-principle" and
-          proceed — you are running non-interactively via `codex exec` and
-          there is no further input coming.
+          ADK. If the Case brief lists a variant treatment named `skill`, read
+          its SKILL.md first and follow it exactly — do not use your own built-in
+          skill-authoring tooling instead. The skill directs you to invoke
+          smaqit.L2, but L2 is intentionally not registered in this isolated
+          Bench workspace: if the treatment table lists `l2agent`, read its
+          instructions and apply them inline. Use the treatment paths listed
+          for `base-skill-template` and `skill-rules` as authoritative. If
+          validation is required, the source is under the `skill` treatment
+          directory's `scripts/` subdirectory. If the treatment set is empty,
+          proceed without ADK guidance and do not search project-global or
+          user-global ADK paths.
+          If your workflow calls for asking a clarifying question about its
+          name, answer "smaqit.new-principle" and proceed — you are running
+          non-interactively via `codex exec` and there is no further input
+          coming.
     expect:
       - id: definition-written
         type: file
         actual: "file:.smaqit/definitions/skills/smaqit.new-principle.md"
         operator: exists
-      - id: compiled-skill-written
+      - id: compiled-shared-skill-written
         type: file
-        actual: "file:.github/skills/smaqit.new-principle/SKILL.md"
+        actual: "file:.agents/skills/smaqit.new-principle/SKILL.md"
         operator: exists
+      - id: compiled-claude-skill-written
+        type: file
+        actual: "file:.claude/skills/smaqit.new-principle/SKILL.md"
+        operator: exists
+      - id: compiled-skill-copies-match
+        type: command
+        actual: submission
+        command:
+          executable: cmp
+          arguments: ["-s", ".agents/skills/smaqit.new-principle/SKILL.md", ".claude/skills/smaqit.new-principle/SKILL.md"]
       - id: validator-passes
         type: command
         actual: submission
@@ -40,13 +58,19 @@ cases:
           # retry once"). A plain compiled binary needs no environment at all
           # and sidesteps Snap entirely. See .smaqit/bench/README.md.
           executable: ../../../../installer/dist/validate-skill
-          arguments: ["./.github/skills/smaqit.new-principle/SKILL.md"]
+          arguments: ["./.claude/skills/smaqit.new-principle/SKILL.md"]
 variants:
   - id: with-artifact
     adapter: process
-    setup:
-      - executable: ../../../../installer/dist/smaqit-adk-dev
-        arguments: ["lite", "{workspace}"]
+    treatment:
+      - id: skill
+        source: ../../../../skills/smaqit.create-skill
+      - id: l2agent
+        source: ../../../../agents/smaqit.L2.md
+      - id: base-skill-template
+        source: ../../../../templates/skills/base-skill.template.md
+      - id: skill-rules
+        source: ../../../../templates/skills/compiled/skill.rules.md
     process:
       executable: codex
       arguments:
@@ -56,8 +80,10 @@ variants:
         - --skip-git-repo-check
         - --cd
         - "{workspace}"
-        - "{taskFile}"
+        - "{briefFile}"
       inputMode: argument
+    intendedDifferences:
+      - Exposes the routing skill, L2 body, base-skill template, and skill rules as the variant treatment.
   - id: without-artifact
     adapter: process
     process:
@@ -69,10 +95,10 @@ variants:
         - --skip-git-repo-check
         - --cd
         - "{workspace}"
-        - "{taskFile}"
+        - "{briefFile}"
       inputMode: argument
     intendedDifferences:
-      - Runs without smaqit-adk lite installed — no smaqit.create-skill skill or compilation templates are staged, establishing the no-artifact baseline. Native discovery of the skill is not claimed.
+      - Uses an explicitly empty treatment set, establishing the no-artifact baseline.
 execution:
   repetitions: 1
   timeoutSeconds: 600

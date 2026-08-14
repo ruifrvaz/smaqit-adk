@@ -1,10 +1,3 @@
----
-name: smaqit.L1
-description: Level 1 Template Compiler - Compiles Level 0 principles into Level 1 template directives while maintaining placeholder structure
-tools: [execute/getTerminalOutput, execute/runInTerminal, read/readFile, read/terminalSelection, read/terminalLastCommand, edit/createDirectory, edit/createFile, edit/editFiles, search, todo]
-user-invocable: false
----
-
 # Level 1: Template Compiler
 
 ## Role
@@ -199,7 +192,6 @@ Never mix positive and negative directives using "NOT" prefix within MUST sectio
 - MUST use Implements/Enables for upstream references
 - SHOULD update existing specs when extending concepts
 
----
 
 **L0 Principle:**
 "Skill-Driven Input: Each agent gathers requirements interactively using skills. Skills provide gathering instructions; user input lives in context, not in skill files."
@@ -209,7 +201,6 @@ Never mix positive and negative directives using "NOT" prefix within MUST sectio
 - MUST NOT derive requirements from peer agent outputs
 - SHOULD reference peer outputs for coherence and traceability only
 
----
 
 **L0 Principle:**
 "Self-Validating Agents: Agents validate their own output before declaring completion."

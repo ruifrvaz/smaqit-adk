@@ -1,31 +1,23 @@
-schemaVersion: 1
+schemaVersion: 2
 name: smaqit-new-principle
 # Dogfood suite for skills/smaqit.new-principle/SKILL.md, scaffolded via
 # smaqit.bench-scaffold as the Task 028 live demonstration. See
 # ../../README.md for the reusable-Codex-block convention and the
-# generic given.files/given.directories staging pattern this manifest
+# declarative fixture/treatment staging pattern this manifest
 # follows.
 #
 # smaqit.new-principle delegates entirely to the smaqit.L0 agent, which
-# edits framework/*.md files in place. Given.Directories/Given.Files stage
-# read-only reference material (the skill + the L0 agent instructions);
-# a setup step separately materializes a writable copy of framework/ at
-# its conventional path, since staged inputs cannot be edited in place —
-# see smaqit.bench-scaffold/SKILL.md's "When the target edits files, not
-# just reads them" note.
+# edits framework/*.md files in place. The fixture materializes the same
+# writable framework tree for every variant; only the with-artifact variant
+# receives the skill and L0 guidance as read-only treatments.
 cases:
   - id: add-principle
+    fixture:
+      source: ../../../../framework
+      destination: framework
     given:
       prompt:
         file: prompts/add-principle.md
-      directories:
-        - id: skill
-          source: ../../../../skills/smaqit.new-principle
-        - id: framework-src
-          source: ../../../../framework
-      files:
-        - id: l0agent
-          source: ../../../../agents/smaqit.L0.agent.md
     expect:
       - id: principle-added
         type: command
@@ -36,11 +28,11 @@ cases:
 variants:
   - id: with-artifact
     adapter: process
-    setup:
-      - executable: sh
-        arguments:
-          - "-c"
-          - "mkdir -p {workspace}/framework && cp {input:framework-src}/*.md {workspace}/framework/"
+    treatment:
+      - id: skill
+        source: ../../../../skills/smaqit.new-principle
+      - id: l0agent
+        source: ../../../../agents/smaqit.L0.md
     process:
       executable: codex
       arguments:
@@ -50,8 +42,10 @@ variants:
         - --skip-git-repo-check
         - --cd
         - "{workspace}"
-        - "{taskFile}"
+        - "{briefFile}"
       inputMode: argument
+    intendedDifferences:
+      - Exposes the principle-routing skill and L0 body as the variant treatment.
   - id: without-artifact
     adapter: process
     process:
@@ -63,10 +57,10 @@ variants:
         - --skip-git-repo-check
         - --cd
         - "{workspace}"
-        - "{taskFile}"
+        - "{briefFile}"
       inputMode: argument
     intendedDifferences:
-      - Runs without framework/ materialized in the workspace and without the new-principle skill or L0 agent staged — no framework files exist to edit and no ADK principle-authoring guidance is available, establishing the no-artifact baseline.
+      - Uses the same writable framework fixture with an explicitly empty treatment set, establishing the no-artifact baseline.
 execution:
   repetitions: 1
   timeoutSeconds: 600

@@ -1,12 +1,12 @@
 Add a new principle to this project's ADK framework.
 
-If this project has an ADK principle-authoring skill staged at
-`{input:skill}/SKILL.md`, read it first and follow it exactly — do not
-invent your own approach instead. That skill in turn describes invoking the
-`smaqit.L0` agent as a subagent; you are running non-interactively via
-`codex exec` with no subagent-invocation capability, so instead read the L0
-agent's own instructions directly at `{input:l0agent}` and apply them
-yourself.
+If the Case brief lists a variant treatment named `skill`, read its SKILL.md
+first and follow it exactly — do not invent your own approach instead. That skill
+describes invoking the `smaqit.L0` agent as a subagent; L0 is intentionally
+not registered in this isolated Bench workspace, so if the treatment table
+lists `l0agent`, read those instructions and apply them inline. If the
+treatment set is empty, proceed without ADK guidance and do not search
+project-global or user-global ADK paths.
 
 The project's framework files are already present, writable, at
 `framework/*.md` relative to your working directory (this is the real

@@ -1,4 +1,4 @@
-schemaVersion: 1
+schemaVersion: 2
 name: multimodal-single-evaluation
 cases:
   - id: summarize-inputs

@@ -58,12 +58,23 @@ func Regrade(ctx context.Context, directory string) (RevisionResult, error) {
 			return RevisionResult{}, fmt.Errorf("case %s missing from plan", run.CaseID)
 		}
 		variant, _ := findVariant(plan.Manifest, run.VariantID)
+		if err := VerifyReferenceAssets(plan, caseConfig, variant); err != nil {
+			return RevisionResult{}, err
+		}
 		runDirectory := filepath.Join(directory, "runs", run.RunID)
 		submission := filepath.Join(runDirectory, "submission")
 		stdout, _ := os.ReadFile(filepath.Join(runDirectory, "traces", "harness.stdout.log"))
 		stderr, _ := os.ReadFile(filepath.Join(runDirectory, "traces", "harness.stderr.log"))
-		workspace := &Workspace{Root: submission, InputRoot: "<not-exposed>", TaskFile: "<not-exposed>", Inputs: map[string]string{}}
-		request := RunRequest{Run: PlannedRun{RunID: run.RunID, CaseID: run.CaseID, VariantID: run.VariantID, Repetition: run.Repetition}, Variant: variant, Workspace: workspace, TraceDir: filepath.Join(runDirectory, "grades", fmt.Sprintf("revision-%03d", revision), "logs")}
+		workspace, cleanupReferences, workspaceErr := prepareReferenceWorkspace(submission, caseConfig, variant)
+		if workspaceErr != nil {
+			return RevisionResult{}, workspaceErr
+		}
+		defer cleanupReferences()
+		briefBytes, briefErr := os.ReadFile(workspace.BriefFile)
+		if briefErr != nil {
+			return RevisionResult{}, briefErr
+		}
+		request := RunRequest{Run: PlannedRun{RunID: run.RunID, CaseID: run.CaseID, VariantID: run.VariantID, Repetition: run.Repetition}, Variant: variant, Workspace: workspace, CaseBrief: string(briefBytes), TraceDir: filepath.Join(runDirectory, "grades", fmt.Sprintf("revision-%03d", revision), "logs")}
 		harness := run.Harness
 		harness.Stdout = string(stdout)
 		harness.Stderr = string(stderr)
@@ -96,7 +107,7 @@ func Regrade(ctx context.Context, directory string) (RevisionResult, error) {
 					return RevisionResult{}, copyErr
 				}
 				gradeRequest := request
-				gradeRequest.Workspace = &Workspace{Root: copyRoot, InputRoot: "<not-exposed>", TaskFile: "<not-exposed>", Inputs: map[string]string{}}
+				gradeRequest.Workspace = &Workspace{Root: copyRoot, InputRoot: workspace.InputRoot, TreatmentRoot: workspace.TreatmentRoot, BriefFile: workspace.BriefFile, Inputs: workspace.Inputs, InputKinds: workspace.InputKinds, Treatments: workspace.Treatments, TreatmentKinds: workspace.TreatmentKinds}
 				graderResult, graderErr := executeCommand(ctx, grader.Command, gradeRequest, "grader-"+grader.ID)
 				os.RemoveAll(copyRoot)
 				if graderErr != nil {
@@ -111,6 +122,7 @@ func Regrade(ctx context.Context, directory string) (RevisionResult, error) {
 			}
 			revised.OptionalScore = &score
 		}
+		cleanupReferences()
 		payload.Runs = append(payload.Runs, revised)
 	}
 	path := filepath.Join(directory, "grades", fmt.Sprintf("revision-%03d.json", revision))

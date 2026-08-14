@@ -32,6 +32,9 @@ func digestPathExcluding(path string, excludes []string) (string, error) {
 		return "", fmt.Errorf("symlinks are not allowed: %s", path)
 	}
 	if !info.IsDir() {
+		if !info.Mode().IsRegular() {
+			return "", fmt.Errorf("non-regular files are not allowed: %s", path)
+		}
 		return digestFile(path)
 	}
 	var paths []string
@@ -41,6 +44,13 @@ func digestPathExcluding(path string, excludes []string) (string, error) {
 		}
 		if d.Type()&os.ModeSymlink != 0 {
 			return fmt.Errorf("symlinks are not allowed: %s", p)
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && !info.Mode().IsRegular() {
+			return fmt.Errorf("non-regular files are not allowed: %s", p)
 		}
 		if p != path && matchesExclusion(p, excludes) {
 			if d.IsDir() {

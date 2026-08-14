@@ -1,4 +1,4 @@
-schemaVersion: 1
+schemaVersion: 2
 name: deterministic-two-variant-comparison
 cases:
   - id: greeting
@@ -18,10 +18,13 @@ variants:
       stdout: wrong
   - id: treatment
     adapter: mock
+    treatment:
+      - id: greeting-instruction
+        source: instruction.md
     mock:
       stdout: hello
     intendedDifferences:
-      - Uses the proposed instruction treatment.
+      - Exposes the proposed greeting instruction as the variant treatment.
 execution:
   repetitions: 3
   randomizeOrder: true

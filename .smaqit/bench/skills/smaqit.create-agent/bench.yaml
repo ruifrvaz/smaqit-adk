@@ -1,4 +1,4 @@
-schemaVersion: 1
+schemaVersion: 2
 name: smaqit-create-agent
 # Dogfood suite for skills/smaqit.create-agent/SKILL.md. See ../../MIGRATION.md
 # for how this maps from the legacy
@@ -16,37 +16,52 @@ cases:
     given:
       prompt:
         text: |
-          I need to create a new base agent. If this project has an ADK
-          agent-authoring skill staged at
-          .github/skills/smaqit.create-agent/SKILL.md, read it first and
-          follow it exactly — do not invent your own approach instead. Its
-          name is qa-helper and its purpose is answering questions about the
-          project's QA process. If your workflow calls for asking a
-          clarifying question, treat "qa-helper" as the answer and proceed —
-          you are running non-interactively via `codex exec` and there is no
-          further input coming.
+          I need to create a new base agent. If the Case brief lists a variant
+          treatment named `skill`, read its SKILL.md first and follow it exactly
+          — do not invent your own approach instead. The skill directs you to
+          invoke smaqit.L2, but L2 is intentionally not registered in this
+          isolated Bench workspace: if the treatment table lists `l2agent`,
+          read its instructions and apply them inline. Use the treatment paths
+          listed for `base-agent-template` and `base-rules` as authoritative.
+          If the treatment set is empty, proceed without ADK guidance and do
+          not search project-global or user-global ADK paths. Its name is
+          qa-helper and its purpose
+          is answering questions about the project's QA process. If your
+          workflow calls for asking a clarifying question, treat "qa-helper"
+          as the answer and proceed — you are running non-interactively via
+          `codex exec` and there is no further input coming.
     expect:
       - id: definition-written
         type: file
         actual: "file:.smaqit/definitions/agents/qa-helper.md"
         operator: exists
-      - id: compiled-agent-written
+      - id: compiled-claude-agent-written
         type: file
-        actual: "file:.github/agents/qa-helper.agent.md"
+        actual: "file:.claude/agents/qa-helper.md"
+        operator: exists
+      - id: compiled-codex-agent-written
+        type: file
+        actual: "file:.codex/agents/qa-helper.toml"
         operator: exists
   - id: ambiguity-flagging
     given:
       prompt:
         text: |
-          Create an agent. If this project has an ADK agent-authoring skill
-          staged at .github/skills/smaqit.create-agent/SKILL.md, read it
-          first and follow it exactly — do not invent your own approach
-          instead. If your workflow calls for asking a clarifying question
-          about its name, answer "helper" and proceed — you are running
-          non-interactively via `codex exec` and there is no further input
-          coming. Infer the rest of the specification yourself; where
-          something is genuinely ambiguous, flag it in the written definition
-          rather than asking about it.
+          Create an agent. If the Case brief lists a variant treatment named
+          `skill`, read its SKILL.md first and follow it exactly — do not
+          invent your own approach instead. The skill directs you to invoke
+          smaqit.L2, but L2 is intentionally not registered in this isolated
+          Bench workspace: if the treatment table lists `l2agent`, read its
+          instructions and apply them inline. Use the treatment paths listed
+          for `base-agent-template` and `base-rules` as authoritative. If the
+          treatment set is empty, proceed without ADK guidance and do not
+          search project-global or user-global ADK paths. If your workflow
+          calls for asking a
+          clarifying question about its name, answer "helper" and proceed —
+          you are running non-interactively via `codex exec` and there is no
+          further input coming. Infer the rest of the specification yourself;
+          where something is genuinely ambiguous, flag it in the written
+          definition rather than asking about it.
     expect:
       - id: definition-written
         type: file
@@ -61,9 +76,15 @@ cases:
 variants:
   - id: with-artifact
     adapter: process
-    setup:
-      - executable: ../../../../installer/dist/smaqit-adk-dev
-        arguments: ["lite", "{workspace}"]
+    treatment:
+      - id: skill
+        source: ../../../../skills/smaqit.create-agent
+      - id: l2agent
+        source: ../../../../agents/smaqit.L2.md
+      - id: base-agent-template
+        source: ../../../../templates/agents/base-agent.template.md
+      - id: base-rules
+        source: ../../../../templates/agents/compiled/base.rules.md
     process:
       executable: codex
       arguments:
@@ -73,8 +94,10 @@ variants:
         - --skip-git-repo-check
         - --cd
         - "{workspace}"
-        - "{taskFile}"
+        - "{briefFile}"
       inputMode: argument
+    intendedDifferences:
+      - Exposes the routing skill, L2 body, base-agent template, and base rules as the variant treatment.
   - id: without-artifact
     adapter: process
     process:
@@ -86,10 +109,10 @@ variants:
         - --skip-git-repo-check
         - --cd
         - "{workspace}"
-        - "{taskFile}"
+        - "{briefFile}"
       inputMode: argument
     intendedDifferences:
-      - Runs without smaqit-adk lite installed — no smaqit.create-agent skill or compilation templates are staged, establishing the no-artifact baseline. Native discovery of the skill is not claimed.
+      - Uses an explicitly empty treatment set, establishing the no-artifact baseline.
 execution:
   repetitions: 1
   timeoutSeconds: 600

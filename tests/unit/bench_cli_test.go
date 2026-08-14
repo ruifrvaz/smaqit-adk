@@ -12,7 +12,7 @@ import (
 func TestBenchRunJSONLLifecycleEvents(t *testing.T) {
 	root := t.TempDir()
 	manifest := filepath.Join(root, "bench.yaml")
-	content := `schemaVersion: 1
+	content := `schemaVersion: 2
 name: cli-events
 cases:
   - id: case
@@ -86,7 +86,7 @@ output: {directory: ./results}
 func TestBenchRunReportsHumanProgressByDefault(t *testing.T) {
 	root := t.TempDir()
 	manifest := filepath.Join(root, "bench.yaml")
-	content := `schemaVersion: 1
+	content := `schemaVersion: 2
 name: cli-human-progress
 cases:
   - id: case
@@ -118,7 +118,7 @@ output: {directory: ./results}
 func TestBenchRunJSONLReportsConfigurationFailure(t *testing.T) {
 	root := t.TempDir()
 	manifest := filepath.Join(root, "bad.yaml")
-	if err := os.WriteFile(manifest, []byte("schemaVersion: 1\nunknown: true\n"), 0644); err != nil {
+	if err := os.WriteFile(manifest, []byte("schemaVersion: 2\nunknown: true\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	output, code := runBinary(t, root, "bench", "run", "-events", "jsonl", manifest)
@@ -161,7 +161,7 @@ func TestBenchNestedHelp(t *testing.T) {
 func TestBenchValidateAndRunJSON(t *testing.T) {
 	root := t.TempDir()
 	manifest := filepath.Join(root, "bench.yaml")
-	content := `schemaVersion: 1
+	content := `schemaVersion: 2
 name: cli-smoke
 cases:
   - id: case
@@ -214,7 +214,7 @@ output: {directory: ./results}
 func TestBenchInvalidManifestJSON(t *testing.T) {
 	root := t.TempDir()
 	manifest := filepath.Join(root, "bad.yaml")
-	if err := os.WriteFile(manifest, []byte("schemaVersion: 1\nunknown: true\n"), 0644); err != nil {
+	if err := os.WriteFile(manifest, []byte("schemaVersion: 2\nunknown: true\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	output, code := runBinary(t, root, "bench", "validate", "-json", manifest)
@@ -224,5 +224,45 @@ func TestBenchInvalidManifestJSON(t *testing.T) {
 	var payload map[string]any
 	if err := json.Unmarshal([]byte(output), &payload); err != nil {
 		t.Fatalf("invalid error JSON: %v", err)
+	}
+}
+
+func TestBenchValidateTreatmentAndRejectLegacySetup(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "guide.txt"), []byte("guidance"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	manifest := filepath.Join(root, "bench.yaml")
+	valid := `schemaVersion: 2
+name: cli-treatment
+cases:
+  - id: case
+    given:
+      prompt: {text: use the treatment}
+    expect:
+      - {id: output, type: text, actual: stdout, operator: exact, value: ok}
+variants:
+  - id: with
+    adapter: mock
+    treatment:
+      - {id: guide, source: ./guide.txt}
+    mock: {stdout: ok}
+    intendedDifferences: [Exposes the guide treatment.]
+execution: {repetitions: 1, timeoutSeconds: 5}
+output: {directory: ./results}
+`
+	if err := os.WriteFile(manifest, []byte(valid), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if output, code := runBinary(t, root, "bench", "validate", manifest); code != 0 {
+		t.Fatalf("treatment manifest exited %d: %s", code, output)
+	}
+	legacy := strings.Replace(valid, "    treatment:\n", "    setup:\n      - executable: true\n    treatment:\n", 1)
+	if err := os.WriteFile(manifest, []byte(legacy), 0644); err != nil {
+		t.Fatal(err)
+	}
+	output, code := runBinary(t, root, "bench", "validate", "-json", manifest)
+	if code != 3 || !strings.Contains(output, `"path":"variants[0].setup"`) {
+		t.Fatalf("legacy setup diagnostic exited %d: %s", code, output)
 	}
 }

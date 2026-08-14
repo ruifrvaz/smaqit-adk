@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -91,7 +92,7 @@ func TestRunPlanEndsLifecycleWithFailureEvent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m.Variants[0].Setup = []Command{{Executable: "sh", Arguments: []string{"-c", "exit 9"}}}
+	m.Cases[0].Prepare = []Command{{Executable: "sh", Arguments: []string{"-c", "exit 9"}}}
 	plan, err := BuildPlan(manifestPath, m)
 	if err != nil {
 		t.Fatal(err)
@@ -107,12 +108,15 @@ func TestRunPlanEndsLifecycleWithFailureEvent(t *testing.T) {
 		t.Fatalf("expected failed attempt: %+v", experiment.Results)
 	}
 	final := observed[len(observed)-1]
-	if final.Type != "run.failed" || final.Failure == nil || final.Failure.Phase != "setup" {
+	if final.Type != "run.failed" || final.Failure == nil || final.Failure.Phase != "prepare" {
 		t.Fatalf("unexpected final lifecycle event: %+v", final)
 	}
 }
 
 func TestRunPlanMockSingleEvaluation(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell grading fixture is Unix-only")
+	}
 	root := t.TempDir()
 	write(t, filepath.Join(root, "input.txt"), "visible")
 	fixture := filepath.Join(root, "fixture")
@@ -125,6 +129,11 @@ func TestRunPlanMockSingleEvaluation(t *testing.T) {
 		t.Fatal(err)
 	}
 	m.Cases[0].Fixture = &SourceRef{Source: fixture}
+	treatment := filepath.Join(root, "guide.txt")
+	write(t, treatment, "guidance")
+	m.Variants[0].Treatment = []TreatmentAsset{{ID: "guide", Source: treatment}}
+	m.Variants[0].IntendedDifferences = []string{"Exposes the guide treatment."}
+	m.Cases[0].Expect = append(m.Cases[0].Expect, Expectation{ID: "references-available", Type: "command", Actual: "submission", Command: &Command{Executable: "sh", Arguments: []string{"-c", "grep -q '^- guide ' \"$1\" && test \"$(cat \"$2\")\" = visible", "sh", "{briefFile}", "{input:input}"}}})
 	m.Variants[0].Mock.Files = map[string]string{"created.txt": "created"}
 	plan, err := BuildPlan(manifestPath, m)
 	if err != nil {
@@ -154,6 +163,20 @@ func TestRunPlanMockSingleEvaluation(t *testing.T) {
 	if experiment.Results[0].Repository.FilesCreated != 1 {
 		t.Fatalf("unexpected repository metrics: %+v", experiment.Results[0].Repository)
 	}
+	requestBytes, err := os.ReadFile(filepath.Join(experiment.Results[0].ArtifactDirectory, "request.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var requestArtifact map[string]any
+	if err := json.Unmarshal(requestBytes, &requestArtifact); err != nil {
+		t.Fatal(err)
+	}
+	if requestArtifact["schemaVersion"] != float64(2) || !strings.Contains(requestArtifact["caseBrief"].(string), "# Case brief") {
+		t.Fatalf("unexpected v2 request evidence: %v", requestArtifact)
+	}
+	if _, exists := requestArtifact["task"]; exists {
+		t.Fatalf("legacy task field remains in request evidence: %v", requestArtifact)
+	}
 	first, err := Regrade(context.Background(), experiment.Directory)
 	if err != nil {
 		t.Fatal(err)
@@ -165,6 +188,10 @@ func TestRunPlanMockSingleEvaluation(t *testing.T) {
 	if first.Path == second.Path || first.Revision != 1 || second.Revision != 2 {
 		t.Fatalf("regrading did not create revisions: %+v %+v", first, second)
 	}
+	write(t, treatment, "changed guidance")
+	if _, err := Regrade(context.Background(), experiment.Directory); err == nil || !strings.Contains(err.Error(), "reference drift: treatment") {
+		t.Fatalf("expected changed treatment to block regrading, got %v", err)
+	}
 }
 
 func TestRemoveWorkspaceDeletesReadOnlyStagedInputs(t *testing.T) {
@@ -175,11 +202,169 @@ func TestRemoveWorkspaceDeletesReadOnlyStagedInputs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := stageWorkspaceInputs(Case{ID: "case", Given: Given{Prompt: Prompt{Text: "hello"}, Files: []InputAsset{{ID: "input", Source: input}}}}, Variant{}, workspace); err != nil {
+		t.Fatal(err)
+	}
 	if err := removeWorkspace(workspace.Root); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(workspace.Root); !os.IsNotExist(err) {
 		t.Fatalf("workspace still exists after cleanup: %v", err)
+	}
+}
+
+func TestPrepareWorkspaceWritesCaseBrief(t *testing.T) {
+	root := t.TempDir()
+	input := filepath.Join(root, "input.txt")
+	write(t, input, "visible")
+	caseConfig := Case{ID: "case-brief", Given: Given{Prompt: Prompt{Text: "Read declared input sample."}, Files: []InputAsset{{ID: "sample", Source: input}}}}
+	workspace, err := prepareWorkspace(caseConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer removeWorkspace(workspace.Root)
+	if err := stageWorkspaceInputs(caseConfig, Variant{}, workspace); err != nil {
+		t.Fatal(err)
+	}
+	if filepath.Base(workspace.BriefFile) != "brief.md" {
+		t.Fatalf("brief path = %s", workspace.BriefFile)
+	}
+	brief, err := os.ReadFile(workspace.BriefFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"# Case brief", "Case: case-brief", "Read declared input sample.", "# Shared declared inputs", "- sample (file): ", "# Variant treatment artifacts", "- None."} {
+		if !strings.Contains(string(brief), want) {
+			t.Fatalf("case brief missing %q: %s", want, brief)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(workspace.InputRoot, "task.md")); !os.IsNotExist(err) {
+		t.Fatalf("legacy task file exists: %v", err)
+	}
+}
+
+func TestWorkspaceSeparatesWritableFixtureSharedInputsAndTreatment(t *testing.T) {
+	root := t.TempDir()
+	fixture := filepath.Join(root, "fixture")
+	write(t, filepath.Join(fixture, "principle.md"), "original")
+	write(t, filepath.Join(fixture, "tool.sh"), "#!/bin/sh\nexit 0\n")
+	if err := os.Chmod(filepath.Join(fixture, "principle.md"), 0400); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(filepath.Join(fixture, "tool.sh"), 0500); err != nil {
+		t.Fatal(err)
+	}
+	shared := filepath.Join(root, "shared.txt")
+	write(t, shared, "shared")
+	treatment := filepath.Join(root, "skill")
+	write(t, filepath.Join(treatment, "SKILL.md"), "guidance")
+	caseConfig := Case{
+		ID: "planes", Fixture: &SourceRef{Source: fixture, Destination: "framework"},
+		Given: Given{Prompt: Prompt{Text: "Use available resources."}, Files: []InputAsset{{ID: "shared", Source: shared}}},
+	}
+	variant := Variant{ID: "with", Treatment: []TreatmentAsset{{ID: "skill", Source: treatment}}}
+	workspace, err := prepareWorkspace(caseConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer removeWorkspace(workspace.Root)
+	fixtureTarget := filepath.Join(workspace.Root, "framework", "principle.md")
+	if err := os.WriteFile(fixtureTarget, []byte("edited"), 0644); err != nil {
+		t.Fatalf("fixture was not writable: %v", err)
+	}
+	if sourceInfo, err := os.Stat(filepath.Join(fixture, "principle.md")); err != nil || sourceInfo.Mode().Perm() != 0400 {
+		t.Fatalf("fixture source permissions changed: info=%v err=%v", sourceInfo, err)
+	}
+	if toolInfo, err := os.Stat(filepath.Join(workspace.Root, "framework", "tool.sh")); err != nil || toolInfo.Mode().Perm()&0100 == 0 || toolInfo.Mode().Perm()&0200 == 0 {
+		t.Fatalf("fixture tool did not remain executable and become writable: info=%v err=%v", toolInfo, err)
+	}
+	baseline, err := snapshotTree(workspace.Root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := stageWorkspaceInputs(caseConfig, variant, workspace); err != nil {
+		t.Fatal(err)
+	}
+	if len(baseline) != 3 {
+		t.Fatalf("unexpected fixture baseline: %+v", baseline)
+	}
+	after, err := snapshotTree(workspace.Root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(baseline, after) {
+		t.Fatalf("sidecar changed repository inventory: before=%+v after=%+v", baseline, after)
+	}
+	for _, path := range []string{workspace.Inputs["shared"], filepath.Join(workspace.Treatments["skill"], "SKILL.md")} {
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if info.Mode().Perm()&0222 != 0 {
+			t.Fatalf("staged resource is writable: %s mode=%o", path, info.Mode().Perm())
+		}
+	}
+	brief, err := os.ReadFile(workspace.BriefFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"# Shared declared inputs", "- shared (file):", "# Variant treatment artifacts", "- skill (directory):"} {
+		if !strings.Contains(string(brief), want) {
+			t.Fatalf("brief missing %q: %s", want, brief)
+		}
+	}
+	request := RunRequest{Run: PlannedRun{CaseID: "planes"}, Variant: variant, Workspace: workspace, CaseBrief: string(brief)}
+	arguments, err := renderArguments([]string{"{input:shared}", "{treatment:skill}"}, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if arguments[0] != workspace.Inputs["shared"] || arguments[1] != workspace.Treatments["skill"] {
+		t.Fatalf("unexpected scoped argument rendering: %v", arguments)
+	}
+}
+
+func TestCasePreparationRunsBeforeCommonBaseline(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell preparation fixture is Unix-only")
+	}
+	root := t.TempDir()
+	write(t, filepath.Join(root, "input.txt"), "visible")
+	manifestPath := filepath.Join(root, "bench.yaml")
+	write(t, manifestPath, validManifest("prompt:\n        text: hello"))
+	m, err := LoadManifest(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.Cases[0].Prepare = []Command{{Executable: "sh", Arguments: []string{"-c", "printf prepared > {workspace}/prepared.txt"}}}
+	m.Cases[0].Expect = append(m.Cases[0].Expect, Expectation{ID: "prepared", Type: "file", Actual: "submission", Path: "prepared.txt", Operator: "exists"})
+	m.Variants = append(m.Variants, Variant{ID: "second", Adapter: "mock", Mock: &MockConfig{Stdout: "ok"}, IntendedDifferences: []string{"Second control variant."}})
+	plan, err := BuildPlan(manifestPath, m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	experiment, err := RunPlan(context.Background(), plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, result := range experiment.Results {
+		if !result.RequiredPassed || result.Repository.FilesCreated != 0 || result.Repository.FinalFiles != 1 {
+			t.Fatalf("preparation did not form the common baseline: %+v", result)
+		}
+	}
+}
+
+func TestSidecarMustNotExistBeforeBenchStagesIt(t *testing.T) {
+	caseConfig := Case{ID: "reserved", Given: Given{Prompt: Prompt{Text: "hello"}}}
+	workspace, err := prepareWorkspace(caseConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer removeWorkspace(workspace.Root)
+	if err := os.MkdirAll(workspace.InputRoot, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := stageWorkspaceInputs(caseConfig, Variant{}, workspace); err == nil || !strings.Contains(err.Error(), "already exists before staging") {
+		t.Fatalf("expected reserved sidecar collision, got %v", err)
 	}
 }
 
@@ -191,22 +376,38 @@ func TestProcessAdapterStdinAndNamedInput(t *testing.T) {
 	input := filepath.Join(root, "input.txt")
 	write(t, input, "named")
 	script := filepath.Join(root, "harness.sh")
-	write(t, script, "#!/bin/sh\nread task\nprintf '%s:%s' \"$task\" \"$(cat \"$1\")\"\n")
+	write(t, script, "#!/bin/sh\nread brief\nprintf '%s:%s:%s:%s' \"$brief\" \"$(basename \"$1\")\" \"$(cat \"$2\")\" \"$3\"\n")
 	if err := os.Chmod(script, 0755); err != nil {
 		t.Fatal(err)
 	}
-	workspace, err := prepareWorkspace(Case{ID: "case", Given: Given{Prompt: Prompt{Text: "hello"}, Files: []InputAsset{{ID: "sample", Source: input}}}})
+	caseConfig := Case{ID: "case", Given: Given{Prompt: Prompt{Text: "hello"}, Files: []InputAsset{{ID: "sample", Source: input}}}}
+	workspace, err := prepareWorkspace(caseConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer removeWorkspace(workspace.Root)
-	request := RunRequest{Run: PlannedRun{CaseID: "case"}, Variant: Variant{ID: "v", Adapter: "process", Process: &ProcessConfig{Executable: script, Arguments: []string{"{input:sample}"}, InputMode: "stdin"}}, Workspace: workspace, Task: "hello", TraceDir: filepath.Join(root, "traces")}
+	if err := stageWorkspaceInputs(caseConfig, Variant{}, workspace); err != nil {
+		t.Fatal(err)
+	}
+	request := RunRequest{Run: PlannedRun{CaseID: "case"}, Variant: Variant{ID: "v", Adapter: "process", Process: &ProcessConfig{Executable: script, Arguments: []string{"{briefFile}", "{input:sample}", "{brief}"}, InputMode: "stdin"}}, Workspace: workspace, CaseBrief: "hello", TraceDir: filepath.Join(root, "traces")}
 	result, err := (processAdapter{}).Execute(context.Background(), request)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.ExitCode != 0 || !strings.Contains(result.Stdout, "hello:named") {
+	if result.ExitCode != 0 || !strings.Contains(result.Stdout, "hello:brief.md:named:hello") {
 		t.Fatalf("unexpected process result: %+v", result)
+	}
+}
+
+func TestRenderArgumentsDoesNotRecursivelyExpandCaseBriefText(t *testing.T) {
+	workspace := &Workspace{Root: "/workspace", BriefFile: "/sidecar/brief.md", InputRoot: "/sidecar", Inputs: map[string]string{}, Treatments: map[string]string{"skill": "/sidecar/treatment/skill"}}
+	brief := "Keep these literal tokens: {workspace} and {treatment:skill}."
+	arguments, err := renderArguments([]string{"{brief}"}, RunRequest{Run: PlannedRun{CaseID: "case"}, Variant: Variant{ID: "with"}, Workspace: workspace, CaseBrief: brief})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(arguments) != 1 || arguments[0] != brief {
+		t.Fatalf("Case brief was recursively interpolated: %q", arguments)
 	}
 }
 
@@ -300,7 +501,7 @@ func TestProcessTimeoutTerminatesGroup(t *testing.T) {
 		t.Skip("Unix process-group test")
 	}
 	root := t.TempDir()
-	workspace := &Workspace{Root: root, InputRoot: root, TaskFile: filepath.Join(root, "task"), Inputs: map[string]string{}}
+	workspace := &Workspace{Root: root, InputRoot: root, BriefFile: filepath.Join(root, "brief.md"), Inputs: map[string]string{}}
 	request := RunRequest{Run: PlannedRun{CaseID: "case"}, Variant: Variant{ID: "v", Process: &ProcessConfig{Executable: "sh", Arguments: []string{"-c", "sleep 30 & wait"}, InputMode: "argument"}}, Workspace: workspace, TraceDir: filepath.Join(root, "traces")}
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
