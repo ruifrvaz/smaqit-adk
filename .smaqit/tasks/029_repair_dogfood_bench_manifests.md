@@ -1,7 +1,10 @@
 # Repair Dogfood Bench Manifests Broken by Task 027
 
-**Status:** Not Started
+**Status:** PR Open
+**PR:** #23
 **Created:** 2026-08-13
+**Started:** 2026-08-14
+**Mode:** Assisted
 
 ## Description
 
@@ -13,50 +16,81 @@ A second, real design consideration: `create-agent`/`create-skill`'s skills now 
 
 ## Design Decisions
 
-- **Unify all 4 manifests onto one staging philosophy** (`given.files`/`given.directories` + explicit `{input:<id>}` prompting) — no manifest performs a real global install or touches the developer machine's actual `~/.claude` or `~/.codex`.
-- **L2 is never spawned as a real registered custom agent inside Bench tests.** Its body is staged and read inline instead, reusing the Copilot-fallback pattern from Task 027. The real spawn mechanism is considered separately verified (Task 027's live `codex exec` test), not this task's job to re-prove.
-- **Both Claude `.md` and Codex `.toml` outputs get checked** in every `expect` block that previously checked one Copilot file, since L2 now always produces both.
-- **In-scope minor fix:** `new-principle`'s prompt currently claims `codex exec` has "no subagent-invocation capability" — Task 027's live test proved this false (spawn_agent works non-interactively). Correct this while touching the file.
+- **Bench vocabulary is authoritative.** A smaqit *Task* remains a tracked work item; Bench uses *Case* for an evaluation scenario, *Prompt* for `given.prompt`, *Case brief* for the rendered prompt plus declared inputs delivered to a harness, and *Harness workspace* for the writable execution directory.
+- **Make a clean v2 breaking terminology migration.** Replace `{task}`/`{taskFile}` with `{brief}`/`{briefFile}`, `RunRequest.Task` with `RunRequest.CaseBrief`, and `Workspace.TaskFile` with `Workspace.BriefFile`. Bump manifest and plan schemas from 1 to 2 and the independent `request.json` schema to 2; reject legacy placeholders and require old manifests/plans to be migrated and regenerated. Historical smaqit task records and the platform's real `Task` subagent tool are excluded.
+- **L2 conforms to the Bench case-brief contract.** When a case brief declares L2, a template, or rules as inputs, L2 reads those paths rather than consulting the developer's real global ADK installation. Global `~/.agents/smaqit-adk/` paths remain the normal fallback outside declared-input execution.
+- **Compiled skill output is context-sensitive.** Consumer-project compilation writes both `.agents/skills/[name]/SKILL.md` and `.claude/skills/[name]/SKILL.md`; compiling an ADK-shipped skill in this source repository writes `skills/[name]/SKILL.md`.
+- **Unify all 4 manifests onto one staging philosophy.** Every target and supporting artifact is a case-level `given.files`/`given.directories` input; each without-artifact variant removes all of those inputs during setup. No manifest performs a real global install or touches the developer machine's actual `~/.claude` or `~/.codex`.
+- **L2 is never spawned as a real registered custom agent inside Bench tests.** Its body is staged and read inline. The real spawn mechanism was verified separately in Task 027.
+- **Both Claude `.md` and Codex `.toml` agent outputs, and both project-local skill copies, are checked.** The create-skill validator runs against the Claude copy and the two compiled skill copies must be identical.
+- **In-scope prompt corrections:** prompts name the relevant declared-input IDs in the case brief, rather than relying on prompt-body placeholder interpolation; `new-principle` states that L0 is intentionally unregistered in the isolated workspace, rather than claiming `codex exec` lacks subagent invocation.
 
 ## Implementation Steps
 
-1. Fix `smaqit.new-principle`'s stale `l0agent` source path (`agents/smaqit.L0.agent.md` → `agents/smaqit.L0.md`); correct the "no subagent-invocation capability" claim in its prompt while there.
-2. Migrate `agents/smaqit.L2/bench.yaml` off the `lite`-install trick onto `given.files` staging (the base-agent template + base rules, mirroring how `new-principle` stages `framework/`); update both cases' `expect` blocks from `agents/*.agent.md` to `.claude/agents/*.md` + `.codex/agents/*.toml`.
-3. Update `agents/smaqit.L2/prompts/compile-base-agent.md` and `prompts/reject-unresolved-placeholders.md` to reference `{input:<id>}` explicitly for staged guidance, and name both new output paths in the "compile to" instruction.
-4. Migrate `skills/smaqit.create-agent/bench.yaml` off the `lite`-install trick onto `given.directories` staging `skills/smaqit.create-agent` (matches the README's own canonical example) plus `agents/smaqit.L2.md` for the inline-fallback pattern; update `expect` to `.claude/agents/qa-helper.md` + `.codex/agents/qa-helper.toml`.
-5. Update `skills/smaqit.create-agent`'s inline prompt (`given.prompt.text`) to reference `{input:skill}/SKILL.md` instead of the stale `.github/skills/...` path, and add the L2 inline-fallback instruction (mirroring `new-principle`'s existing wording for L0).
-6. Migrate `skills/smaqit.create-skill/bench.yaml` the same way: `given.directories` for `skills/smaqit.create-skill` + `agents/smaqit.L2.md`; `expect` updated to `.agents/skills/smaqit.new-principle/SKILL.md` (and/or `.claude/skills/...`); validator command path updated to match.
-7. Update `skills/smaqit.create-skill`'s inline prompt with the same `{input:skill}` + L2 inline-fallback treatment as step 5.
-8. Run `smaqit-adk bench suite validate .smaqit/bench` — fix any remaining structural issues until `valid=true` for all 4 manifests.
-9. Run `smaqit-adk bench suite run .smaqit/bench` (live, authenticated `codex exec`, real cost) — confirm pass/fail/inconclusive per manifest; diagnose any failures against known Bench gotchas (`.smaqit/bench/README.md`) before treating them as new bugs.
-10. Update `.smaqit/compendium.md`'s "known stale as of Task 027" note (under "Where does smaqit-adk's own dogfood benchmark suite live") to reflect the fix.
+1. Migrate Bench's rendered harness input to the Case brief contract: rename the exported Go API, rendered filename and heading, process placeholders, stdin delivery, and request-evidence field from Task terminology to CaseBrief/Brief terminology.
+2. Make the public contract a deliberate v2 break: update manifest/plan/request schemas, strict placeholder validation, migration diagnostics, and unit coverage for new placeholders, legacy-placeholder rejection, brief-file creation, stdin delivery, and request evidence.
+3. Update all shipped examples, executable test fixtures, documentation, and changelog entries to the v2 Case/Prompt/Case-brief vocabulary; retain real smaqit task workflow and platform subagent-tool references.
+4. Update `agents/smaqit.L2.md` so caller-provided outputs take precedence; consumer-project skill compilation creates the two project-local skill copies; ADK-source compilation retains its root `skills/` output; declared Case-brief inputs override global template/rule paths.
+5. Fix `smaqit.new-principle`'s stale L0 source path; stage the skill, L0 body, and framework source as declared inputs; remove all three for the baseline; correct the isolated-workspace wording in its prompt.
+6. Migrate `agents/smaqit.L2/bench.yaml` off the `lite`-install trick: stage L2, the base-agent template, and base rules per case; remove them for the baseline; update both cases' expectations and prompts for Claude/Codex dual output and declared-input use.
+7. Migrate `skills/smaqit.create-agent/bench.yaml`: stage its routing skill, L2, the base-agent template, and base rules per case; remove all four for the baseline; use declared-input IDs in prompts and assert both compiled agent renders.
+8. Migrate `skills/smaqit.create-skill/bench.yaml`: stage its routing skill, L2, the base-skill template, and skill rules per case; remove all four for the baseline; assert and compare both compiled skill copies and validate the Claude copy.
+9. Align `.smaqit/bench/README.md` and `skills/smaqit.bench-scaffold/SKILL.md` with the Case-brief and declared-input contract, including the fact that prompt bodies name declared input IDs rather than receiving interpolation.
+10. Run the focused Bench unit tests, example validation, and `smaqit-adk bench suite validate .smaqit/bench`; fix remaining structural failures until all four v2 manifests validate.
+11. Run `smaqit-adk bench suite run .smaqit/bench` (live, authenticated `codex exec`, real cost); confirm no harness-level errors and diagnose pass/fail/inconclusive outcomes using the documented Bench conventions.
+12. Update `.smaqit/compendium.md`'s Task-027-stale note to record the repaired suite and Case-brief terminology.
 
 ## Known Issues Triage
 
-[Populated by smaqit.task-start via smaqit.utils.triage-issues. Do not edit manually.]
+**Triaged:** 2026-08-14
+**Tools searched:** Codex CLI
+**Result:** Advisory
+
+### Blocking Issues
+- None.
+
+### Advisory Issues
+- None confirmed.
+
+### Historical (Closed)
+- None.
+
+### Unresolvable Tools
+- Codex CLI — the resolver returned unrelated repository `router-for-me/CLIProxyAPI`; no matching GitHub repository is available in the verified research map.
+
+### Omitted Tools
+- None.
+
+### Search Warnings
+- Codex CLI repository resolution — no GitHub issue search was run because the deterministic resolver returned an unrelated repository.
 
 ## Acceptance Criteria
 
-- [ ] `smaqit-adk bench suite validate .smaqit/bench` reports `valid=true` for all 4 manifests
-- [ ] No manifest references `.github/`, the `lite` command, or `.agent.md` output anywhere
-- [ ] Live `smaqit-adk bench suite run .smaqit/bench` executes without harness-level errors (pass/fail/inconclusive results are acceptable outcomes; crashes or timeouts are not)
-- [ ] `.smaqit/compendium.md`'s "known stale" note about these manifests is updated to reflect the fix
+- [x] Bench v2 uses Case/Prompt/Case-brief terminology throughout its public Go API, rendered harness input, placeholders, request evidence, examples, documentation, and executable fixtures; project-management tasks and platform `Task` tools remain unchanged
+- [x] `{brief}` and `{briefFile}` work; legacy `{task}` and `{taskFile}` are rejected with a clear migration error; manifest and plan schemas are v2 and request evidence uses its v2 `caseBrief` field
+- [x] L2 honors Case-brief declared inputs over global fallback paths and produces both project-local skill copies when caller-directed to compile for a consumer project
+- [x] `smaqit-adk bench suite validate .smaqit/bench` reports `valid=true` for all four migrated v2 manifests
+- [x] No migrated manifest references `.github/`, the `lite` command, `.agent.md` output, or legacy Task placeholders
+- [x] Live `smaqit-adk bench suite run .smaqit/bench` executes without harness-level errors (pass/fail/inconclusive results are acceptable outcomes; crashes or timeouts are not)
+- [x] `.smaqit/compendium.md`'s Task-027-stale note about these manifests is updated to reflect the repair
 
 ## Findings
 
 [Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
 
 **Implementation approach:**
-- TBD
+- Migrated Bench’s public delivery vocabulary to Case briefs and schema v2, then introduced declarative fixtures, shared inputs, and variant treatments for the dogfood suite.
+- Updated L2’s caller-supplied source/output contract and migrated all four dogfood manifests, prompts, documentation, examples, and compendium guidance.
 
 **Decisions made:**
-- TBD
+- Replaced imperative setup-based artifact copying and baseline removal with variant-only treatment staging; raw prompts use Case-brief table IDs rather than interpolation.
+- Kept historical migration references intact while enforcing the current contract in active manifests, examples, public APIs, and validations.
 
 **Blockers encountered:**
-- TBD
+- None; the authenticated live suite completed all four manifests with zero harness errors and zero timeouts.
 
 **Follow-up identified:**
-- TBD
+- The new-principle comparison tied because both variants met its current expectation; refine that scenario only if stronger treatment discrimination is needed.
 
 ## Files to Create / Modify
 
