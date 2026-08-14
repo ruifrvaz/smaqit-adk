@@ -9,13 +9,6 @@ cases:
     given:
       prompt:
         file: prompts/compile-base-agent.md
-      files:
-        - id: l2agent
-          source: ../../../../agents/smaqit.L2.md
-        - id: base-agent-template
-          source: ../../../../templates/agents/base-agent.template.md
-        - id: base-rules
-          source: ../../../../templates/agents/compiled/base.rules.md
     expect:
       - id: definition-written
         type: file
@@ -49,13 +42,6 @@ cases:
     given:
       prompt:
         file: prompts/reject-unresolved-placeholders.md
-      files:
-        - id: l2agent
-          source: ../../../../agents/smaqit.L2.md
-        - id: base-agent-template
-          source: ../../../../templates/agents/base-agent.template.md
-        - id: base-rules
-          source: ../../../../templates/agents/compiled/base.rules.md
     expect:
       - id: no-placeholder-file-written
         type: command
@@ -66,24 +52,13 @@ cases:
 variants:
   - id: with-artifact
     adapter: process
-    process:
-      executable: codex
-      arguments:
-        - exec
-        - --sandbox
-        - danger-full-access
-        - --skip-git-repo-check
-        - --cd
-        - "{workspace}"
-        - "{briefFile}"
-      inputMode: argument
-  - id: without-artifact
-    adapter: process
-    setup:
-      - executable: chmod
-        arguments: ["-R", "u+w", "{inputRoot}"]
-      - executable: rm
-        arguments: ["-rf", "{input:l2agent}", "{input:base-agent-template}", "{input:base-rules}"]
+    treatment:
+      - id: l2agent
+        source: ../../../../agents/smaqit.L2.md
+      - id: base-agent-template
+        source: ../../../../templates/agents/base-agent.template.md
+      - id: base-rules
+        source: ../../../../templates/agents/compiled/base.rules.md
     process:
       executable: codex
       arguments:
@@ -96,7 +71,22 @@ variants:
         - "{briefFile}"
       inputMode: argument
     intendedDifferences:
-      - Removes L2's body, base-agent template, and base rules from the declared inputs before the harness runs, establishing the no-artifact baseline.
+      - Exposes L2's body, the base-agent template, and base rules as the variant treatment.
+  - id: without-artifact
+    adapter: process
+    process:
+      executable: codex
+      arguments:
+        - exec
+        - --sandbox
+        - danger-full-access
+        - --skip-git-repo-check
+        - --cd
+        - "{workspace}"
+        - "{briefFile}"
+      inputMode: argument
+    intendedDifferences:
+      - Uses an explicitly empty treatment set, establishing the no-artifact baseline.
 execution:
   repetitions: 1
   timeoutSeconds: 600

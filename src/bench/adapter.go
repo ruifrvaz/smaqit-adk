@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -52,13 +51,22 @@ func renderArguments(arguments []string, request RunRequest) ([]string, error) {
 	for id, path := range request.Workspace.Inputs {
 		values["{input:"+id+"}"] = path
 	}
+	for id, path := range request.Workspace.Treatments {
+		values["{treatment:"+id+"}"] = path
+	}
 	out := make([]string, len(arguments))
 	for i, argument := range arguments {
-		out[i] = argument
-		for placeholder, value := range values {
-			out[i] = strings.ReplaceAll(out[i], placeholder, value)
-		}
-		if unresolved := placeholderPattern.FindString(out[i]); unresolved != "" {
+		unresolved := ""
+		out[i] = placeholderPattern.ReplaceAllStringFunc(argument, func(placeholder string) string {
+			if value, ok := values[placeholder]; ok {
+				return value
+			}
+			if unresolved == "" {
+				unresolved = placeholder
+			}
+			return placeholder
+		})
+		if unresolved != "" {
 			return nil, fmt.Errorf("unresolved placeholder %s", unresolved)
 		}
 	}

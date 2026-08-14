@@ -16,28 +16,20 @@ cases:
     given:
       prompt:
         text: |
-          I need to create a new base agent. If the path listed for declared
-          input `skill` exists, read its SKILL.md first and follow it exactly
+          I need to create a new base agent. If the Case brief lists a variant
+          treatment named `skill`, read its SKILL.md first and follow it exactly
           — do not invent your own approach instead. The skill directs you to
           invoke smaqit.L2, but L2 is intentionally not registered in this
-          isolated Bench workspace: if the path listed for declared input
-          `l2agent` exists, read its instructions and apply them inline. Use
-          the paths listed for `base-agent-template` and `base-rules` instead
-          of a global ADK installation. Its name is qa-helper and its purpose
+          isolated Bench workspace: if the treatment table lists `l2agent`,
+          read its instructions and apply them inline. Use the treatment paths
+          listed for `base-agent-template` and `base-rules` as authoritative.
+          If the treatment set is empty, proceed without ADK guidance and do
+          not search project-global or user-global ADK paths. Its name is
+          qa-helper and its purpose
           is answering questions about the project's QA process. If your
           workflow calls for asking a clarifying question, treat "qa-helper"
           as the answer and proceed — you are running non-interactively via
           `codex exec` and there is no further input coming.
-      directories:
-        - id: skill
-          source: ../../../../skills/smaqit.create-agent
-      files:
-        - id: l2agent
-          source: ../../../../agents/smaqit.L2.md
-        - id: base-agent-template
-          source: ../../../../templates/agents/base-agent.template.md
-        - id: base-rules
-          source: ../../../../templates/agents/compiled/base.rules.md
     expect:
       - id: definition-written
         type: file
@@ -55,29 +47,21 @@ cases:
     given:
       prompt:
         text: |
-          Create an agent. If the path listed for declared input `skill`
-          exists, read its SKILL.md first and follow it exactly — do not
+          Create an agent. If the Case brief lists a variant treatment named
+          `skill`, read its SKILL.md first and follow it exactly — do not
           invent your own approach instead. The skill directs you to invoke
           smaqit.L2, but L2 is intentionally not registered in this isolated
-          Bench workspace: if the path listed for declared input `l2agent`
-          exists, read its instructions and apply them inline. Use the paths
-          listed for `base-agent-template` and `base-rules` instead of a
-          global ADK installation. If your workflow calls for asking a
+          Bench workspace: if the treatment table lists `l2agent`, read its
+          instructions and apply them inline. Use the treatment paths listed
+          for `base-agent-template` and `base-rules` as authoritative. If the
+          treatment set is empty, proceed without ADK guidance and do not
+          search project-global or user-global ADK paths. If your workflow
+          calls for asking a
           clarifying question about its name, answer "helper" and proceed —
           you are running non-interactively via `codex exec` and there is no
           further input coming. Infer the rest of the specification yourself;
           where something is genuinely ambiguous, flag it in the written
           definition rather than asking about it.
-      directories:
-        - id: skill
-          source: ../../../../skills/smaqit.create-agent
-      files:
-        - id: l2agent
-          source: ../../../../agents/smaqit.L2.md
-        - id: base-agent-template
-          source: ../../../../templates/agents/base-agent.template.md
-        - id: base-rules
-          source: ../../../../templates/agents/compiled/base.rules.md
     expect:
       - id: definition-written
         type: file
@@ -92,24 +76,15 @@ cases:
 variants:
   - id: with-artifact
     adapter: process
-    process:
-      executable: codex
-      arguments:
-        - exec
-        - --sandbox
-        - danger-full-access
-        - --skip-git-repo-check
-        - --cd
-        - "{workspace}"
-        - "{briefFile}"
-      inputMode: argument
-  - id: without-artifact
-    adapter: process
-    setup:
-      - executable: chmod
-        arguments: ["-R", "u+w", "{inputRoot}"]
-      - executable: rm
-        arguments: ["-rf", "{input:skill}", "{input:l2agent}", "{input:base-agent-template}", "{input:base-rules}"]
+    treatment:
+      - id: skill
+        source: ../../../../skills/smaqit.create-agent
+      - id: l2agent
+        source: ../../../../agents/smaqit.L2.md
+      - id: base-agent-template
+        source: ../../../../templates/agents/base-agent.template.md
+      - id: base-rules
+        source: ../../../../templates/agents/compiled/base.rules.md
     process:
       executable: codex
       arguments:
@@ -122,7 +97,22 @@ variants:
         - "{briefFile}"
       inputMode: argument
     intendedDifferences:
-      - Removes the routing skill, L2 body, base-agent template, and base rules from declared inputs before the harness runs, establishing the no-artifact baseline.
+      - Exposes the routing skill, L2 body, base-agent template, and base rules as the variant treatment.
+  - id: without-artifact
+    adapter: process
+    process:
+      executable: codex
+      arguments:
+        - exec
+        - --sandbox
+        - danger-full-access
+        - --skip-git-repo-check
+        - --cd
+        - "{workspace}"
+        - "{briefFile}"
+      inputMode: argument
+    intendedDifferences:
+      - Uses an explicitly empty treatment set, establishing the no-artifact baseline.
 execution:
   repetitions: 1
   timeoutSeconds: 600

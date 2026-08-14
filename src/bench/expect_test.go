@@ -89,8 +89,12 @@ func TestWorkspaceDoesNotExposeOracle(t *testing.T) {
 	oracle := filepath.Join(root, "oracle.txt")
 	write(t, input, "visible")
 	write(t, oracle, "secret expected value")
-	workspace, err := prepareWorkspace(Case{ID: "case", Given: Given{Prompt: Prompt{Text: "task"}, Files: []InputAsset{{ID: "input", Source: input}}}, Expect: []Expectation{{ID: "hidden", Type: "text", Actual: "stdout", ValueFile: oracle}}})
+	caseConfig := Case{ID: "case", Given: Given{Prompt: Prompt{Text: "prompt"}, Files: []InputAsset{{ID: "input", Source: input}}}, Expect: []Expectation{{ID: "hidden", Type: "text", Actual: "stdout", ValueFile: oracle}}}
+	workspace, err := prepareWorkspace(caseConfig)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := stageWorkspaceInputs(caseConfig, Variant{}, workspace); err != nil {
 		t.Fatal(err)
 	}
 	defer removeWorkspace(workspace.Root)

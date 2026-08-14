@@ -35,6 +35,7 @@ type Manifest struct {
 type Case struct {
 	ID      string        `yaml:"id" json:"id"`
 	Fixture *SourceRef    `yaml:"fixture,omitempty" json:"fixture,omitempty"`
+	Prepare []Command     `yaml:"prepare,omitempty" json:"prepare,omitempty"`
 	Given   Given         `yaml:"given" json:"given"`
 	Expect  []Expectation `yaml:"expect" json:"expect"`
 }
@@ -53,7 +54,8 @@ type Prompt struct {
 }
 
 type SourceRef struct {
-	Source string `yaml:"source" json:"source"`
+	Source      string `yaml:"source" json:"source"`
+	Destination string `yaml:"destination,omitempty" json:"destination,omitempty"`
 }
 
 type InputAsset struct {
@@ -63,13 +65,19 @@ type InputAsset struct {
 	MediaType   string `yaml:"mediaType,omitempty" json:"mediaType,omitempty"`
 }
 
+type TreatmentAsset struct {
+	ID        string `yaml:"id" json:"id"`
+	Source    string `yaml:"source" json:"source"`
+	MediaType string `yaml:"mediaType,omitempty" json:"mediaType,omitempty"`
+}
+
 type Variant struct {
-	ID                  string         `yaml:"id" json:"id"`
-	Adapter             string         `yaml:"adapter" json:"adapter"`
-	Process             *ProcessConfig `yaml:"process,omitempty" json:"process,omitempty"`
-	Mock                *MockConfig    `yaml:"mock,omitempty" json:"mock,omitempty"`
-	Setup               []Command      `yaml:"setup,omitempty" json:"setup,omitempty"`
-	IntendedDifferences []string       `yaml:"intendedDifferences,omitempty" json:"intendedDifferences,omitempty"`
+	ID                  string           `yaml:"id" json:"id"`
+	Adapter             string           `yaml:"adapter" json:"adapter"`
+	Process             *ProcessConfig   `yaml:"process,omitempty" json:"process,omitempty"`
+	Mock                *MockConfig      `yaml:"mock,omitempty" json:"mock,omitempty"`
+	Treatment           []TreatmentAsset `yaml:"treatment,omitempty" json:"treatment,omitempty"`
+	IntendedDifferences []string         `yaml:"intendedDifferences,omitempty" json:"intendedDifferences,omitempty"`
 }
 
 type ProcessConfig struct {
@@ -290,6 +298,9 @@ func (m *Manifest) resolvePaths(base string) {
 		if c.Fixture != nil {
 			c.Fixture.Source = resolve(c.Fixture.Source)
 		}
+		for j := range c.Prepare {
+			c.Prepare[j].Executable = resolveExecutable(c.Prepare[j].Executable)
+		}
 		c.Given.Prompt.File = resolve(c.Given.Prompt.File)
 		groups := []*[]InputAsset{&c.Given.Specs, &c.Given.Files, &c.Given.Directories, &c.Given.Images}
 		for _, group := range groups {
@@ -309,8 +320,8 @@ func (m *Manifest) resolvePaths(base string) {
 		if m.Variants[i].Process != nil {
 			m.Variants[i].Process.Executable = resolveExecutable(m.Variants[i].Process.Executable)
 		}
-		for j := range m.Variants[i].Setup {
-			m.Variants[i].Setup[j].Executable = resolveExecutable(m.Variants[i].Setup[j].Executable)
+		for j := range m.Variants[i].Treatment {
+			m.Variants[i].Treatment[j].Source = resolve(m.Variants[i].Treatment[j].Source)
 		}
 	}
 	for i := range m.Graders {
@@ -324,8 +335,10 @@ func (m *Manifest) resolvePaths(base string) {
 func (m *Manifest) Validate() []Diagnostic {
 	var ds []Diagnostic
 	add := func(path, msg string) { ds = append(ds, Diagnostic{Path: path, Message: msg}) }
-	if m.SchemaVersion != ManifestSchemaVersion {
-		add("schemaVersion", "must be 2; migrate {task}/{taskFile} placeholders to {brief}/{briefFile}")
+	if m.SchemaVersion == 1 {
+		add("schemaVersion", "schema v1 is unsupported; migrate the manifest to schema v2 and regenerate saved plans")
+	} else if m.SchemaVersion != ManifestSchemaVersion {
+		add("schemaVersion", "must be 2")
 	}
 	if strings.TrimSpace(m.Name) == "" {
 		add("name", "is required")
@@ -337,6 +350,7 @@ func (m *Manifest) Validate() []Diagnostic {
 		add("variants", "must contain at least one variant")
 	}
 	seenCases := map[string]bool{}
+	caseInputs := make([]map[string]bool, len(m.Cases))
 	for i, c := range m.Cases {
 		p := fmt.Sprintf("cases[%d]", i)
 		validateID(c.ID, p+".id", seenCases, add)
@@ -348,11 +362,28 @@ func (m *Manifest) Validate() []Diagnostic {
 		}
 		if c.Fixture != nil {
 			requireDir(c.Fixture.Source, p+".fixture.source", add)
+			if c.Fixture.Destination != "" && !safeRelative(c.Fixture.Destination) {
+				add(p+".fixture.destination", "must be a relative contained path")
+			}
+			if destination := filepath.Clean(defaultString(c.Fixture.Destination, ".")); destination == inputDirectoryName || strings.HasPrefix(filepath.ToSlash(destination), inputDirectoryName+"/") {
+				add(p+".fixture.destination", "must not overlap the reserved Bench sidecar")
+			}
 			if pathWithin(c.Fixture.Source, m.Output.Directory) {
 				add("output.directory", "must be outside fixture "+c.Fixture.Source)
 			}
+			if filepath.Clean(defaultString(c.Fixture.Destination, ".")) == "." {
+				if _, err := os.Lstat(filepath.Join(c.Fixture.Source, inputDirectoryName)); err == nil {
+					add(p+".fixture.source", "must not contain the reserved Bench sidecar at its root")
+				}
+			}
+		}
+		for j, command := range c.Prepare {
+			commandPath := fmt.Sprintf("%s.prepare[%d]", p, j)
+			validateCommand(command, commandPath, add)
+			validatePreparationArguments(command.Arguments, commandPath+".arguments", add)
 		}
 		assetIDs := map[string]bool{}
+		caseInputs[i] = assetIDs
 		destinations := map[string]bool{}
 		for _, named := range []struct {
 			name      string
@@ -366,19 +397,24 @@ func (m *Manifest) Validate() []Diagnostic {
 				ap := fmt.Sprintf("%s.given.%s[%d]", p, named.name, j)
 				validateID(a.ID, ap+".id", assetIDs, add)
 				requirePath(a.Source, ap+".source", named.directory, add)
+				if c.Fixture != nil && pathsOverlap(c.Fixture.Source, a.Source) {
+					add(ap+".source", "must be outside the fixture so the declared input remains exclusively read-only")
+				}
 				if named.directory && pathWithin(a.Source, m.Output.Directory) {
 					add("output.directory", "must be outside declared input directory "+a.Source)
 				}
 				if a.Destination != "" && !safeRelative(a.Destination) {
 					add(ap+".destination", "must be a relative contained path")
 				}
-				destination := filepath.Clean(a.Destination)
-				if a.Destination != "" && destinations[destination] {
+				destination := effectiveInputDestination(named.name, a.ID, a.Source, a.Destination)
+				destinationSlash := filepath.ToSlash(destination)
+				if destination == "." || destination == "brief.md" || strings.HasPrefix(destinationSlash, "brief.md/") || destination == "treatment" || strings.HasPrefix(destinationSlash, "treatment/") {
+					add(ap+".destination", "must not overlap Bench-managed sidecar paths")
+				}
+				if destinations[destination] {
 					add(ap+".destination", "must be unique within the case")
 				}
-				if a.Destination != "" {
-					destinations[destination] = true
-				}
+				destinations[destination] = true
 			}
 		}
 		if len(c.Expect) == 0 {
@@ -389,12 +425,47 @@ func (m *Manifest) Validate() []Diagnostic {
 			ep := fmt.Sprintf("%s.expect[%d]", p, j)
 			validateID(e.ID, ep+".id", expectIDs, add)
 			validateExpectation(e, ep, add)
+			if e.Command != nil {
+				validateArgumentReferences(e.Command.Arguments, ep+".command.arguments", assetIDs, nil, add)
+			}
 		}
 	}
 	seenVariants := map[string]bool{}
 	for i, v := range m.Variants {
 		p := fmt.Sprintf("variants[%d]", i)
 		validateID(v.ID, p+".id", seenVariants, add)
+		treatmentIDs := map[string]bool{}
+		for j, treatment := range v.Treatment {
+			tp := fmt.Sprintf("%s.treatment[%d]", p, j)
+			validateID(treatment.ID, tp+".id", treatmentIDs, add)
+			requireAny(treatment.Source, tp+".source", add)
+			for caseIndex, c := range m.Cases {
+				if c.Fixture != nil && pathsOverlap(c.Fixture.Source, treatment.Source) {
+					add(tp+".source", fmt.Sprintf("must be outside cases[%d].fixture so the treatment remains variant-only", caseIndex))
+				}
+				for _, group := range [][]InputAsset{c.Given.Specs, c.Given.Files, c.Given.Directories, c.Given.Images} {
+					for _, input := range group {
+						if pathsOverlap(input.Source, treatment.Source) {
+							add(tp+".source", fmt.Sprintf("must not be contained by shared input %s in case %s", input.ID, c.ID))
+						}
+					}
+				}
+			}
+			if pathWithin(treatment.Source, m.Output.Directory) {
+				add("output.directory", "must be outside treatment source "+treatment.Source)
+			}
+		}
+		hasIntendedDifference := false
+		for j, difference := range v.IntendedDifferences {
+			if strings.TrimSpace(difference) == "" {
+				add(fmt.Sprintf("%s.intendedDifferences[%d]", p, j), "must not be blank")
+			} else {
+				hasIntendedDifference = true
+			}
+		}
+		if len(v.Treatment) > 0 && !hasIntendedDifference {
+			add(p+".intendedDifferences", "is required when treatment artifacts are declared")
+		}
 		switch v.Adapter {
 		case "process":
 			if v.Mock != nil {
@@ -410,6 +481,11 @@ func (m *Manifest) Validate() []Diagnostic {
 					add(p+".process.inputMode", "must be stdin or argument")
 				}
 				validateArguments(v.Process.Arguments, p+".process.arguments", add)
+				for caseIndex, c := range m.Cases {
+					validateArgumentReferences(v.Process.Arguments, p+".process.arguments", caseInputs[caseIndex], treatmentIDs, func(path, message string) {
+						add(path, message+" for case "+c.ID)
+					})
+				}
 				if strings.HasPrefix(filepath.Base(v.Process.Executable), "smaqit-adk") && len(v.Process.Arguments) > 0 && v.Process.Arguments[0] == "bench" {
 					add(p+".process", "direct recursive smaqit-adk bench execution is not allowed")
 				}
@@ -443,9 +519,6 @@ func (m *Manifest) Validate() []Diagnostic {
 			}
 		default:
 			add(p+".adapter", "must be process or mock")
-		}
-		for j, command := range v.Setup {
-			validateCommand(command, fmt.Sprintf("%s.setup[%d]", p, j), add)
 		}
 	}
 	if m.Execution.Repetitions < 1 {
@@ -482,6 +555,11 @@ func (m *Manifest) Validate() []Diagnostic {
 				add(p+".weight", "must be greater than 0 and at most 1")
 			}
 			validateCommand(g.Command, p+".command", add)
+			for caseIndex, c := range m.Cases {
+				validateArgumentReferences(g.Command.Arguments, p+".command.arguments", caseInputs[caseIndex], nil, func(path, message string) {
+					add(path, message+" for case "+c.ID)
+				})
+			}
 			for j, asset := range g.Assets {
 				requireAny(asset, fmt.Sprintf("%s.assets[%d]", p, j), add)
 			}
@@ -489,6 +567,47 @@ func (m *Manifest) Validate() []Diagnostic {
 		}
 		if sum != 1 {
 			add("graders", "weights must sum exactly to 1.0 (got "+strconv.FormatFloat(sum, 'g', -1, 64)+")")
+		}
+	}
+	type referencedPath struct{ path, label string }
+	var visible, hidden []referencedPath
+	for i, c := range m.Cases {
+		casePath := fmt.Sprintf("cases[%d]", i)
+		if c.Fixture != nil {
+			visible = append(visible, referencedPath{c.Fixture.Source, casePath + ".fixture.source"})
+		}
+		for _, named := range []struct {
+			name   string
+			assets []InputAsset
+		}{{"specs", c.Given.Specs}, {"files", c.Given.Files}, {"directories", c.Given.Directories}, {"images", c.Given.Images}} {
+			for j, input := range named.assets {
+				visible = append(visible, referencedPath{input.Source, fmt.Sprintf("%s.given.%s[%d].source", casePath, named.name, j)})
+			}
+		}
+		for j, expectation := range c.Expect {
+			if expectation.ValueFile != "" {
+				hidden = append(hidden, referencedPath{expectation.ValueFile, fmt.Sprintf("%s.expect[%d].valueFile", casePath, j)})
+			}
+			if expectation.Golden != "" {
+				hidden = append(hidden, referencedPath{expectation.Golden, fmt.Sprintf("%s.expect[%d].golden", casePath, j)})
+			}
+		}
+	}
+	for i, v := range m.Variants {
+		for j, treatment := range v.Treatment {
+			visible = append(visible, referencedPath{treatment.Source, fmt.Sprintf("variants[%d].treatment[%d].source", i, j)})
+		}
+	}
+	for i, grader := range m.Graders {
+		for j, asset := range grader.Assets {
+			hidden = append(hidden, referencedPath{asset, fmt.Sprintf("graders[%d].assets[%d]", i, j)})
+		}
+	}
+	for _, visiblePath := range visible {
+		for _, hiddenPath := range hidden {
+			if pathWithin(visiblePath.path, hiddenPath.path) {
+				add(visiblePath.label, "must not contain hidden oracle "+hiddenPath.label)
+			}
 		}
 	}
 	sort.Slice(ds, func(i, j int) bool { return ds[i].Path < ds[j].Path })
@@ -657,7 +776,15 @@ func validateCommand(c Command, path string, add func(string, string)) {
 func validateArguments(arguments []string, path string, add func(string, string)) {
 	for i, argument := range arguments {
 		for _, placeholder := range placeholderPattern.FindAllString(argument, -1) {
-			if allowedPlaceholders[placeholder] || (strings.HasPrefix(placeholder, "{input:") && idPattern.MatchString(strings.TrimSuffix(strings.TrimPrefix(placeholder, "{input:"), "}"))) {
+			if placeholder == "{task}" {
+				add(fmt.Sprintf("%s[%d]", path, i), "legacy placeholder {task}; schema v2 uses {brief}")
+				continue
+			}
+			if placeholder == "{taskFile}" {
+				add(fmt.Sprintf("%s[%d]", path, i), "legacy placeholder {taskFile}; schema v2 uses {briefFile}")
+				continue
+			}
+			if allowedPlaceholders[placeholder] || validDynamicPlaceholder(placeholder, "input") || validDynamicPlaceholder(placeholder, "treatment") {
 				continue
 			}
 			add(fmt.Sprintf("%s[%d]", path, i), "unsupported placeholder "+placeholder)
@@ -665,6 +792,41 @@ func validateArguments(arguments []string, path string, add func(string, string)
 		withoutPlaceholders := placeholderPattern.ReplaceAllString(argument, "")
 		if strings.ContainsAny(withoutPlaceholders, "{}") {
 			add(fmt.Sprintf("%s[%d]", path, i), "contains malformed placeholder syntax")
+		}
+	}
+}
+
+func validDynamicPlaceholder(placeholder, namespace string) bool {
+	prefix := "{" + namespace + ":"
+	return strings.HasPrefix(placeholder, prefix) && idPattern.MatchString(strings.TrimSuffix(strings.TrimPrefix(placeholder, prefix), "}"))
+}
+
+func validateArgumentReferences(arguments []string, path string, inputs, treatments map[string]bool, add func(string, string)) {
+	for i, argument := range arguments {
+		for _, placeholder := range placeholderPattern.FindAllString(argument, -1) {
+			if validDynamicPlaceholder(placeholder, "input") {
+				id := strings.TrimSuffix(strings.TrimPrefix(placeholder, "{input:"), "}")
+				if !inputs[id] {
+					add(fmt.Sprintf("%s[%d]", path, i), "references undeclared input "+id)
+				}
+			}
+			if validDynamicPlaceholder(placeholder, "treatment") {
+				id := strings.TrimSuffix(strings.TrimPrefix(placeholder, "{treatment:"), "}")
+				if !treatments[id] {
+					add(fmt.Sprintf("%s[%d]", path, i), "references unavailable treatment "+id)
+				}
+			}
+		}
+	}
+}
+
+func validatePreparationArguments(arguments []string, path string, add func(string, string)) {
+	allowed := map[string]bool{"{workspace}": true, "{caseId}": true}
+	for i, argument := range arguments {
+		for _, placeholder := range placeholderPattern.FindAllString(argument, -1) {
+			if !allowed[placeholder] {
+				add(fmt.Sprintf("%s[%d]", path, i), "placeholder "+placeholder+" is unavailable during case preparation")
+			}
 		}
 	}
 }
@@ -701,6 +863,9 @@ func requirePathKind(path, label string, dir *bool, add func(string, string)) {
 	if dir != nil && !*dir && info.IsDir() {
 		add(label, "must be a file")
 	}
+	if !info.IsDir() && !info.Mode().IsRegular() {
+		add(label, "must be a regular file or directory")
+	}
 	if info.IsDir() {
 		_ = filepath.WalkDir(path, func(child string, entry os.DirEntry, err error) error {
 			if err != nil {
@@ -709,6 +874,14 @@ func requirePathKind(path, label string, dir *bool, add func(string, string)) {
 			if entry.Type()&os.ModeSymlink != 0 {
 				add(label, "contains symbolic link: "+child)
 				return filepath.SkipDir
+			}
+			entryInfo, infoErr := entry.Info()
+			if infoErr != nil {
+				add(label, "cannot inspect path: "+child)
+				return filepath.SkipDir
+			}
+			if !entryInfo.IsDir() && !entryInfo.Mode().IsRegular() {
+				add(label, "contains non-regular file: "+child)
 			}
 			return nil
 		})
@@ -722,10 +895,21 @@ func safeRelative(path string) bool {
 	return clean != ".." && !strings.HasPrefix(clean, ".."+string(filepath.Separator))
 }
 
+func effectiveInputDestination(group, id, source, explicit string) string {
+	if explicit != "" {
+		return filepath.Clean(explicit)
+	}
+	return filepath.Join(group, id+filepath.Ext(source))
+}
+
 func pathWithin(parent, child string) bool {
 	if parent == "" || child == "" {
 		return false
 	}
 	rel, err := filepath.Rel(filepath.Clean(parent), filepath.Clean(child))
 	return err == nil && (rel == "." || rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)))
+}
+
+func pathsOverlap(first, second string) bool {
+	return pathWithin(first, second) || pathWithin(second, first)
 }

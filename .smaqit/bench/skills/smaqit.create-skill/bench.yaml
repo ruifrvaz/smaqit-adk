@@ -12,29 +12,21 @@ cases:
       prompt:
         text: |
           I need to create a new skill for adding framework principles to the
-          ADK. If the path listed for declared input `skill` exists, read its
-          SKILL.md first and follow it exactly — do not use your own built-in
+          ADK. If the Case brief lists a variant treatment named `skill`, read
+          its SKILL.md first and follow it exactly — do not use your own built-in
           skill-authoring tooling instead. The skill directs you to invoke
           smaqit.L2, but L2 is intentionally not registered in this isolated
-          Bench workspace: if the path listed for declared input `l2agent`
-          exists, read its instructions and apply them inline. Use the paths
-          listed for `base-skill-template` and `skill-rules` instead of a
-          global ADK installation. If validation is required, the source is
-          under the declared `skill` directory's `scripts/` subdirectory.
+          Bench workspace: if the treatment table lists `l2agent`, read its
+          instructions and apply them inline. Use the treatment paths listed
+          for `base-skill-template` and `skill-rules` as authoritative. If
+          validation is required, the source is under the `skill` treatment
+          directory's `scripts/` subdirectory. If the treatment set is empty,
+          proceed without ADK guidance and do not search project-global or
+          user-global ADK paths.
           If your workflow calls for asking a clarifying question about its
           name, answer "smaqit.new-principle" and proceed — you are running
           non-interactively via `codex exec` and there is no further input
           coming.
-      directories:
-        - id: skill
-          source: ../../../../skills/smaqit.create-skill
-      files:
-        - id: l2agent
-          source: ../../../../agents/smaqit.L2.md
-        - id: base-skill-template
-          source: ../../../../templates/skills/base-skill.template.md
-        - id: skill-rules
-          source: ../../../../templates/skills/compiled/skill.rules.md
     expect:
       - id: definition-written
         type: file
@@ -70,24 +62,15 @@ cases:
 variants:
   - id: with-artifact
     adapter: process
-    process:
-      executable: codex
-      arguments:
-        - exec
-        - --sandbox
-        - danger-full-access
-        - --skip-git-repo-check
-        - --cd
-        - "{workspace}"
-        - "{briefFile}"
-      inputMode: argument
-  - id: without-artifact
-    adapter: process
-    setup:
-      - executable: chmod
-        arguments: ["-R", "u+w", "{inputRoot}"]
-      - executable: rm
-        arguments: ["-rf", "{input:skill}", "{input:l2agent}", "{input:base-skill-template}", "{input:skill-rules}"]
+    treatment:
+      - id: skill
+        source: ../../../../skills/smaqit.create-skill
+      - id: l2agent
+        source: ../../../../agents/smaqit.L2.md
+      - id: base-skill-template
+        source: ../../../../templates/skills/base-skill.template.md
+      - id: skill-rules
+        source: ../../../../templates/skills/compiled/skill.rules.md
     process:
       executable: codex
       arguments:
@@ -100,7 +83,22 @@ variants:
         - "{briefFile}"
       inputMode: argument
     intendedDifferences:
-      - Removes the routing skill, L2 body, base-skill template, and skill rules from declared inputs before the harness runs, establishing the no-artifact baseline.
+      - Exposes the routing skill, L2 body, base-skill template, and skill rules as the variant treatment.
+  - id: without-artifact
+    adapter: process
+    process:
+      executable: codex
+      arguments:
+        - exec
+        - --sandbox
+        - danger-full-access
+        - --skip-git-repo-check
+        - --cd
+        - "{workspace}"
+        - "{briefFile}"
+      inputMode: argument
+    intendedDifferences:
+      - Uses an explicitly empty treatment set, establishing the no-artifact baseline.
 execution:
   repetitions: 1
   timeoutSeconds: 600

@@ -1,4 +1,4 @@
-Read and follow the L2 compiler instructions at the path listed for declared input `l2agent`. This isolated run supplies the base-agent template and base rules at the paths listed for `base-agent-template` and `base-rules`; use those declared inputs instead of any global ADK installation.
+If the Case brief lists a variant treatment artifact named `l2agent`, read and follow its compiler instructions. In that same treatment table, use `base-agent-template` and `base-rules` as the authoritative compilation sources. If those treatments are absent, proceed without ADK guidance and do not search project-global or user-global ADK locations.
 
 Compile the following agent definition into agent files.
 

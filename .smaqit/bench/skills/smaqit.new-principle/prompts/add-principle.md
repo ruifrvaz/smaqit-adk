@@ -1,11 +1,12 @@
 Add a new principle to this project's ADK framework.
 
-If the path listed for declared input `skill` exists, read its SKILL.md first
-and follow it exactly — do not invent your own approach instead. That skill
+If the Case brief lists a variant treatment named `skill`, read its SKILL.md
+first and follow it exactly — do not invent your own approach instead. That skill
 describes invoking the `smaqit.L0` agent as a subagent; L0 is intentionally
-not registered in this isolated Bench workspace, so if the path listed for
-declared input `l0agent` exists, read those instructions and apply them
-inline.
+not registered in this isolated Bench workspace, so if the treatment table
+lists `l0agent`, read those instructions and apply them inline. If the
+treatment set is empty, proceed without ADK guidance and do not search
+project-global or user-global ADK paths.
 
 The project's framework files are already present, writable, at
 `framework/*.md` relative to your working directory (this is the real

@@ -23,7 +23,7 @@ Skill suites live under `skills/<skill-id>/`; agent suites (flat files, no natur
 
 ## Bench vocabulary
 
-Bench uses **Case** for an evaluation scenario, **Prompt** for the author-supplied `given.prompt`, and **Case brief** for the rendered prompt plus the declared-input paths delivered to a harness. A smaqit **Task** remains a tracked work item and is not Bench terminology. Process manifests use `{brief}` for the rendered Case brief and `{briefFile}` for its read-only `brief.md` file.
+Bench uses **Case** for an evaluation scenario, **Prompt** for the author-supplied `given.prompt`, and **Case brief** for the rendered prompt plus shared-input and variant-treatment paths delivered to a harness. A smaqit **Task** remains a tracked work item and is not Bench terminology. Process manifests use `{brief}` for the rendered Case brief and `{briefFile}` for its read-only `brief.md` file.
 
 ## Case naming
 
@@ -31,7 +31,7 @@ Each `Case.ID` in a manifest names the scenario, not the target (the target is i
 
 ## With-artifact / without-artifact comparison
 
-Per Task 026's design decision, this is **one Case, two Variants**, not two Cases. Stage the target skill/agent as a case-level input (visible to both variants), then use the *without-artifact* variant's `setup` to remove it before the harness runs. Prompts may name declared inputs only conditionally, so the same Case brief remains honest after the baseline removes them. This lets Bench's native `compare.go` (grouped by `VariantID`) produce the win/tie/inconclusive comparison directly, with no custom aggregation code:
+This is **one Case, two Variants**, not two Cases. Put the target skill/agent and its supporting sources in the with-artifact variant's `treatment`; leave the baseline treatment empty. Bench stages treatments read-only after the common writable fixture and Case preparation are complete. The Case brief renders each variant's actual treatment table, so no removal command or prompt mutation is needed:
 
 ```yaml
 cases:
@@ -39,9 +39,6 @@ cases:
     given:
       prompt:
         file: prompt.md
-      directories:
-        - id: skill
-          source: ../../../../skills/smaqit.create-agent   # relative to this bench.yaml
     expect:
       - id: definition-file-written
         type: file
@@ -51,47 +48,44 @@ cases:
 variants:
   - id: with-artifact
     adapter: process
+    treatment:
+      - id: skill
+        source: ../../../../skills/smaqit.create-agent
     process: *codex-exec        # see the reusable block below
+    intendedDifferences:
+      - Exposes the target skill as the variant treatment.
   - id: without-artifact
     adapter: process
     process: *codex-exec
-    setup:
-      - executable: chmod
-        arguments: ["-R", "u+w", "{inputRoot}"]
-      - executable: rm
-        arguments: ["-rf", "{input:skill}"]
     intendedDifferences:
-      - Removes the target skill from declared inputs; establishes the no-artifact baseline.
+      - Uses an explicitly empty treatment set.
 ```
 
 (YAML anchors like `&codex-exec`/`*codex-exec` only work *within* a single manifest file — Bench's loader rejects multi-document files and has no cross-file include mechanism. Anchor within one manifest if it has multiple process variants; across manifests, copy the block below verbatim.)
 
 ## Reusable Codex process-variant block
 
-There's no templating in Bench for this — every manifest that drives `codex exec` copies this block and adjusts only the prompt/arguments specific to its case. Two things matter for correctness, both surfaced by issue triage on this task (`openai/codex` open issues, see the task file's Known Issues Triage):
+There's no templating in Bench for this — every manifest that drives `codex exec` copies this block and adjusts only the prompt/arguments specific to its case. Four things matter for correctness; the Codex execution caveats were surfaced by issue triage on this task (`openai/codex` open issues, see the task file's Known Issues Triage):
 
 - **Pin a non-interactive sandbox/approval mode explicitly.** Bench's `process` adapter has no PTY and no approval-relay — if `codex exec` waits on an approval prompt, the run hangs until Bench's own timeout kills it (`openai/codex#36570`: `approvals_reviewer` can silently defeat an explicit `--sandbox` flag). Don't rely on defaults.
 - **Pass `--skip-git-repo-check`.** Confirmed live: Codex refuses to run at all ("Not inside a trusted directory") outside a Git repository, and Bench's disposable workspace is a plain temp directory, never a repo.
 - **Set an explicit `timeoutSeconds`** on `execution` rather than trusting the 300s default — `codex exec` has a known stall report (`openai/codex#28476`). A bounded timeout turns a stall into a clean `timedOut` status instead of an indefinite hang.
-- **Point the harness at the staged artifact explicitly.** Staging a skill/agent file is not enough on its own. The Case brief's `# Declared inputs` table gives each input ID and resolved path; prompts should say e.g. "if the path listed for declared input `skill` exists, read its SKILL.md first and follow it exactly." Phrase this conditionally so the same prompt is honest for the without-artifact variant after its setup removes the input.
+- **Point the harness at the staged artifact explicitly.** The Case brief's `# Variant treatment artifacts` table gives each available treatment ID and resolved path. Prompts should say, for example, "if the treatment table lists `skill`, read its SKILL.md first and follow it exactly." The baseline brief explicitly says `None`, so the same prompt remains honest without filesystem mutation.
+
+## Case data planes
+
+Use each plane for one purpose:
+
+- `fixture` is a writable starting project tree shared by every variant; `destination` places it at a safe workspace-relative path.
+- Case-level `prepare` performs common deterministic preparation before the baseline snapshot. It can use only `{workspace}` and `{caseId}`.
+- `given` inputs are shared, read-only resources available to every variant.
+- Variant `treatment` artifacts are read-only resources available only to that variant. They require `intendedDifferences` and are the correct way to model with/without comparisons.
+
+The complete `.smaqit-bench-input/` sidecar is excluded from repository metrics and frozen submissions. Never use preparation to encode a treatment.
 
 ## Command graders and Snap-packaged toolchains
 
-## Removing staged inputs for a baseline
-
-Declared inputs are read-only by design. A without-artifact setup that intentionally removes them must first make the isolated input root writable, then remove every target/supporting input before the harness starts:
-
-```yaml
-setup:
-  - executable: chmod
-    arguments: ["-R", "u+w", "{inputRoot}"]
-  - executable: rm
-    arguments: ["-rf", "{input:skill}"]
-```
-
-This setup is evaluator-controlled and runs before the harness. It does not make inputs writable during a with-artifact run.
-
-A `command`-type expectation or grader (including `Setup`) runs with **no environment at all** unless the manifest sets `command.environment.inherit`/`.set` — not even `PATH` or `HOME`. Most Unix tools (`sh`, `grep`, `test`, `rm`) don't need one. `go run` does, and on a Snap-packaged Go toolchain (`/snap/bin/go -> /usr/bin/snap`, common on Ubuntu) it fails even with a correct environment: Bench's process-group isolation (needed for reliable timeout/kill handling) collides with Snap's own confinement locking (`error: race condition detected, snap-run can only retry once`), confirmed live. Where a grader needs a Go tool, prefer pre-compiling it once at build time (see `installer/Makefile`'s `build` target building `dist/validate-skill`) and pointing the command grader at the compiled binary — it needs no environment and never touches Snap.
+A `command`-type expectation, grader, or Case preparation command runs with **no environment at all** unless the manifest sets `command.environment.inherit`/`.set` — not even `PATH` or `HOME`. Most Unix tools (`sh`, `grep`, `test`) don't need one. `go run` does, and on a Snap-packaged Go toolchain (`/snap/bin/go -> /usr/bin/snap`, common on Ubuntu) it fails even with a correct environment: Bench's process-group isolation (needed for reliable timeout/kill handling) collides with Snap's own confinement locking (`error: race condition detected, snap-run can only retry once`), confirmed live. Where a grader needs a Go tool, prefer pre-compiling it once at build time (see `installer/Makefile`'s `build` target building `dist/validate-skill`) and pointing the command grader at the compiled binary — it needs no environment and never touches Snap.
 
 ```yaml
 process:

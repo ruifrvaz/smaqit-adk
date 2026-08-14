@@ -72,7 +72,30 @@ func TestReadPlanRejectsSchemaV1(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err := ReadPlan(path)
-	if err == nil || !strings.Contains(err.Error(), "unsupported plan schema version 1") {
+	if err == nil || !strings.Contains(err.Error(), "regenerate the plan from a schema v2 manifest") {
 		t.Fatalf("expected v1 migration error, got %v", err)
+	}
+}
+
+func TestPlanHashesTreatmentSources(t *testing.T) {
+	root := t.TempDir()
+	write(t, filepath.Join(root, "input.txt"), "input")
+	treatment := filepath.Join(root, "treatment.txt")
+	write(t, treatment, "before")
+	manifestPath := filepath.Join(root, "bench.yaml")
+	write(t, manifestPath, validManifest("prompt:\n        text: hello"))
+	m, err := LoadManifest(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.Variants[0].Treatment = []TreatmentAsset{{ID: "guide", Source: treatment}}
+	m.Variants[0].IntendedDifferences = []string{"Uses the guide treatment."}
+	p, err := BuildPlan(manifestPath, m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	write(t, treatment, "after")
+	if err := VerifyPlan(p); err == nil || !strings.Contains(err.Error(), "treatment.txt changed") {
+		t.Fatalf("expected treatment drift, got %v", err)
 	}
 }
