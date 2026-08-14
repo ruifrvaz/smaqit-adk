@@ -12,7 +12,7 @@ import (
 func TestBenchRunJSONLLifecycleEvents(t *testing.T) {
 	root := t.TempDir()
 	manifest := filepath.Join(root, "bench.yaml")
-	content := `schemaVersion: 1
+	content := `schemaVersion: 2
 name: cli-events
 cases:
   - id: case
@@ -86,7 +86,7 @@ output: {directory: ./results}
 func TestBenchRunReportsHumanProgressByDefault(t *testing.T) {
 	root := t.TempDir()
 	manifest := filepath.Join(root, "bench.yaml")
-	content := `schemaVersion: 1
+	content := `schemaVersion: 2
 name: cli-human-progress
 cases:
   - id: case
@@ -118,7 +118,7 @@ output: {directory: ./results}
 func TestBenchRunJSONLReportsConfigurationFailure(t *testing.T) {
 	root := t.TempDir()
 	manifest := filepath.Join(root, "bad.yaml")
-	if err := os.WriteFile(manifest, []byte("schemaVersion: 1\nunknown: true\n"), 0644); err != nil {
+	if err := os.WriteFile(manifest, []byte("schemaVersion: 2\nunknown: true\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	output, code := runBinary(t, root, "bench", "run", "-events", "jsonl", manifest)
@@ -161,7 +161,7 @@ func TestBenchNestedHelp(t *testing.T) {
 func TestBenchValidateAndRunJSON(t *testing.T) {
 	root := t.TempDir()
 	manifest := filepath.Join(root, "bench.yaml")
-	content := `schemaVersion: 1
+	content := `schemaVersion: 2
 name: cli-smoke
 cases:
   - id: case
@@ -214,7 +214,7 @@ output: {directory: ./results}
 func TestBenchInvalidManifestJSON(t *testing.T) {
 	root := t.TempDir()
 	manifest := filepath.Join(root, "bad.yaml")
-	if err := os.WriteFile(manifest, []byte("schemaVersion: 1\nunknown: true\n"), 0644); err != nil {
+	if err := os.WriteFile(manifest, []byte("schemaVersion: 2\nunknown: true\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	output, code := runBinary(t, root, "bench", "validate", "-json", manifest)

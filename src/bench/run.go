@@ -180,16 +180,16 @@ func runAttempt(parent context.Context, experimentID, experimentDirectory string
 			result = finishFailure(result, "cleanup", cleanupErr)
 		}
 	}()
-	taskBytes, err := os.ReadFile(workspace.TaskFile)
+	briefBytes, err := os.ReadFile(workspace.BriefFile)
 	if err != nil {
 		return finishFailure(result, "workspace", err)
 	}
-	task := string(taskBytes)
-	request := RunRequest{Run: planned, Variant: variant, Workspace: workspace, Task: task, TraceDir: traceDirectory}
+	caseBrief := string(briefBytes)
+	request := RunRequest{Run: planned, Variant: variant, Workspace: workspace, CaseBrief: caseBrief, TraceDir: traceDirectory}
 	if err := os.MkdirAll(runDirectory, 0755); err != nil {
 		return finishFailure(result, "artifacts", err)
 	}
-	requestArtifact := map[string]any{"schemaVersion": 1, "runId": planned.RunID, "caseId": planned.CaseID, "variantId": planned.VariantID, "workspace": "<ephemeral>", "task": task, "inputIds": inputIDs(workspace.Inputs), "environmentNames": environmentNames(variant)}
+	requestArtifact := map[string]any{"schemaVersion": 2, "runId": planned.RunID, "caseId": planned.CaseID, "variantId": planned.VariantID, "workspace": "<ephemeral>", "caseBrief": caseBrief, "inputIds": inputIDs(workspace.Inputs), "environmentNames": environmentNames(variant)}
 	if variant.Process != nil {
 		resolvedArguments, renderErr := renderArguments(variant.Process.Arguments, request)
 		if renderErr != nil {
@@ -293,7 +293,7 @@ func runAttempt(parent context.Context, experimentID, experimentDirectory string
 				return finishFailure(result, "grader", err)
 			}
 			gradeRequest := gradingRequest
-			gradeRequest.Workspace = &Workspace{Root: copyRoot, InputRoot: workspace.InputRoot, TaskFile: workspace.TaskFile, Inputs: workspace.Inputs}
+			gradeRequest.Workspace = &Workspace{Root: copyRoot, InputRoot: workspace.InputRoot, BriefFile: workspace.BriefFile, Inputs: workspace.Inputs}
 			gr, err := executeCommand(ctx, grader.Command, gradeRequest, "grader-"+grader.ID)
 			os.RemoveAll(copyRoot)
 			if err != nil {

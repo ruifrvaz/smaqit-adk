@@ -16,7 +16,7 @@ import (
 	"strings"
 )
 
-const PlanSchemaVersion = 1
+const PlanSchemaVersion = 2
 
 type Plan struct {
 	SchemaVersion int           `json:"schemaVersion"`

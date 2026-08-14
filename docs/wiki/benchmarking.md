@@ -48,10 +48,10 @@ smaqit-adk's own `.smaqit/bench/` is an example consumer of `bench suite` — it
 
 ## Manifest
 
-The schema is strict YAML with `schemaVersion: 1`; unknown fields fail validation. Paths are resolved relative to the manifest. A minimal evaluation is:
+The schema is strict YAML with `schemaVersion: 2`; unknown fields fail validation. Paths are resolved relative to the manifest. Version 2 uses **Case** for an evaluation scenario, **Prompt** for author-supplied `given.prompt`, and **Case brief** for the rendered prompt plus declared input locations delivered to a harness. A minimal evaluation is:
 
 ```yaml
-schemaVersion: 1
+schemaVersion: 2
 name: greeting
 cases:
   - id: hello
@@ -64,7 +64,7 @@ variants:
     adapter: process
     process:
       executable: my-agent
-      arguments: ["--task-file", "{taskFile}"]
+      arguments: ["--brief-file", "{briefFile}"]
       inputMode: argument
 execution: {repetitions: 3, randomizeOrder: true, seed: 23, timeoutSeconds: 300}
 comparison: {minimumRequiredPassRate: 1, tieThreshold: 0.01}
@@ -75,7 +75,7 @@ Each case supports exactly one inline or file prompt and named `specs`, `files`,
 
 The output directory must be outside every fixture and declared input directory. This prevents prior plans, oracle artifacts, and experiment results from entering a later harness workspace and keeps directory hashes stable.
 
-Process arguments support `{task}`, `{taskFile}`, `{inputRoot}`, `{input:<id>}`, `{workspace}`, `{caseId}`, and `{variantId}`. Placeholders are expanded inside individual argument values. No shell string is evaluated. `inputMode: stdin` also writes the prompt to standard input. Environment inheritance is opt-in by variable name; `environment.set` is intended only for non-secret values.
+Process arguments support `{brief}`, `{briefFile}`, `{inputRoot}`, `{input:<id>}`, `{workspace}`, `{caseId}`, and `{variantId}`. Placeholders are expanded inside individual argument values. `{brief}` and `inputMode: stdin` provide the rendered Case brief; `{briefFile}` names its read-only file. No shell string is evaluated. The Case brief preserves the author-supplied prompt and appends a declared-input table with resolved paths; prompt text itself is not placeholder-interpolated. Environment inheritance is opt-in by variable name; `environment.set` is intended only for non-secret values.
 
 ## Expectations and scoring
 
@@ -95,7 +95,7 @@ Optional graders use `type: command`; each returns score `1` for exit code zero 
 
 An experiment contains its plan, sanitized resolved manifest, ordered `events.jsonl` lifecycle journal, immutable per-run requests/results, bounded stdout/stderr traces, frozen submissions, revisioned grades, aggregate statistics, comparison JSON, and Markdown report. `bench grade`, `bench compare`, and `bench report` create new derived revisions from existing evidence without launching the harness again.
 
-Expected values, golden assets, grader assets, saved plans, and output directories are never staged into the harness workspace or task envelope. This protects against accidental disclosure; it is not a sandbox against a malicious same-user process. A local harness has the operating-system permissions of the invoking user. Run only trusted executables and use stronger OS/container isolation for hostile code.
+Expected values, golden assets, grader assets, saved plans, and output directories are never staged into the harness workspace or Case brief. This protects against accidental disclosure; it is not a sandbox against a malicious same-user process. A local harness has the operating-system permissions of the invoking user. Run only trusted executables and use stronger OS/container isolation for hostile code.
 
 For credible comparisons, keep task, fixture, inputs, budgets, and environment constant; declare intended treatment differences; use multiple repetitions; randomize with a recorded seed; and treat ties, missing metrics, or incomplete matrices as inconclusive rather than manufacturing certainty.
 

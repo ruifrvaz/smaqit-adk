@@ -14,7 +14,7 @@ type RunRequest struct {
 	Run       PlannedRun
 	Variant   Variant
 	Workspace *Workspace
-	Task      string
+	CaseBrief string
 	TraceDir  string
 }
 
@@ -45,7 +45,7 @@ func adapterFor(v Variant) (adapter, error) {
 
 func renderArguments(arguments []string, request RunRequest) ([]string, error) {
 	values := map[string]string{
-		"{task}": request.Task, "{taskFile}": request.Workspace.TaskFile,
+		"{brief}": request.CaseBrief, "{briefFile}": request.Workspace.BriefFile,
 		"{inputRoot}": request.Workspace.InputRoot, "{workspace}": request.Workspace.Root,
 		"{caseId}": request.Run.CaseID, "{variantId}": request.Variant.ID,
 	}

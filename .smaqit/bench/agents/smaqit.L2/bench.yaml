@@ -1,4 +1,4 @@
-schemaVersion: 1
+schemaVersion: 2
 name: smaqit-l2
 # Dogfood suite for agents/smaqit.L2.md. See ../../MIGRATION.md for how
 # this maps from the legacy tests/evals/agents/smaqit.L2/*.json cases, and
@@ -10,22 +10,22 @@ cases:
       prompt:
         file: prompts/compile-base-agent.md
       files:
-        - id: l2
+        - id: l2agent
           source: ../../../../agents/smaqit.L2.md
-        - id: template
+        - id: base-agent-template
           source: ../../../../templates/agents/base-agent.template.md
-        - id: rules
+        - id: base-rules
           source: ../../../../templates/agents/compiled/base.rules.md
     expect:
       - id: definition-written
         type: file
         actual: "file:.smaqit/definitions/agents/qa-helper.md"
         operator: exists
-      - id: compiled-claude-written
+      - id: compiled-claude-agent-written
         type: file
         actual: "file:.claude/agents/qa-helper.md"
         operator: exists
-      - id: compiled-codex-written
+      - id: compiled-codex-agent-written
         type: file
         actual: "file:.codex/agents/qa-helper.toml"
         operator: exists
@@ -34,29 +34,27 @@ cases:
         actual: submission
         command:
           executable: sh
-          arguments: ["-c", "! grep -qE '\\[(DOMAIN|PREFIX|PHASE)\\]' .claude/agents/qa-helper.md .codex/agents/qa-helper.toml 2>/dev/null"]
+          arguments: ["-c", "! grep -qE '\\[(DOMAIN|PREFIX|PHASE)\\]' .claude/agents/qa-helper.md 2>/dev/null && ! grep -qE '\\[(DOMAIN|PREFIX|PHASE)\\]' .codex/agents/qa-helper.toml 2>/dev/null"]
       - id: has-must-section
-        type: command
-        actual: submission
-        command:
-          executable: sh
-          arguments: ["-c", "grep -q 'MUST' .claude/agents/qa-helper.md"]
+        type: text
+        actual: "file:.claude/agents/qa-helper.md"
+        operator: contains
+        value: "MUST"
       - id: has-must-not-section
-        type: command
-        actual: submission
-        command:
-          executable: sh
-          arguments: ["-c", "grep -q 'MUST NOT' .claude/agents/qa-helper.md"]
+        type: text
+        actual: "file:.claude/agents/qa-helper.md"
+        operator: contains
+        value: "MUST NOT"
   - id: reject-unresolved-placeholders
     given:
       prompt:
         file: prompts/reject-unresolved-placeholders.md
       files:
-        - id: l2
+        - id: l2agent
           source: ../../../../agents/smaqit.L2.md
-        - id: template
+        - id: base-agent-template
           source: ../../../../templates/agents/base-agent.template.md
-        - id: rules
+        - id: base-rules
           source: ../../../../templates/agents/compiled/base.rules.md
     expect:
       - id: no-placeholder-file-written
@@ -64,15 +62,10 @@ cases:
         actual: submission
         command:
           executable: sh
-          arguments: ["-c", "! grep -qE '\\[(DOMAIN|PREFIX|PHASE)\\]' .claude/agents/incomplete-agent.md .codex/agents/incomplete-agent.toml 2>/dev/null"]
+          arguments: ["-c", "! grep -qE '\\[(DOMAIN|PREFIX|PHASE)\\]' .claude/agents/incomplete-agent.md 2>/dev/null && ! grep -qE '\\[(DOMAIN|PREFIX|PHASE)\\]' .codex/agents/incomplete-agent.toml 2>/dev/null"]
 variants:
   - id: with-artifact
     adapter: process
-    setup:
-      - executable: sh
-        arguments:
-          - "-c"
-          - "mkdir -p {workspace}/.smaqit/templates/agents/compiled && cp {input:template} {workspace}/.smaqit/templates/agents/base-agent.template.md && cp {input:rules} {workspace}/.smaqit/templates/agents/compiled/base.rules.md"
     process:
       executable: codex
       arguments:
@@ -82,10 +75,15 @@ variants:
         - --skip-git-repo-check
         - --cd
         - "{workspace}"
-        - "{taskFile}"
+        - "{briefFile}"
       inputMode: argument
   - id: without-artifact
     adapter: process
+    setup:
+      - executable: chmod
+        arguments: ["-R", "u+w", "{inputRoot}"]
+      - executable: rm
+        arguments: ["-rf", "{input:l2agent}", "{input:base-agent-template}", "{input:base-rules}"]
     process:
       executable: codex
       arguments:
@@ -95,10 +93,10 @@ variants:
         - --skip-git-repo-check
         - --cd
         - "{workspace}"
-        - "{taskFile}"
+        - "{briefFile}"
       inputMode: argument
     intendedDifferences:
-      - Runs without ADK compilation templates materialized at .smaqit/templates/ in the workspace — the conventional L1 input path is empty, establishing the no-artifact baseline. Native discovery of L2's rules is not claimed.
+      - Removes L2's body, base-agent template, and base rules from the declared inputs before the harness runs, establishing the no-artifact baseline.
 execution:
   repetitions: 1
   timeoutSeconds: 600

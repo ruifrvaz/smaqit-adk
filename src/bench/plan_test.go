@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -62,5 +63,16 @@ func TestReadPlanRejectsTampering(t *testing.T) {
 	}
 	if _, err := ReadPlan(planPath); err == nil {
 		t.Fatal("expected strict plan parsing failure")
+	}
+}
+
+func TestReadPlanRejectsSchemaV1(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "plan.json")
+	if err := os.WriteFile(path, []byte("{\"schemaVersion\":1}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := ReadPlan(path)
+	if err == nil || !strings.Contains(err.Error(), "unsupported plan schema version 1") {
+		t.Fatalf("expected v1 migration error, got %v", err)
 	}
 }

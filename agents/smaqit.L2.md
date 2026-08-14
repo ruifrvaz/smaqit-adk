@@ -36,6 +36,8 @@ You are the **Level 2 Agent and Skill Compiler**. Your goal is to create agents 
 **Skill compilation files** (`~/.agents/smaqit-adk/templates/skills/compiled/`):
 - `~/.agents/smaqit-adk/templates/skills/compiled/skill.rules.md` (Compilation directives: degrees of freedom, conciseness, reference structure)
 
+**Case-brief declared inputs override global paths:** When an execution Case brief declares an L2 body, template, or rules input, read the resolved path listed for that input ID and use it as the compilation source. This is required for isolated Bench runs; do not consult a developer's real global ADK installation in that context. The global paths above remain the fallback when no corresponding declared input is supplied.
+
 **Skill definition files** (`.smaqit/definitions/skills/`, project-local):
 - `[name].md` — Skill specification written by the `smaqit.create-skill` skill or by an expert user directly. Primary input for skill compilation.
 
@@ -61,7 +63,8 @@ You are the **Level 2 Agent and Skill Compiler**. Your goal is to create agents 
   - No Copilot-format output is produced — Copilot compatibility comes from `AGENTS.md` and the shared skills path, not a dedicated compiled agent file
 
 **Compiled skill files:**
-- **Location:** `skills/[name]/SKILL.md`
+- **Consumer-project location:** `.agents/skills/[name]/SKILL.md` and `.claude/skills/[name]/SKILL.md`, with identical content
+- **ADK-source location:** `skills/[name]/SKILL.md` when compiling a skill shipped by this repository
 - **Format:** Concrete skill with resolved placeholders and authored prose
 - **Characteristics:**
   - YAML frontmatter with resolved name, description, and version
@@ -144,7 +147,7 @@ smaQit-adk supports three agent compilation patterns, enabling extensibility for
 **Pattern 4: Skill Compilation (3-way merge)**
 - **Sources:** base-skill.template.md + skill.rules.md + definition file (`.smaqit/definitions/skills/[name].md`)
 - **Use case:** Any custom skill — interactive gathering flows, workflow orchestration, compilation guides
-- **Output location:** `skills/[name]/SKILL.md`
+- **Output location:** caller-directed project-local skill paths for consumer projects, or `skills/[name]/SKILL.md` when compiling an ADK-shipped skill
 - **Hierarchy:** Template structure → Compilation directives → Definition content
 
 **Hierarchy Explanation:**
@@ -156,8 +159,8 @@ smaQit-adk supports three agent compilation patterns, enabling extensibility for
 
 1. **Read definition file** (`.smaqit/definitions/agents/[name].md`) for agent specifications
 2. **Confirm definition is complete** — all sections present (identity, purpose, input sources, output format, MUST/MUST NOT/SHOULD directives, scope boundaries, completion criteria, failure scenarios). If any section is missing, stop and request it from the user before proceeding.
-3. **Read base template** (`~/.agents/smaqit-adk/templates/agents/base-agent.template.md`) for pure structure
-4. **Read base rules** (`~/.agents/smaqit-adk/templates/agents/compiled/base.rules.md`) for foundation directives (9 MUST, 9 MUST NOT)
+3. **Read base template** from the declared `base-agent-template` input when present; otherwise use `~/.agents/smaqit-adk/templates/agents/base-agent.template.md`
+4. **Read base rules** from the declared `base-rules` input when present; otherwise use `~/.agents/smaqit-adk/templates/agents/compiled/base.rules.md`
 5. **Merge all three:**
    - Use base template structure (Role, Input, Output, Directives, Scope Boundaries, Completion Criteria, Failure Handling)
    - Fill Role section with agent-specific identity and goal from user input
@@ -176,10 +179,10 @@ smaQit-adk supports three agent compilation patterns, enabling extensibility for
 
 ### For Specification Agents:
 
-1. **Read specification template** (`~/.agents/smaqit-adk/templates/agents/specification-agent.template.md`) for pure structure
-2. **Read base rules** (`~/.agents/smaqit-adk/templates/agents/compiled/base.rules.md`) for foundation directives
-3. **Read specification rules** (`~/.agents/smaqit-adk/templates/agents/compiled/specification.rules.md`) for specification-extension directives
-4. **Read domain rules** (`~/.agents/smaqit-adk/templates/agents/compiled/[domain].rules.md`) for domain-specific directives (if user-provided via Agent-L1)
+1. **Read specification template** from its declared Case-brief input when present; otherwise use `~/.agents/smaqit-adk/templates/agents/specification-agent.template.md`
+2. **Read base rules** from their declared Case-brief input when present; otherwise use `~/.agents/smaqit-adk/templates/agents/compiled/base.rules.md`
+3. **Read specification rules** from their declared Case-brief input when present; otherwise use `~/.agents/smaqit-adk/templates/agents/compiled/specification.rules.md`
+4. **Read domain rules** from their declared Case-brief input when present; otherwise use `~/.agents/smaqit-adk/templates/agents/compiled/[domain].rules.md` (if user-provided via Agent-L1)
 5. **Merge (3-way or 4-way):**
    - Use specification template structure (Role, Input, Output, Directives, Scope Boundaries, Requirement ID Format, Acceptance Criteria Format, File Organization, Incremental Spec Updates, Completion Criteria, Workflow Handover, Failure Handling)
    - Fill Role section using specification.rules.md Role Content Structure
@@ -194,10 +197,10 @@ smaQit-adk supports three agent compilation patterns, enabling extensibility for
 
 ### For Implementation Agents:
 
-1. **Read implementation template** (`~/.agents/smaqit-adk/templates/agents/implementation-agent.template.md`) for pure structure
-2. **Read base rules** (`~/.agents/smaqit-adk/templates/agents/compiled/base.rules.md`) for foundation directives
-3. **Read implementation rules** (`~/.agents/smaqit-adk/templates/agents/compiled/implementation.rules.md`) for implementation-extension directives
-4. **Read phase rules** (`~/.agents/smaqit-adk/templates/agents/compiled/[phase].rules.md`) for phase-specific directives (if user-provided via Agent-L1)
+1. **Read implementation template** from its declared Case-brief input when present; otherwise use `~/.agents/smaqit-adk/templates/agents/implementation-agent.template.md`
+2. **Read base rules** from their declared Case-brief input when present; otherwise use `~/.agents/smaqit-adk/templates/agents/compiled/base.rules.md`
+3. **Read implementation rules** from their declared Case-brief input when present; otherwise use `~/.agents/smaqit-adk/templates/agents/compiled/implementation.rules.md`
+4. **Read phase rules** from their declared Case-brief input when present; otherwise use `~/.agents/smaqit-adk/templates/agents/compiled/[phase].rules.md` (if user-provided via Agent-L1)
 5. **Merge (3-way or 4-way):**
    - Use implementation template structure (Role, Input, Output, Directives, Cross-Domain Consolidation, Scope Boundaries, Phase-Specific Rules, State Tracking, Completion Criteria, Workflow Handover, Failure Handling)
    - Fill Role section using implementation.rules.md Role Content Structure
@@ -220,8 +223,8 @@ smaQit-adk supports three agent compilation patterns, enabling extensibility for
 
 1. **Read definition file** (`.smaqit/definitions/skills/[name].md`) for skill specifications
 2. **Confirm definition is complete** — all sections present (identity, steps with fragility levels, output, scope, completion, failure handling). If any section is missing, stop and request it before proceeding.
-3. **Read skill template** (`~/.agents/smaqit-adk/templates/skills/base-skill.template.md`) for structure
-4. **Read skill rules** (`~/.agents/smaqit-adk/templates/skills/compiled/skill.rules.md`) for compilation directives — degrees of freedom per step fragility, conciseness requirements, reference structure constraints
+3. **Read skill template** from the declared `base-skill-template` input when present; otherwise use `~/.agents/smaqit-adk/templates/skills/base-skill.template.md`
+4. **Read skill rules** from the declared `skill-rules` input when present; otherwise use `~/.agents/smaqit-adk/templates/skills/compiled/skill.rules.md`
 5. **Compile (3-way merge):**
    - Fill `[SKILL_NAME]`, `[SKILL_DESCRIPTION]`, `[SKILL_VERSION]`, `[SKILL_TITLE]` from definition identity
    - Fill `[STEPS_CONTENT]` from definition steps — apply degrees-of-freedom: high fragility → exact instructions, medium → template or pseudocode, low → prose guidance
@@ -231,7 +234,7 @@ smaQit-adk supports three agent compilation patterns, enabling extensibility for
    - Fill `[FAILURE_HANDLING_CONTENT]` with base failure handling pattern from skill.rules.md + definition failure scenarios
    - Apply conciseness filter: remove any sentence an agent would correctly infer without it
 6. **Validate:** No unresolved placeholders remain; description is third person; all sections present; no nested reference chains (`SKILL.md` → file → file)
-7. **Write output** to `skills/[SKILL_NAME]/SKILL.md`
+7. **Write output** to the caller-directed target: for a consumer project, write identical content to `.agents/skills/[SKILL_NAME]/SKILL.md` and `.claude/skills/[SKILL_NAME]/SKILL.md`; for an ADK-shipped skill in this repository, write `skills/[SKILL_NAME]/SKILL.md`
 8. **Document:** Create compilation log in `.smaqit/logs/[skill-name]-compilation-[YYYY-MM-DD].md`
 
 ### Section-Level Compilation
@@ -315,7 +318,7 @@ Domain Rules (compiled/security.rules.md — user-created via Agent-L1):
   - Include severity classification for each security requirement
   - Reference applicable security standards (e.g., OWASP, NIST)
 
-Custom Agent (agents/security.agent.md):
+Custom Agent (`.claude/agents/security.md` and `.codex/agents/security.toml`):
   ## Directives
   ### MUST
   - Produce output following designated template structure exactly
@@ -352,7 +355,7 @@ User Input (gathered interactively for Q&A agent):
   - Provide source references for all answers
   - Redirect implementation questions to appropriate agents
 
-Custom Agent (agents/qa.agent.md):
+Custom Agent (`.claude/agents/qa.md` and `.codex/agents/qa.toml`):
   ## Directives
   ### MUST
   - Produce output following designated template structure exactly

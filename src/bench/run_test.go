@@ -154,6 +154,20 @@ func TestRunPlanMockSingleEvaluation(t *testing.T) {
 	if experiment.Results[0].Repository.FilesCreated != 1 {
 		t.Fatalf("unexpected repository metrics: %+v", experiment.Results[0].Repository)
 	}
+	requestBytes, err := os.ReadFile(filepath.Join(experiment.Results[0].ArtifactDirectory, "request.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var requestArtifact map[string]any
+	if err := json.Unmarshal(requestBytes, &requestArtifact); err != nil {
+		t.Fatal(err)
+	}
+	if requestArtifact["schemaVersion"] != float64(2) || !strings.Contains(requestArtifact["caseBrief"].(string), "# Case brief") {
+		t.Fatalf("unexpected v2 request evidence: %v", requestArtifact)
+	}
+	if _, exists := requestArtifact["task"]; exists {
+		t.Fatalf("legacy task field remains in request evidence: %v", requestArtifact)
+	}
 	first, err := Regrade(context.Background(), experiment.Directory)
 	if err != nil {
 		t.Fatal(err)
@@ -183,6 +197,32 @@ func TestRemoveWorkspaceDeletesReadOnlyStagedInputs(t *testing.T) {
 	}
 }
 
+func TestPrepareWorkspaceWritesCaseBrief(t *testing.T) {
+	root := t.TempDir()
+	input := filepath.Join(root, "input.txt")
+	write(t, input, "visible")
+	workspace, err := prepareWorkspace(Case{ID: "case-brief", Given: Given{Prompt: Prompt{Text: "Read declared input sample."}, Files: []InputAsset{{ID: "sample", Source: input}}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer removeWorkspace(workspace.Root)
+	if filepath.Base(workspace.BriefFile) != "brief.md" {
+		t.Fatalf("brief path = %s", workspace.BriefFile)
+	}
+	brief, err := os.ReadFile(workspace.BriefFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"# Case brief", "Case: case-brief", "Read declared input sample.", "# Declared inputs", "- sample (file): "} {
+		if !strings.Contains(string(brief), want) {
+			t.Fatalf("case brief missing %q: %s", want, brief)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(workspace.InputRoot, "task.md")); !os.IsNotExist(err) {
+		t.Fatalf("legacy task file exists: %v", err)
+	}
+}
+
 func TestProcessAdapterStdinAndNamedInput(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("shell fixture is Unix-only")
@@ -191,7 +231,7 @@ func TestProcessAdapterStdinAndNamedInput(t *testing.T) {
 	input := filepath.Join(root, "input.txt")
 	write(t, input, "named")
 	script := filepath.Join(root, "harness.sh")
-	write(t, script, "#!/bin/sh\nread task\nprintf '%s:%s' \"$task\" \"$(cat \"$1\")\"\n")
+	write(t, script, "#!/bin/sh\nread brief\nprintf '%s:%s:%s:%s' \"$brief\" \"$(basename \"$1\")\" \"$(cat \"$2\")\" \"$3\"\n")
 	if err := os.Chmod(script, 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -200,12 +240,12 @@ func TestProcessAdapterStdinAndNamedInput(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer removeWorkspace(workspace.Root)
-	request := RunRequest{Run: PlannedRun{CaseID: "case"}, Variant: Variant{ID: "v", Adapter: "process", Process: &ProcessConfig{Executable: script, Arguments: []string{"{input:sample}"}, InputMode: "stdin"}}, Workspace: workspace, Task: "hello", TraceDir: filepath.Join(root, "traces")}
+	request := RunRequest{Run: PlannedRun{CaseID: "case"}, Variant: Variant{ID: "v", Adapter: "process", Process: &ProcessConfig{Executable: script, Arguments: []string{"{briefFile}", "{input:sample}", "{brief}"}, InputMode: "stdin"}}, Workspace: workspace, CaseBrief: "hello", TraceDir: filepath.Join(root, "traces")}
 	result, err := (processAdapter{}).Execute(context.Background(), request)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.ExitCode != 0 || !strings.Contains(result.Stdout, "hello:named") {
+	if result.ExitCode != 0 || !strings.Contains(result.Stdout, "hello:brief.md:named:hello") {
 		t.Fatalf("unexpected process result: %+v", result)
 	}
 }
@@ -300,7 +340,7 @@ func TestProcessTimeoutTerminatesGroup(t *testing.T) {
 		t.Skip("Unix process-group test")
 	}
 	root := t.TempDir()
-	workspace := &Workspace{Root: root, InputRoot: root, TaskFile: filepath.Join(root, "task"), Inputs: map[string]string{}}
+	workspace := &Workspace{Root: root, InputRoot: root, BriefFile: filepath.Join(root, "brief.md"), Inputs: map[string]string{}}
 	request := RunRequest{Run: PlannedRun{CaseID: "case"}, Variant: Variant{ID: "v", Process: &ProcessConfig{Executable: "sh", Arguments: []string{"-c", "sleep 30 & wait"}, InputMode: "argument"}}, Workspace: workspace, TraceDir: filepath.Join(root, "traces")}
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()

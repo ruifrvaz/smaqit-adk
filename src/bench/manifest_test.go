@@ -74,6 +74,28 @@ func TestLoadManifestRejectsEscapesAndWeights(t *testing.T) {
 	}
 }
 
+func TestManifestV2RejectsLegacyTaskPlaceholders(t *testing.T) {
+	m := Manifest{
+		SchemaVersion: ManifestSchemaVersion,
+		Name:          "legacy-placeholder",
+		Cases:         []Case{{ID: "case", Given: Given{Prompt: Prompt{Text: "hello"}}}},
+		Variants: []Variant{{ID: "process", Adapter: "process", Process: &ProcessConfig{
+			Executable: "echo", Arguments: []string{"{taskFile}"}, InputMode: "argument",
+		}}},
+		Execution: Execution{Repetitions: 1, TimeoutSeconds: 5},
+		Output:    Output{Directory: t.TempDir()},
+	}
+	var found bool
+	for _, diagnostic := range m.Validate() {
+		if diagnostic.Path == "variants[0].process.arguments[0]" && strings.Contains(diagnostic.Message, "unsupported placeholder {taskFile}") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("legacy placeholder was not rejected: %+v", m.Validate())
+	}
+}
+
 func TestLoadManifestRejectsSymlink(t *testing.T) {
 	root := t.TempDir()
 	write(t, filepath.Join(root, "real.txt"), "x")
@@ -104,7 +126,7 @@ func TestOutputMustBeOutsideFixture(t *testing.T) {
 }
 
 func validManifest(prompt string) string {
-	return `schemaVersion: 1
+	return `schemaVersion: 2
 name: sample
 cases:
   - id: case-1

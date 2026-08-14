@@ -17,7 +17,7 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-const ManifestSchemaVersion = 1
+const ManifestSchemaVersion = 2
 
 var idPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 
@@ -325,7 +325,7 @@ func (m *Manifest) Validate() []Diagnostic {
 	var ds []Diagnostic
 	add := func(path, msg string) { ds = append(ds, Diagnostic{Path: path, Message: msg}) }
 	if m.SchemaVersion != ManifestSchemaVersion {
-		add("schemaVersion", "must be 1")
+		add("schemaVersion", "must be 2; migrate {task}/{taskFile} placeholders to {brief}/{briefFile}")
 	}
 	if strings.TrimSpace(m.Name) == "" {
 		add("name", "is required")
@@ -499,7 +499,7 @@ var envNamePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 var placeholderPattern = regexp.MustCompile(`\{[^{}]+\}`)
 
 var allowedPlaceholders = map[string]bool{
-	"{task}": true, "{taskFile}": true, "{inputRoot}": true,
+	"{brief}": true, "{briefFile}": true, "{inputRoot}": true,
 	"{workspace}": true, "{caseId}": true, "{variantId}": true,
 }
 

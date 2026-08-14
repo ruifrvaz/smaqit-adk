@@ -22,7 +22,7 @@ List targets under the detected root that have no `.smaqit/bench/{skills,agents}
 
 ### 3. Understand the target
 
-Read the target's `SKILL.md` or `.agent.md` in full — its purpose, steps, and any subagent it invokes.
+Read the target's `SKILL.md` or agent source `.md` file in full — its purpose, steps, and any subagent it invokes.
 
 ### 4. Draft the manifest
 
@@ -41,21 +41,23 @@ given:
       source: ../../../../skills/<target-id>   # relative to this bench.yaml
 ```
 
-Bench copies declared inputs into a read-only `.smaqit-bench-input/` directory beside the actual harness workspace — **not** at the artifact's real project-relative path (`.github/skills/<id>/SKILL.md` inside the workspace itself). The harness only ever sees the staged copy through the resolved `{input:<id>}` absolute-path placeholder. The prompt **must** reference that placeholder explicitly:
+Bench copies declared inputs into a read-only `.smaqit-bench-input/` directory beside the actual harness workspace — **not** at the artifact's real project-relative path. The rendered Case brief appends a `# Declared inputs` table with each input ID and its resolved absolute path. Prompt text is preserved verbatim, so the prompt **must** name the declared input ID and direct the harness to the path listed there:
 
-> "The project's ADK skill-authoring skill is staged at `{input:skill}/SKILL.md` — read it first and follow it exactly. Do not invent your own approach instead."
+> "If the path listed for declared input `skill` exists, read its SKILL.md first and follow it exactly. Do not invent your own approach instead."
 
-Do not phrase this as "if staged at `.github/skills/<id>/SKILL.md`, read it" — smaqit-adk's own pre-Task-027 dogfood manifests used to install directly into the workspace root via a `setup:` step running the then-existent `lite` installer command rather than a declared input asset. That command no longer exists, so this skill's manifests always use `given.files`/`given.directories` plus explicit `{input:<id>}` prompting.
+Do not assume a project-relative artifact path or prompt-body `{input:<id>}` interpolation. This skill's manifests use `given.files`/`given.directories`, the Case brief's declared-input table, and conditional input wording so the same prompt remains accurate after a without-artifact setup removes the staged source.
 
-**Without-artifact variant** (only when the manifest is doing a with/without comparison, not a single-variant evaluation) — never reference `{input:<id>}` in its prompt, and its `setup` removes the staged copy before the harness runs:
+**Without-artifact variant** (only when the manifest is doing a with/without comparison, not a single-variant evaluation) — keep declared-input wording conditional and remove every staged target/supporting source before the harness runs:
 
 ```yaml
 setup:
+  - executable: chmod
+    arguments: ["-R", "u+w", "{inputRoot}"]
   - executable: rm
     arguments: ["-rf", "{input:skill}"]
 ```
 
-**When the target edits files, not just reads them** — `given.files`/`given.directories` stage into a read-only area outside the harness's actual working tree; the harness only ever sees them through `{input:<id>}`, and cannot write back into them. If the case needs a writable starting tree (e.g. framework files a principle-authoring skill edits in place), add a `setup:` step that copies the staged read-only input into the workspace at its conventional path before the harness runs:
+**When the target edits files, not just reads them** — `given.files`/`given.directories` stage into a read-only area outside the harness's actual working tree; the Case brief lists their paths, and the harness cannot write back into them. If the case needs a writable starting tree (e.g. framework files a principle-authoring skill edits in place), add a `setup:` step that copies the staged read-only input into the workspace at its conventional path before the harness runs:
 
 ```yaml
 setup:
@@ -63,7 +65,7 @@ setup:
     arguments: ["-c", "mkdir -p {workspace}/framework && cp {input:framework-src}/*.md {workspace}/framework/"]
 ```
 
-The prompt then tells the harness the writable copy is at its normal relative path (`framework/*.md`), distinct from the read-only skill/agent guidance it reaches via `{input:<id>}`.
+The prompt then tells the harness the writable copy is at its normal relative path (`framework/*.md`), distinct from the read-only skill/agent guidance identified in the Case brief.
 
 **Expectations** — prefer `command`-type checks over bare `text`-type for anything that might not exist; a `text` expectation crashes rather than failing gracefully against a missing file.
 
@@ -100,19 +102,19 @@ Authors manifests only. Does not execute a full suite run or reimplement `smaqit
 
 **Input:** User invokes `smaqit.bench-scaffold` in a project where `.claude/skills/my-skill/SKILL.md` exists with no corresponding `.smaqit/bench/skills/my-skill/bench.yaml`.
 
-**Output:** The skill detects `.claude/skills/` as the root, lists `my-skill` as an uncovered target, reads `my-skill/SKILL.md`, drafts `.smaqit/bench/skills/my-skill/bench.yaml` staging `my-skill`'s directory via `given.directories` with an explicit `{input:skill}` reference in the prompt and the reusable Codex block, runs `bench validate` (passes), and asks whether to run a live trial via `smaqit.bench-run`.
+**Output:** The skill detects `.claude/skills/` as the root, lists `my-skill` as an uncovered target, reads `my-skill/SKILL.md`, drafts `.smaqit/bench/skills/my-skill/bench.yaml` staging `my-skill`'s directory via `given.directories` with conditional declared-input wording in the prompt and the reusable Codex block, runs `bench validate` (passes), and asks whether to run a live trial via `smaqit.bench-run`.
 
 ## Gotchas
 
-- `given.files`/`given.directories` stage into a read-only directory beside the workspace, never at the artifact's literal project-relative path — see Step 4. Getting this wrong produces a manifest that structurally validates but fails every live run.
+- `given.files`/`given.directories` stage into a read-only directory beside the workspace, never at the artifact's literal project-relative path — see Step 4. Use the Case brief's declared-input table in prompts. Getting this wrong produces a manifest that structurally validates but fails every live run.
 - The reusable Codex process block in `.smaqit/bench/README.md` is the canonical, tested source — copy it, don't reconstruct it from memory.
 
 ## Completion
 
 - [ ] Skill/agent root detected (project-local `.agents/skills|.claude/skills|.claude/agents|.codex/agents` or root `skills|agents/`, or resolved by asking)
 - [ ] Target selected; confirmed it has no existing manifest, or the user chose to extend one
-- [ ] Target's `SKILL.md`/`.agent.md` read in full before drafting
-- [ ] Manifest stages the target artifact via `given.files`/`given.directories`, with the prompt referencing `{input:<id>}` explicitly
+- [ ] Target's `SKILL.md`/agent source `.md` file read in full before drafting
+- [ ] Manifest stages the target artifact via `given.files`/`given.directories`, with conditional prompt wording that names the declared input ID
 - [ ] Reusable Codex process block copied verbatim, not hand-rolled
 - [ ] `bench validate` passes on the new manifest
 - [ ] Live trial offered; if accepted, delegated to `smaqit.bench-run`
@@ -128,4 +130,4 @@ Authors manifests only. Does not execute a full suite run or reimplement `smaqit
 | User declines a live trial | Report the manifest as scaffolded-but-unverified; stop cleanly |
 | Invoking `smaqit.bench-run` for the live trial fails outright | Report the failure with context; do not silently retry |
 | Live trial (via `smaqit.bench-run`) surfaces a genuine `src/bench` limitation | Report it precisely with the reproducing case; recommend a follow-up task rather than patching the engine inline |
-| Target's `SKILL.md`/`.agent.md` is missing or unreadable | Stop; report the path that could not be read |
+| Target's `SKILL.md`/agent source `.md` file is missing or unreadable | Stop; report the path that could not be read |

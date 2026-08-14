@@ -62,7 +62,7 @@ func Regrade(ctx context.Context, directory string) (RevisionResult, error) {
 		submission := filepath.Join(runDirectory, "submission")
 		stdout, _ := os.ReadFile(filepath.Join(runDirectory, "traces", "harness.stdout.log"))
 		stderr, _ := os.ReadFile(filepath.Join(runDirectory, "traces", "harness.stderr.log"))
-		workspace := &Workspace{Root: submission, InputRoot: "<not-exposed>", TaskFile: "<not-exposed>", Inputs: map[string]string{}}
+		workspace := &Workspace{Root: submission, InputRoot: "<not-exposed>", BriefFile: "<not-exposed>", Inputs: map[string]string{}}
 		request := RunRequest{Run: PlannedRun{RunID: run.RunID, CaseID: run.CaseID, VariantID: run.VariantID, Repetition: run.Repetition}, Variant: variant, Workspace: workspace, TraceDir: filepath.Join(runDirectory, "grades", fmt.Sprintf("revision-%03d", revision), "logs")}
 		harness := run.Harness
 		harness.Stdout = string(stdout)
@@ -96,7 +96,7 @@ func Regrade(ctx context.Context, directory string) (RevisionResult, error) {
 					return RevisionResult{}, copyErr
 				}
 				gradeRequest := request
-				gradeRequest.Workspace = &Workspace{Root: copyRoot, InputRoot: "<not-exposed>", TaskFile: "<not-exposed>", Inputs: map[string]string{}}
+				gradeRequest.Workspace = &Workspace{Root: copyRoot, InputRoot: "<not-exposed>", BriefFile: "<not-exposed>", Inputs: map[string]string{}}
 				graderResult, graderErr := executeCommand(ctx, grader.Command, gradeRequest, "grader-"+grader.ID)
 				os.RemoveAll(copyRoot)
 				if graderErr != nil {

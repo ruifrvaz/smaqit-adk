@@ -158,7 +158,7 @@ func TestRunSuiteArtifactStagingBoundaryProducesAWinner(t *testing.T) {
 	root := t.TempDir()
 	manifestDir := filepath.Join(root, "boundary")
 	write(t, filepath.Join(manifestDir, "artifact.txt"), "artifact contents")
-	write(t, filepath.Join(manifestDir, "bench.yaml"), `schemaVersion: 1
+	write(t, filepath.Join(manifestDir, "bench.yaml"), `schemaVersion: 2
 name: artifact-boundary
 cases:
   - id: probe
@@ -189,6 +189,8 @@ variants:
       arguments: ["-c", "test -f {input:skill} && echo present || echo absent"]
       inputMode: stdin
     setup:
+      - executable: chmod
+        arguments: ["-R", "u+w", "{inputRoot}"]
       - executable: rm
         arguments: ["-f", "{input:skill}"]
     intendedDifferences:

@@ -1,10 +1,10 @@
-schemaVersion: 1
+schemaVersion: 2
 name: generic-process-harness
 cases:
   - id: stdin-and-file
     given:
       prompt:
-        text: echo-task
+        text: echo-prompt
       files:
         - id: harness
           source: harness.sh

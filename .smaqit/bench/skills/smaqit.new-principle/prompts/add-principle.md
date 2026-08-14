@@ -1,11 +1,11 @@
 Add a new principle to this project's ADK framework.
 
-If this project has an ADK principle-authoring skill staged at
-`{input:skill}/SKILL.md`, read it first and follow it exactly — do not
-invent your own approach instead. That skill in turn describes invoking the
-`smaqit.L0` agent as a subagent; in this sandbox `smaqit.L0` is not
-registered as a spawnable custom agent, so instead read the L0 agent's
-own instructions directly at `{input:l0agent}` and apply them yourself.
+If the path listed for declared input `skill` exists, read its SKILL.md first
+and follow it exactly — do not invent your own approach instead. That skill
+describes invoking the `smaqit.L0` agent as a subagent; L0 is intentionally
+not registered in this isolated Bench workspace, so if the path listed for
+declared input `l0agent` exists, read those instructions and apply them
+inline.
 
 The project's framework files are already present, writable, at
 `framework/*.md` relative to your working directory (this is the real

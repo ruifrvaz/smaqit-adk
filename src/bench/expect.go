@@ -141,7 +141,7 @@ func gradeExpectation(ctx context.Context, expectation Expectation, harness Harn
 			return result, err
 		}
 		gradeRequest := request
-		gradeRequest.Workspace = &Workspace{Root: copyRoot, InputRoot: request.Workspace.InputRoot, TaskFile: request.Workspace.TaskFile, Inputs: request.Workspace.Inputs}
+		gradeRequest.Workspace = &Workspace{Root: copyRoot, InputRoot: request.Workspace.InputRoot, BriefFile: request.Workspace.BriefFile, Inputs: request.Workspace.Inputs}
 		commandResult, err := executeCommand(ctx, *expectation.Command, gradeRequest, "expect-"+expectation.ID)
 		if err != nil {
 			return result, err

@@ -1,3 +1,3 @@
 #!/bin/sh
-read -r task
-printf '%s: %s' "$task" "$(cat "$1")"
+read -r brief
+printf '%s: %s' "$brief" "$(cat "$1")"

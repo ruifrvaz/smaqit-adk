@@ -1,4 +1,4 @@
-schemaVersion: 1
+schemaVersion: 2
 name: smaqit-new-principle
 # Dogfood suite for skills/smaqit.new-principle/SKILL.md, scaffolded via
 # smaqit.bench-scaffold as the Task 028 live demonstration. See
@@ -50,10 +50,15 @@ variants:
         - --skip-git-repo-check
         - --cd
         - "{workspace}"
-        - "{taskFile}"
+        - "{briefFile}"
       inputMode: argument
   - id: without-artifact
     adapter: process
+    setup:
+      - executable: chmod
+        arguments: ["-R", "u+w", "{inputRoot}"]
+      - executable: rm
+        arguments: ["-rf", "{input:skill}", "{input:l0agent}", "{input:framework-src}"]
     process:
       executable: codex
       arguments:
@@ -63,10 +68,10 @@ variants:
         - --skip-git-repo-check
         - --cd
         - "{workspace}"
-        - "{taskFile}"
+        - "{briefFile}"
       inputMode: argument
     intendedDifferences:
-      - Runs without framework/ materialized in the workspace — no framework files exist to edit, establishing the no-artifact baseline.
+      - Removes the skill, L0 body, and framework source from declared inputs before the harness runs; no framework is materialized and no ADK principle-authoring guidance remains, establishing the no-artifact baseline.
 execution:
   repetitions: 1
   timeoutSeconds: 600

@@ -16,7 +16,7 @@ const inputDirectoryName = ".smaqit-bench-input"
 type Workspace struct {
 	Root       string
 	InputRoot  string
-	TaskFile   string
+	BriefFile  string
 	Inputs     map[string]string
 	InputKinds map[string]string
 }
@@ -75,9 +75,9 @@ func prepareWorkspace(c Case) (*Workspace, error) {
 			w.InputKinds[asset.ID] = label
 		}
 	}
-	w.TaskFile = filepath.Join(w.InputRoot, "task.md")
-	envelope := renderTaskEnvelope(c.ID, prompt, w.Inputs, w.InputKinds)
-	if err := os.WriteFile(w.TaskFile, []byte(envelope), 0400); err != nil {
+	w.BriefFile = filepath.Join(w.InputRoot, "brief.md")
+	brief := renderCaseBrief(c.ID, prompt, w.Inputs, w.InputKinds)
+	if err := os.WriteFile(w.BriefFile, []byte(brief), 0400); err != nil {
 		return fail(err)
 	}
 	if err := makeReadOnly(w.InputRoot); err != nil {
@@ -97,9 +97,9 @@ func promptText(p Prompt) (string, error) {
 	return string(b), nil
 }
 
-func renderTaskEnvelope(caseID, prompt string, inputs, mapKinds map[string]string) string {
+func renderCaseBrief(caseID, prompt string, inputs, mapKinds map[string]string) string {
 	var b strings.Builder
-	b.WriteString("# Task\n\n")
+	b.WriteString("# Case brief\n\n")
 	fmt.Fprintf(&b, "Case: %s\n\n", caseID)
 	b.WriteString(prompt)
 	b.WriteString("\n\n# Declared inputs\n")

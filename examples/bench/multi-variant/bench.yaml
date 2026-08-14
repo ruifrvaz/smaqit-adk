@@ -1,4 +1,4 @@
-schemaVersion: 1
+schemaVersion: 2
 name: deterministic-two-variant-comparison
 cases:
   - id: greeting

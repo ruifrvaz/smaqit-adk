@@ -55,7 +55,7 @@ func (a processAdapter) Execute(ctx context.Context, request RunRequest) (Harnes
 	cmd.Dir = workingDirectory
 	cmd.Env = explicitEnvironment(config.Environment)
 	if config.InputMode == "stdin" {
-		cmd.Stdin = bytes.NewBufferString(request.Task)
+		cmd.Stdin = bytes.NewBufferString(request.CaseBrief)
 	}
 	cmd.Stdout = &limitedWriter{Writer: io.MultiWriter(stdoutFile, &stdout), Remaining: maxCapturedOutput}
 	cmd.Stderr = &limitedWriter{Writer: io.MultiWriter(stderrFile, &stderr), Remaining: maxCapturedOutput}
