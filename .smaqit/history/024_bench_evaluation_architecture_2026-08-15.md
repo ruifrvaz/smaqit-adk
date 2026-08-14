@@ -1,7 +1,7 @@
-# Bench Release Matrix
+# Bench Evaluation Architecture
 
 **Date:** 2026-08-15
-**Session focus:** Complete Bench v2/release recovery, establish evaluation terminology, and plan scenario-matrix authoring.
+**Session focus:** Bench evaluation terminology, capability design, Promptfoo research, and scenario-matrix planning.
 **Tasks completed/referenced:** 029 completed; 030 completed earlier in the parent flow; 031 created; extensions Task 028 planned.
 
 ## Actions Taken
