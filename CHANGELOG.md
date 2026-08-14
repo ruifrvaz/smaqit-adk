@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-08-14
+
+### Fixed
+
+- **Post-merge releases now prepare generator assets on the runner before cross-compiling binaries, and publish a tag only after every target binary succeeds.** This prevents platform-specific generator execution failures and incomplete tagged releases.
+
 ## [2.0.0] - 2026-08-13
 
 ### Changed — Breaking
@@ -277,6 +283,7 @@ smaqit-adk is a **generic agent development toolkit**, not tied to any specific 
 The [smaQit product](https://github.com/ruifrvaz/smaqit) demonstrates one possible use case (five-layer specification system), but ADK users can create entirely different architectures.
 
 [Unreleased]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v2.0.0...HEAD
+[2.0.1]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v2.0.0...adk-v2.0.1
 [2.0.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v1.2.0...adk-v2.0.0
 [1.2.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v1.1.0...adk-v1.2.0
 [1.1.0]: https://github.com/ruifrvaz/smaqit-adk/compare/adk-v1.0.0...adk-v1.1.0
