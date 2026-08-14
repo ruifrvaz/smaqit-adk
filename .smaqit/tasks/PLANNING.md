@@ -4,6 +4,7 @@
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
+| 031 | Bench Scenario Matrix & Generic Scaffolding | Not Started | Canonical wiki matrix and README link; generalize `smaqit.bench-scaffold` from artifact-only baselines to scoped prompt, model, harness, version, and flattened-factorial scenarios without an engine-schema expansion. |
 | 025 | README Documents Non-Existent CLI Commands | Not Started | **Likely resolved as a side effect of Task 027's README rewrite** — the fictional `smaqit-adk create-agent`/`create-skill` CLI commands are gone from README.md (the whole "CLI (Advanced Tier)" section was removed along with the tier system). Worth a quick check + formal `task.complete 025` rather than independently reopening this. |
 | 018 | Level Skills Completion | Not Started | `smaqit.new-principle` shipped in adk-v0.6.0; remaining: new-template, new-rules, L0 definition file pattern |
 | 019 | Cross-Level Compilation (smaqit.compile) | Not Started | smaqit.compile.principle/template/agent skills; L0→L1→L2 chain via subagents; depends on Task 018 |
