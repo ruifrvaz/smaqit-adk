@@ -1,7 +1,7 @@
 # Repair Dogfood Bench Manifests Broken by Task 027
 
-**Status:** PR Open
-**PR:** #23
+**Status:** Completed
+**Completed:** 2026-08-14
 **Created:** 2026-08-13
 **Started:** 2026-08-14
 **Mode:** Assisted
