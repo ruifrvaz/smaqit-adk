@@ -4,8 +4,8 @@ version: "1.0.0"
 
 # Project Research Map
 **Project:** smaqit-adk
-**Refreshed:** 2026-08-11
-**Active task:** None
+**Refreshed:** 2026-08-19
+**Active task:** 032
 
 | Tool | Section | URL |
 |------|---------|-----|
@@ -28,3 +28,14 @@ version: "1.0.0"
 | Go | Process execution package | https://pkg.go.dev/os/exec |
 | go.yaml.in/yaml/v3 | Package reference | https://pkg.go.dev/go.yaml.in/yaml/v3 |
 | go.yaml.in/yaml/v3 | Repository | https://github.com/go-yaml/yaml |
+
+## Task 032 — Registry-Driven Principle Propagation
+
+**Context fingerprint:** sha256:7c69609c01fdf111975dacbe0e3e75337019aa76e513d4a67383f572a7cd42f0
+**Refreshed:** 2026-08-19
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Go | Standard library: encoding/json | https://pkg.go.dev/encoding/json |
+| Go | Standard library: crypto/sha256 | https://pkg.go.dev/crypto/sha256 |
+| Go | Standard library: os (atomic file write) | https://pkg.go.dev/os |

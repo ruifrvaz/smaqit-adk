@@ -3,6 +3,10 @@
     {
       "name": "main",
       "path": "."
+    },
+    {
+      "name": "task/032-registry-driven-principle-propagation",
+      "path": "../smaqit-adk-wt-task-032-registry-driven-principle-propagation"
     }
   ],
   "settings": {

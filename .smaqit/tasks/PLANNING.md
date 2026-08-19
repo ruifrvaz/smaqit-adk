@@ -4,10 +4,10 @@
 
 | ID | Title | Status | Notes |
 |----|-------|--------|-------|
+| 033 | Bench `Case.prepare` Has No Lifecycle Hook to Clean Up a Backgrounded Process | Not Started | A backgrounded process launched in `prepare` (e.g. a dev server) survives past a successful run with no engine-provided teardown — `terminateProcessTree` only fires on timeout/cancellation. Found live while designing a downstream Bench case (smaqit task 110) that needed a live `vault server -dev` across a Case's full lifecycle. |
+| 032 | Registry-Driven Principle Propagation | In Progress | Terraform-statefile-style registry of ADK-owned agents/skills; principle/template edits auto-cascade through L0→L1→L2 to every registered dependent; base framework (smaqit-adk) + per-project extension (`.smaqit/framework/`) inheritance model; supersedes 019, folds in 018's remaining gaps; cascade orchestration owned by the skill layer, registry I/O via shared Go package (planning course correction, 2026-08-19) |
 | 031 | Bench Scenario Matrix & Generic Scaffolding | Not Started | Canonical wiki matrix and README link; generalize `smaqit.bench-scaffold` from artifact-only baselines to scoped prompt, model, harness, version, and flattened-factorial scenarios without an engine-schema expansion. |
 | 025 | README Documents Non-Existent CLI Commands | Not Started | **Likely resolved as a side effect of Task 027's README rewrite** — the fictional `smaqit-adk create-agent`/`create-skill` CLI commands are gone from README.md (the whole "CLI (Advanced Tier)" section was removed along with the tier system). Worth a quick check + formal `task.complete 025` rather than independently reopening this. |
-| 018 | Level Skills Completion | Not Started | `smaqit.new-principle` shipped in adk-v0.6.0; remaining: new-template, new-rules, L0 definition file pattern |
-| 019 | Cross-Level Compilation (smaqit.compile) | Not Started | smaqit.compile.principle/template/agent skills; L0→L1→L2 chain via subagents; depends on Task 018 |
 
 ## Completed
 
@@ -43,6 +43,8 @@
 | 020 | Lite-Tier Behavioral Evals | 2026-08-10 | Superseded by Task 026, which replaces the Copilot SDK runner with HarnessBench |
 | 021 | Advanced-Tier Behavioral Evals | 2026-08-10 | Superseded by Task 026, which replaces the Copilot SDK runner with HarnessBench |
 | 006 | Create smaqit.new-principle Skill | 2026-04-05 | Absorbed into Task 018 (Level Skills Completion) |
+| 018 | Level Skills Completion | 2026-08-18 | Superseded by Task 032 (Registry-Driven Principle Propagation) — remaining ACs (L0 definition-file pattern, new-template/new-rules skills) folded into 032's Implementation Step 3 |
+| 019 | Cross-Level Compilation (smaqit.compile) | 2026-08-18 | Superseded by Task 032 (Registry-Driven Principle Propagation) — manual compile-chain premise obsoleted by automatic registry-driven cascade |
 
 ## Future
 

@@ -1,6 +1,6 @@
 # Level Skills Completion
 
-**Status:** Not Started  
+**Status:** Abandoned — superseded by Task 032 (Registry-Driven Principle Propagation)
 **Created:** 2026-04-05  
 **Updated:** 2026-04-16
 

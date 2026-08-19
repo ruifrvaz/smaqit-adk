@@ -1,6 +1,6 @@
 # Cross-Level Compilation (smaqit.compile)
 
-**Status:** Not Started  
+**Status:** Abandoned — superseded by Task 032 (Registry-Driven Principle Propagation)
 **Created:** 2026-04-05
 
 ## Description
