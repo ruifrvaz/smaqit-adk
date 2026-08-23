@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`install.sh`'s post-install "Get started" message now mentions `smaqit-adk bench`** (pending v3.0.1 · PR #3) — previously omitted a core shipped capability from the printed summary a new user sees right after installing.
+
 ## [3.0.0] - 2026-08-24
 
 ### Changed
