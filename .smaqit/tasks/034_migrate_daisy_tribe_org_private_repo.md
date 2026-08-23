@@ -1,9 +1,9 @@
 ---
-status: PR Open
+status: Completed
 created: "2026-08-23"
 mode: Assisted
 started: "2026-08-23"
-pr: 2
+completed: "2026-08-24"
 ---
 
 # Migrate smaqit-adk to daisy-tribe Org (Private Repo)
