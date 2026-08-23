@@ -1,4 +1,4 @@
-module github.com/ruifrvaz/smaqit-adk/src
+module github.com/daisy-tribe/smaqit-adk/src
 
 go 1.24
 

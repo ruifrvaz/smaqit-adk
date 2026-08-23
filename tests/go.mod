@@ -1,3 +1,3 @@
-module github.com/ruifrvaz/smaqit-adk/tests
+module github.com/daisy-tribe/smaqit-adk/tests
 
 go 1.24

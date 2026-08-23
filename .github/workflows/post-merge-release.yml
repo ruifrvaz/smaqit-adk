@@ -173,7 +173,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: adk-v${{ needs.prepare.outputs.version }}
-          files: release/*
+          files: |
+            release/*
+            install.sh
           body_path: release_notes.md
           draft: false
           prerelease: ${{ contains(needs.prepare.outputs.version, '-') }}
