@@ -1,16 +1,22 @@
 #!/bin/bash
 # smaqit-adk installer script
-# Usage: curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit-adk/main/install.sh | bash
-# 
+# Usage:
+#   gh release download --repo daisy-tribe/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && bash /tmp/smaqit-adk-install/install.sh
+#
+# Requires the GitHub CLI (gh), authenticated with access to daisy-tribe/smaqit-adk —
+# interactive `gh auth login`, or a GH_TOKEN/GITHUB_TOKEN environment variable for
+# headless use. This repo is private, so unauthenticated curl/raw-content access does
+# not work; gh is the sole install-time dependency, with no curl-based fallback.
+#
 # Options (set as environment variables):
 #   SMAQIT_ADK_VERSION=latest      Install latest stable ADK release (default)
 #   SMAQIT_ADK_VERSION=prerelease  Install latest ADK pre-release (beta, alpha, etc.)
 #   SMAQIT_ADK_VERSION=adk-v1.0.0  Install specific ADK version
 #
 # Examples:
-#   curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit-adk/main/install.sh | bash
-#   curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit-adk/main/install.sh | SMAQIT_ADK_VERSION=prerelease bash
-#   curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit-adk/main/install.sh | SMAQIT_ADK_VERSION=adk-v1.0.0 bash
+#   gh release download --repo daisy-tribe/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && bash /tmp/smaqit-adk-install/install.sh
+#   gh release download --repo daisy-tribe/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && SMAQIT_ADK_VERSION=prerelease bash /tmp/smaqit-adk-install/install.sh
+#   gh release download --repo daisy-tribe/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && SMAQIT_ADK_VERSION=adk-v1.0.0 bash /tmp/smaqit-adk-install/install.sh
 
 set -e
 
@@ -21,7 +27,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO="ruifrvaz/smaqit-adk"
+REPO="daisy-tribe/smaqit-adk"
 INSTALL_DIR="${HOME}/.local/bin"
 SMAQIT_ADK_VERSION="${SMAQIT_ADK_VERSION:-latest}"  # Default to latest stable ADK
 
@@ -37,6 +43,21 @@ warn() {
 error() {
     echo -e "${RED}✗${NC} $1"
     exit 1
+}
+
+# Verify gh CLI is installed and authenticated. Required — REPO is private, so
+# unauthenticated curl/raw-content access returns 404 for both the release listing
+# and the binary download; there is no curl-based fallback.
+check_gh_auth() {
+    if ! command -v gh &>/dev/null; then
+        error "GitHub CLI (gh) is required but not installed. Install it from https://cli.github.com/, run 'gh auth login' (or set GH_TOKEN/GITHUB_TOKEN), then retry."
+    fi
+
+    if ! gh auth status &>/dev/null; then
+        error "GitHub CLI (gh) is not authenticated. Run 'gh auth login', or set GH_TOKEN/GITHUB_TOKEN to a token with access to ${REPO}, then retry."
+    fi
+
+    info "gh CLI authenticated"
 }
 
 # Detect OS and architecture
@@ -74,26 +95,24 @@ detect_platform() {
     info "Detected platform: ${OS}/${ARCH}"
 }
 
-# Get latest ADK release version from GitHub API
+# Get latest ADK release version via the gh CLI (authenticated — REPO is private)
 get_latest_version() {
     info "Fetching ADK release version..."
-    
-    local api_url="https://api.github.com/repos/${REPO}/releases"
-    
+
     case "$SMAQIT_ADK_VERSION" in
         latest)
-            # Get latest ADK stable release (tag starts with adk-v, version part has no pre-release suffix)
-            VERSION=$(curl -fsSL "$api_url" | grep '"tag_name"' | grep '"adk-v[0-9]' | grep -v 'adk-v[0-9][^"]*-' | head -1 | sed -E 's/.*"([^"]+)".*/\1/' || echo "")
-            
+            # Get latest ADK stable release (tag starts with adk-v, excludes pre-releases)
+            VERSION=$(gh release list --repo "$REPO" --exclude-drafts --exclude-pre-releases --json tagName --jq '[.[] | select(.tagName | test("^adk-v[0-9]"))][0].tagName' 2>/dev/null || echo "")
+
             # Fallback: if no stable ADK release, get most recent ADK pre-release
             if [ -z "$VERSION" ]; then
                 warn "No stable ADK release found, using latest ADK pre-release"
-                VERSION=$(curl -fsSL "$api_url" | grep '"tag_name"' | grep 'adk-v' | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+                VERSION=$(gh release list --repo "$REPO" --exclude-drafts --json tagName --jq '[.[] | select(.tagName | test("^adk-v"))][0].tagName' 2>/dev/null || echo "")
             fi
             ;;
         prerelease)
             # Get most recent ADK release (including pre-releases)
-            VERSION=$(curl -fsSL "$api_url" | grep '"tag_name"' | grep 'adk-v' | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+            VERSION=$(gh release list --repo "$REPO" --exclude-drafts --json tagName --jq '[.[] | select(.tagName | test("^adk-v"))][0].tagName' 2>/dev/null || echo "")
             ;;
         adk-v*.*.*)
             # Use specific ADK version provided
@@ -103,31 +122,32 @@ get_latest_version() {
             error "Invalid SMAQIT_ADK_VERSION: $SMAQIT_ADK_VERSION (use 'latest', 'prerelease', or 'adk-vX.Y.Z')"
             ;;
     esac
-    
+
     if [ -z "$VERSION" ]; then
         error "Failed to fetch ADK release version"
     fi
-    
+
     info "Installing ADK version: ${VERSION}"
 }
 
-# Download binary
+# Download binary via gh release download (authenticated — REPO is private)
 download_binary() {
     local binary_name="smaqit-adk_${OS}_${ARCH}"
-    
+
     if [ "$OS" = "windows" ]; then
         binary_name="${binary_name}.exe"
     fi
-    
-    local download_url="https://github.com/${REPO}/releases/download/${VERSION}/${binary_name}"
-    TEMP_FILE="/tmp/smaqit-adk_${VERSION}"
-    
-    info "Downloading from ${download_url}..."
-    
-    if ! curl -fsSL -o "$TEMP_FILE" "$download_url"; then
+
+    local temp_dir
+    temp_dir="$(mktemp -d)"
+    TEMP_FILE="${temp_dir}/${binary_name}"
+
+    info "Downloading ${binary_name} from release ${VERSION}..."
+
+    if ! gh release download "$VERSION" --repo "$REPO" --pattern "$binary_name" --dir "$temp_dir" --clobber; then
         error "Failed to download ADK binary"
     fi
-    
+
     info "Download complete"
 }
 
@@ -191,7 +211,8 @@ main() {
     echo "smaqit-adk installer"
     echo "===================="
     echo ""
-    
+
+    check_gh_auth
     detect_platform
     get_latest_version
     

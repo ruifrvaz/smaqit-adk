@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ruifrvaz/smaqit-adk/src/benchcli"
+	"github.com/daisy-tribe/smaqit-adk/src/benchcli"
 )
 
 //go:embed agents-claude/*.md
@@ -93,7 +93,7 @@ func cmdHelp() {
 	fmt.Println("  smaqit-adk version   Show smaqit-adk version")
 	fmt.Println()
 	fmt.Println("Installation:")
-	fmt.Println("  curl -fsSL https://raw.githubusercontent.com/ruifrvaz/smaqit-adk/main/install.sh | bash")
+	fmt.Println("  gh release download --repo daisy-tribe/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && bash /tmp/smaqit-adk-install/install.sh")
 	fmt.Println("  Installs smaqit.L0/L1/L2 to ~/.claude/agents/ and ~/.codex/agents/,")
 	fmt.Println("  the 5 ADK skills to ~/.agents/skills/ and ~/.claude/skills/,")
 	fmt.Println("  and compilation templates/framework to ~/.agents/smaqit-adk/.")
@@ -103,7 +103,7 @@ func cmdHelp() {
 	fmt.Println("  Say 'create a new agent' or use /smaqit.create-agent")
 	fmt.Println("  Say 'create a new skill' or use /smaqit.create-skill")
 	fmt.Println()
-	fmt.Println("Documentation: https://github.com/ruifrvaz/smaqit-adk")
+	fmt.Println("Documentation: https://github.com/daisy-tribe/smaqit-adk")
 }
 
 // homeDir resolves the current user's home directory or exits with an error.
