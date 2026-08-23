@@ -39,3 +39,19 @@ version: "1.0.0"
 | Go | Standard library: encoding/json | https://pkg.go.dev/encoding/json |
 | Go | Standard library: crypto/sha256 | https://pkg.go.dev/crypto/sha256 |
 | Go | Standard library: os (atomic file write) | https://pkg.go.dev/os |
+
+## Task 034 — Migrate smaqit-adk to daisy-tribe Org (Private Repo)
+
+**Context fingerprint:** sha256:76eb435d0441ece113cec12a72bf8518f25f44b6690c6aef8cd9eae077e74e9d
+**Refreshed:** 2026-08-23
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Bash | Manual | https://www.gnu.org/software/bash/manual/bash.html |
+| Go | Documentation | https://go.dev/doc/ |
+| GitHub Actions | Documentation | https://docs.github.com/en/actions |
+| softprops/action-gh-release | Action reference | https://github.com/softprops/action-gh-release |
+| GitHub CLI | gh release download | https://cli.github.com/manual/gh_release_download |
+| GitHub CLI | gh auth status | https://cli.github.com/manual/gh_auth_status |
+| GitHub REST API | Releases | https://docs.github.com/en/rest/releases/releases |
+| GitHub REST API | Release assets | https://docs.github.com/en/rest/releases/assets |
