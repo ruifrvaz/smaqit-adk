@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Registry-driven principle propagation** (pending v2.1.0 · PR #1) — a Terraform-statefile-style registry (`installer/registry.go` + hidden `registry`/`sync` CLI subcommands) tracks every ADK-compiled agent/skill's source dependencies and a compiled-content hash, so a principle edit automatically cascades through L0 → L1 → L2 to every registered dependent. Adds `smaqit.new-template`, `smaqit.new-rules`, and `smaqit.sync` (interactive drift reconciliation) skills.
+
 ## [2.0.1] - 2026-08-14
 
 ### Fixed
