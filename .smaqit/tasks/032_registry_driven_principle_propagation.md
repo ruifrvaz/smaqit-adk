@@ -1,8 +1,9 @@
 ---
-status: In Progress
+status: PR Open
 created: "2026-08-18"
 mode: Assisted
 started: "2026-08-19"
+pr: 1
 ---
 
 # Registry-Driven Principle Propagation
@@ -63,33 +64,43 @@ points) as a prerequisite step, since the cascade cannot run L0→L1→L2 end-to
 
 ## Acceptance Criteria
 
-- [ ] Registry file format implemented and documented, one per scope (ADK-global, per-project)
-- [ ] `smaqit.L2` auto-registers every compiled agent/skill in the registry immediately after compiling, regardless of caller
-- [ ] `smaqit.L0` accepts a definition-file input pattern (`.smaqit/definitions/principles/[name].md`)
-- [ ] `smaqit.new-template` and `smaqit.new-rules` skills exist and invoke `smaqit.L1`
-- [ ] `smaqit.new-principle` correctly detects base vs. extension scope and routes writes to `framework/*.md` or `.smaqit/framework/*.md` accordingly
-- [ ] `smaqit.new-principle` flags/rejects an extension principle that duplicates existing base content
-- [ ] Editing a principle automatically cascades to every registered dependent in the same session, correctly scoped
-- [ ] `smaqit-adk sync` subcommand recompiles drifted registered entries and reports conflicts rather than silently overwriting manual edits
-- [ ] A base-framework edit cascades to every registered project; an extension edit cascades only to its own project; verified to never cross
-- [ ] Tasks 018 and 019 marked Abandoned in `PLANNING.md`, pointing to this task
-- [ ] `make build` passes cleanly
+- [x] Registry file format implemented and documented, one per scope (ADK-global, per-project)
+- [x] `smaqit.L2` auto-registers every compiled agent/skill in the registry immediately after compiling, regardless of caller
+- [x] `smaqit.L0` accepts a definition-file input pattern (`.smaqit/definitions/principles/[name].md`)
+- [x] `smaqit.new-template` and `smaqit.new-rules` skills exist and invoke `smaqit.L1`
+- [x] `smaqit.new-principle` correctly detects base vs. extension scope and routes writes to `framework/*.md` or `.smaqit/framework/*.md` accordingly
+- [x] `smaqit.new-principle` flags/rejects an extension principle that duplicates existing base content
+- [x] Editing a principle automatically cascades to every registered dependent in the same session, correctly scoped
+- [x] `smaqit-adk sync` subcommand recompiles drifted registered entries and reports conflicts rather than silently overwriting manual edits
+- [x] A base-framework edit cascades to every registered project; an extension edit cascades only to its own project; verified to never cross
+- [x] Tasks 018 and 019 marked Abandoned in `PLANNING.md`, pointing to this task
+- [x] `make build` passes cleanly
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Registry as a shared Go package (`installer/registry.go` + `registry_cli.go`): atomic JSON read/write and sha256 hashing modeled on `src/bench/plan.go`/`hash.go`, exposed via hidden `smaqit-adk registry get`/`put` subcommands agents shell out to via Bash
+- `smaqit.L2` registers uniformly on every compile (Base/Spec/Impl Agent and Skill patterns all gained a final "Register" step) instead of duplicating registration logic per calling skill
+- `smaqit.L0` gained scope detection (base vs. extension, via a repo-layout heuristic), a definition-file input pattern, and duplicate-content rejection for extension principles
+- Live cascade (`smaqit.new-principle`/`new-template`/`new-rules`) owned entirely by the skill layer: each skill invokes its Level agent, then loops single-hop `Task` calls to L1 then L2 for every registered dependent the registry returns — no nested agent-to-agent chaining
+- All new/changed root-shipped skills (`smaqit.new-template`, `smaqit.new-rules`, the `smaqit.new-principle` revision, and `smaqit.sync`) compiled via a real `smaqit.L2` subagent from `.smaqit/definitions/skills/*.md`, not hand-written, per this repo's established dogfooding convention
+- Live-verified the full L0 → L1 → registry → L2 chain end-to-end via a new Bench scenario (`.smaqit/bench/scenarios/registry-cascade/`) run against the authenticated Codex CLI: confirmed by direct trace-log inspection that a principle landed, `skill.rules.md` was updated, the registered dependent (`smaqit.sync`) was genuinely recompiled with the new content, and the registry hash updated
 
 **Decisions made:**
-- TBD
+- Cascade orchestration lives in the skill layer, not granted to L0/L1 via a `Task` tool — confirmed by direct source inspection that no 2-hop subagent chain exists anywhere in this repo or the sibling `smaqit` product; `smaqit.development`'s Business/Functional/Stack orchestration is always exactly one hop
+- Registry I/O centralized in Go rather than per-agent shell/JSON manipulation, avoiding hash divergence between shell `sha256sum` and Go `sha256`
+- `smaqit-adk sync` (the CLI) stays report-only by design — a plain binary has no path to invoke an LLM for the semantic L1/L2 recompile a drifted entry needs. Added `smaqit.sync` (a skill, not originally planned in this task's file) as the actual interactive resolution path: it shells out to the same registry CLI, then uses its own `Task` access to recompile from source or re-register a kept hand edit, on explicit per-entry user choice — this addition came directly from the user questioning why the CLI alone was expected to "recompile," and closes what would otherwise have been a real gap between the AC's wording and what a plain Go binary can do
+- `smaqit.new-principle`'s cascade sequencing is L0 → L1 (judgment: does this principle change actually require a template/rules update?) → registry lookup → L2, not L0 → registry lookup directly — the registry only has L1-template→L2-output edges, never an L0-principle→L2 edge, so skipping the L1 judgment step would make the registry lookup silently return zero dependents every time
 
 **Blockers encountered:**
-- TBD
+- A manual verification pass ran `--install-global` against the WIP dev binary without sandboxing `HOME`, briefly overwriting the real machine-wide install (`~/.claude/agents`, `~/.codex/agents`, `~/.agents/skills`, `~/.claude/skills`, `~/.agents/smaqit-adk`). Caught immediately, restored from the real production binary, and removed the resulting orphaned WIP-only skill directories the restore doesn't auto-clean
+- The live Bench trial surfaced two genuine `src/bench` engine bugs, not implementation bugs in this task: the post-harness "freeze" step crashes on a non-regular file (Codex CLI's own IPC socket, created as a side effect of running `codex exec` with a workspace-local `HOME`) instead of handling it gracefully, and — more seriously — a resulting workspace-cleanup failure was silently swallowed with no visible warning, leaking a workspace containing copied Codex credentials to disk. Found via manual inspection after the run reported failure, cleaned up by hand, filed as Task 035 rather than fixed inline
 
 **Follow-up identified:**
-- TBD
+- Task 035 (filed): fix Bench's freeze-step crash on non-regular files and the silently-swallowed cleanup-error bug
+- The pre-existing dogfood Bench case at `.smaqit/bench/skills/smaqit.new-principle/` only exercises the skill's Step 1 (L0) in isolation and doesn't cover the new cascade steps this task added — worth folding into or superseding with the new `scenarios/registry-cascade/` manifest in a future task
+- Two ACs rest on implementation correctness and code-level reasoning rather than an independent live trial: extension-scope duplicate-principle rejection, and cross-project cascade isolation (structurally guaranteed by separate registry files, but not exercised via an actual second consuming project in a live run) — worth a dedicated live trial if stronger proof is wanted later
+- `smaqit` product repo's own migration (relocating its 7 root `framework/*.md` files to `.smaqit/framework/*.md` and deduplicating against the base) remains a separate, smaqit-repo-side follow-up this task deliberately does not touch
 
 ## Files to Create / Modify
 
