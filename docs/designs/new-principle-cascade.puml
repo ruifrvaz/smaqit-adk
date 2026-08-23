@@ -1,0 +1,77 @@
+@startuml new-principle-cascade
+title smaqit.new-principle — live registry-driven cascade
+
+actor "User / Agent" as User
+participant "smaqit.new-principle\n(skill — owns every\nTask call below)" as Skill
+participant "smaqit.L0" as L0
+participant "smaqit.L1" as L1
+database "registry.json\n(base or extension scope)" as Registry
+participant "smaqit.L2" as L2
+
+note over L0, L1
+  Neither holds a **Task** tool — they report
+  back to the skill, they never chain into
+  the next stage themselves. No nested
+  agent-to-agent calls exist in this flow.
+end note
+
+User -> Skill : "add or refine a principle"
+activate Skill
+
+== Step 1: principle authoring ==
+Skill -> L0 : Task call
+activate L0
+L0 -> L0 : detect scope\n(base: this repo /\nextension: consuming project)
+L0 -> L0 : write principle to\nframework/*.md\nor .smaqit/framework/*.md
+note right of L0
+  Rejects an extension principle
+  that merely restates base content.
+end note
+L0 --> Skill : scope + exact file path changed
+deactivate L0
+
+== Step 2: template/rules review ==
+Skill -> L1 : Task call\n"does this principle change\nrequire a template/rules update?"
+activate L1
+
+alt L1 judges no update needed
+  L1 --> Skill : "no update needed"
+  deactivate L1
+  Skill -> User : report — principle added,\nno cascade
+else L1 updates a template or rules file
+  L1 -> L1 : write templates/agents/*.template.md\nor templates/agents/compiled/*.rules.md\n(or the skills/ equivalents)
+  L1 --> Skill : exact file path touched
+  deactivate L1
+
+  == Step 3: dependent lookup ==
+  Skill -> Registry : registry get --depends-on <path>\n(plain Bash call, not Task)
+  activate Registry
+  note left of Registry
+    Entries here were written by
+    smaqit.L2 on every PAST compile —
+    the only place the "who depends on
+    this template/rules file" edge lives.
+  end note
+  Registry --> Skill : 0..N dependent entries
+  deactivate Registry
+
+  == Step 4: cascade recompilation ==
+  loop for each dependent entry
+    Skill -> L2 : Task call
+    activate L2
+    L2 -> L2 : recompile from the entry's\nrecorded sourceDefinition\n+ sourceTemplates
+    L2 -> L2 : write .claude/agents/*.md\n+ .codex/agents/*.toml\nor skills/<name>/SKILL.md
+    L2 -> Registry : registry put\n(fresh compiledHash + lastCompiled)
+    activate Registry
+    Registry --> L2
+    deactivate Registry
+    L2 --> Skill : recompiled
+    deactivate L2
+  end
+
+  == Step 5: report ==
+  Skill -> User : report — scope, template/rules\nfile touched, N dependents recompiled
+end
+
+deactivate Skill
+@enduml

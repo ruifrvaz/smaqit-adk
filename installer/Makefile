@@ -20,6 +20,10 @@ prepare:
 	@GOOS= GOARCH= CGO_ENABLED= go run generate-agents.go
 	@rm -rf skills && mkdir -p skills/smaqit.new-principle
 	@cp ../skills/smaqit.new-principle/SKILL.md skills/smaqit.new-principle/
+	@mkdir -p skills/smaqit.new-template && mkdir -p skills/smaqit.new-rules && mkdir -p skills/smaqit.sync
+	@cp ../skills/smaqit.new-template/SKILL.md skills/smaqit.new-template/
+	@cp ../skills/smaqit.new-rules/SKILL.md skills/smaqit.new-rules/
+	@cp ../skills/smaqit.sync/SKILL.md skills/smaqit.sync/
 	@mkdir -p skills/smaqit.create-agent && mkdir -p skills/smaqit.create-skill/scripts
 	@cp ../skills/smaqit.create-agent/SKILL.md skills/smaqit.create-agent/
 	@cp ../skills/smaqit.create-skill/SKILL.md skills/smaqit.create-skill/

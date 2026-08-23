@@ -15,7 +15,7 @@ smaQit-adk is an **Agent Development Kit**. It ships a compilation framework (pr
 A single global install puts:
 
 - 3 Level agents (`smaqit.L0`, `smaqit.L1`, `smaqit.L2`) into `~/.claude/agents/` and `~/.codex/agents/`
-- 5 skills (`smaqit.create-agent`, `smaqit.create-skill`, `smaqit.new-principle`, `smaqit.bench-run`, `smaqit.bench-scaffold`) into `~/.agents/skills/` and `~/.claude/skills/`
+- 8 skills (`smaqit.create-agent`, `smaqit.create-skill`, `smaqit.new-principle`, `smaqit.new-template`, `smaqit.new-rules`, `smaqit.sync`, `smaqit.bench-run`, `smaqit.bench-scaffold`) into `~/.agents/skills/` and `~/.claude/skills/`
 - Compilation templates and framework principle files into `~/.agents/smaqit-adk/`
 
 No per-project install step, no tiers. Say "create a new agent" (or skill) in Claude Code or Codex, in any project, and the routing skill takes it from there.
@@ -112,6 +112,7 @@ Then it compiles and writes `SKILL.md` — a single, cross-platform format alrea
 | Command | Description |
 |---------|-------------|
 | `smaqit-adk bench <validate\|plan\|run\|grade\|compare\|report>` | Run config-first local evaluations and comparisons |
+| `smaqit-adk sync` | Report registry drift (non-interactive, report-only — use `/smaqit.sync` in Claude Code/Codex to resolve it) |
 | `smaqit-adk help` | Show detailed command help |
 | `smaqit-adk uninstall` | Remove smaqit-adk's global agents, skills, templates, and framework files |
 | `smaqit-adk version` | Show ADK version |
@@ -124,7 +125,10 @@ Global installation has no user-facing subcommand — it happens automatically w
 |----------|------------|---------|
 | `smaqit.create-agent` (skill) | "create a new agent" or `/smaqit.create-agent` | Routes to `smaqit.L2` |
 | `smaqit.create-skill` (skill) | "create a new skill" or `/smaqit.create-skill` | Routes to `smaqit.L2` |
-| `smaqit.new-principle` (skill) | "add a principle" or `/smaqit.new-principle` | Routes to `smaqit.L0` |
+| `smaqit.new-principle` (skill) | "add a principle" or `/smaqit.new-principle` | Routes to `smaqit.L0`, then cascades via `smaqit.L1`/`smaqit.L2` to every registered dependent |
+| `smaqit.new-template` (skill) | "add a template placeholder" or `/smaqit.new-template` | Routes to `smaqit.L1`, then cascades via `smaqit.L2` to every registered dependent |
+| `smaqit.new-rules` (skill) | "add a compilation rule" or `/smaqit.new-rules` | Routes to `smaqit.L1`, then cascades via `smaqit.L2` to every registered dependent |
+| `smaqit.sync` (skill) | "reconcile the registry" or `/smaqit.sync` | Detects drift via `smaqit-adk registry get`, resolves each conflict via `smaqit.L2` or by re-registering |
 | `smaqit.L0` / `smaqit.L1` / `smaqit.L2` (agents) | Invoked as subagents by the above skills | Maintain the framework, compile templates, compile agents and skills |
 
 On Claude Code and Codex CLI, routing is a native subagent/custom-agent call against the compiled file. On GitHub Copilot, which has no dedicated compiled agent file, the routing skill instructs it to read the Claude-format agent body directly and follow it inline for the current turn — same content, no native subagent context isolation.
