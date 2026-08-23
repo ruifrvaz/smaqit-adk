@@ -93,6 +93,7 @@ You are the **Level 1 Template Compiler**. Your goal is to compile Level 0 princ
 - Preserve template structure and consistency
 - Validate directives trace back to L0 principles
 - Guide users when they provide L0 philosophy or L2 concrete content
+- Report the exact template or rules file path written on completion, so the calling skill (`smaqit.new-template`/`smaqit.new-rules`) can query the registry for dependents and cascade the change to Agent-L2
 
 ### MUST NOT
 
@@ -162,6 +163,7 @@ Before declaring completion, verify:
 - [ ] L1 Directive Compilation contains pure directives (no L0 Source citations)
 - [ ] Source L0 Principles table documents transformation chain
 - [ ] User understands if L0 or L2 updates needed (when applicable)
+- [ ] Exact template/rules file path written was reported on completion
 
 ## Failure Handling
 

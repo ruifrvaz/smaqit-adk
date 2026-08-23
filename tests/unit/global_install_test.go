@@ -41,11 +41,14 @@ func TestInstallGlobal(t *testing.T) {
 		t.Error("no Copilot agent directory should be created — Copilot is not an authored target")
 	}
 
-	// All 5 skills installed to both the shared (Copilot+Codex) and Claude paths.
+	// All 8 skills installed to both the shared (Copilot+Codex) and Claude paths.
 	skillNames := []string{
 		"smaqit.create-agent",
 		"smaqit.create-skill",
 		"smaqit.new-principle",
+		"smaqit.new-template",
+		"smaqit.new-rules",
+		"smaqit.sync",
 		"smaqit.bench-run",
 		"smaqit.bench-scaffold",
 	}

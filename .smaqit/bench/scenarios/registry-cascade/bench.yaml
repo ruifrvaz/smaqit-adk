@@ -1,0 +1,102 @@
+schemaVersion: 2
+name: registry-cascade
+# Task 032 dogfood: proves the registry-driven live cascade end-to-end in
+# one continuous non-interactive codex turn — smaqit.new-principle (L0)
+# writes a principle, L1 decides it requires a compiled-rules update,
+# a registry lookup finds the one pre-seeded dependent (smaqit.sync), and
+# L2 recompiles + re-registers it. No native subagent spawning is available
+# inside codex exec, so all four agent/skill bodies are staged as read-only
+# treatments and followed inline in sequence — see prompts/cascade.md.
+#
+# This is a mixed, cross-agent scenario, not an artifact-only baseline for
+# one skill/agent — placed under scenarios/ per Task 031's anticipated
+# convention rather than skills/ or agents/.
+cases:
+  - id: principle-cascades-to-dependent
+    fixture:
+      source: fixture
+      # Lays out a fake $HOME at workspace root: framework/, templates/,
+      # skills/smaqit.sync/ (the watched dependent, frozen), a matching
+      # .smaqit/definitions/skills/smaqit.sync.md, and a pre-seeded
+      # .agents/smaqit-adk/registry.json with exactly one entry.
+    given:
+      prompt:
+        file: prompts/cascade.md
+    expect:
+      - id: principle-added
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "grep -q 'Terminal Failure Row' framework/*.md"]
+      - id: rules-updated
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "grep -q 'do not guess a resolution' templates/skills/compiled/skill.rules.md"]
+      - id: dependent-recompiled
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "grep -q 'do not guess a resolution' skills/smaqit.sync/SKILL.md"]
+      - id: registry-updated
+        type: command
+        actual: submission
+        command:
+          executable: sh
+          arguments: ["-c", "! grep -q '0bc73d84aebbcfe6e339383576f2003b6985b64cab4ae82f65ddccfbc880bba2' .agents/smaqit-adk/registry.json"]
+variants:
+  - id: with-cascade
+    adapter: process
+    treatment:
+      - id: skill
+        source: ../../../../skills/smaqit.new-principle
+      - id: l0agent
+        source: ../../../../agents/smaqit.L0.md
+      - id: l1agent
+        source: ../../../../agents/smaqit.L1.md
+      - id: l2agent
+        source: ../../../../agents/smaqit.L2.md
+      - id: binary
+        source: ../../../../installer/dist/smaqit-adk-dev
+        # Dev build carrying this task's uncommitted `registry`/`sync`
+        # subcommands — the real installed smaqit-adk has neither.
+    process:
+      executable: sh
+      arguments:
+        - -c
+        - |
+          set -e
+          REAL_HOME="$HOME"
+          mkdir -p "{workspace}/bin"
+          cp "{treatment:binary}" "{workspace}/bin/smaqit-adk"
+          chmod +x "{workspace}/bin/smaqit-adk"
+          mkdir -p "{workspace}/.codex"
+          cp -r "$REAL_HOME/.codex/." "{workspace}/.codex/" 2>/dev/null || true
+          export HOME="{workspace}"
+          export PATH="{workspace}/bin:$PATH"
+          exec codex exec --sandbox danger-full-access --skip-git-repo-check --cd "{workspace}" "{briefFile}"
+      inputMode: argument
+      environment:
+        inherit: ["HOME", "PATH"]
+      # HOME is sandboxed to {workspace} for the actual codex exec call, so
+      # `~/.agents/smaqit-adk/registry.json` and `~/.agents/smaqit-adk/`
+      # resolve into the fixture, never the real machine-wide install. The
+      # real $HOME/.codex/ (auth + config) is copied in first — copied
+      # locally into this gitignored Bench workspace only, sent nowhere —
+      # so the sandboxed codex process can still authenticate. No manual
+      # cleanup here: run.go unconditionally `defer`s a full RemoveAll of
+      # the entire workspace.Root after every run (pass/fail/timeout) —
+      # see removeWorkspace in src/bench/workspace.go — so this copy is
+      # already covered by Bench's own teardown; a second deletion here
+      # would just be redundant destructive code for no added safety.
+    intendedDifferences:
+      - Exposes the full L0->L1->registry->L2 cascade chain, plus the dev
+        binary and a sandboxed HOME, as the variant treatment.
+execution:
+  repetitions: 1
+  timeoutSeconds: 900
+output:
+  directory: ../../runs/scenarios-registry-cascade

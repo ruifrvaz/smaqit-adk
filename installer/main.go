@@ -47,6 +47,13 @@ func main() {
 		cmdHelp()
 	case "uninstall":
 		cmdUninstall()
+	case "registry":
+		// Hidden, like --install-global: agents shell out to this via
+		// Bash to register/query compiled resources. Never documented
+		// or presented as a user-facing command.
+		cmdRegistry(os.Args[2:])
+	case "sync":
+		cmdSync()
 	case "version", "--version", "-v":
 		fmt.Printf("smaqit-adk %s\n", Version)
 	default:
@@ -62,6 +69,7 @@ Usage: smaqit-adk <command>
 
 Commands:
   bench <command>   Validate, plan, run, grade, compare, or report evaluations
+  sync              Report registry drift for compiled agents/skills hand-edited outside the L1/L2 chain
   help              Show detailed help
   uninstall         Remove smaqit-adk's globally installed agents, skills, templates, and framework
   version           Show smaqit-adk version`)
@@ -76,6 +84,11 @@ func cmdHelp() {
 	fmt.Println()
 	fmt.Println("  smaqit-adk uninstall")
 	fmt.Println("      Remove smaqit-adk's globally installed agents, skills, templates, and framework")
+	fmt.Println()
+	fmt.Println("  smaqit-adk sync")
+	fmt.Println("      Report registry drift — a compiled agent/skill hand-edited outside the L0/L1/L2 chain")
+	fmt.Println("      since it was last registered. Non-interactive: reports only, never overwrites. In")
+	fmt.Println("      Claude Code or Codex CLI, use /smaqit.sync instead to resolve reported drift.")
 	fmt.Println()
 	fmt.Println("  smaqit-adk version   Show smaqit-adk version")
 	fmt.Println()
@@ -168,7 +181,7 @@ func installGlobal() {
 	}
 
 	fmt.Printf("✓ smaqit-adk %s installed globally\n", Version)
-	fmt.Println("Use /smaqit.create-agent, /smaqit.create-skill, /smaqit.new-principle, /smaqit.bench-run, and /smaqit.bench-scaffold in Claude Code or Codex CLI.")
+	fmt.Println("Use /smaqit.create-agent, /smaqit.create-skill, /smaqit.new-principle, /smaqit.new-template, /smaqit.new-rules, /smaqit.sync, /smaqit.bench-run, and /smaqit.bench-scaffold in Claude Code or Codex CLI.")
 }
 
 // copyEmbedDir copies all files from an embed.FS rooted at src into the dst directory on disk.

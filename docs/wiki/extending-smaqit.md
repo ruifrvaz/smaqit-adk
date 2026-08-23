@@ -279,12 +279,18 @@ Document decisions in:
 
 ### Framework changes don't propagate
 
-**Symptom:** L0 principle changes don't appear in compiled agents.
+**Symptom (pre-registry, before Task 032):** L0 principle changes required manually invoking L1 to update templates, then manually invoking L2 to recompile every affected agent or skill — nothing tracked what depended on what, so a manual sweep was the only way to be sure everything was current.
 
-**Solution:**
-1. Compile L1 templates first: `/smaqit.L1`
-2. Update compilation rules if needed
-3. Recompile L2 agents: `/smaqit.L2`
+**Current behavior:** A registry (Terraform-statefile style) tracks every compiled agent/skill's source dependencies and a content hash of its output. `smaqit.new-principle`, `smaqit.new-template`, and `smaqit.new-rules` own a live cascade: after their Level agent lands a change, they query the registry for every registered dependent and recompile it automatically in the same session — no manual sweep needed for anything already registered.
+
+Two scopes exist, mirroring the base/extension framework model:
+- **Base:** smaqit-adk's own `framework/*.md`, tracked in the ADK-global registry (`~/.agents/smaqit-adk/registry.json`). A base edit cascades to every dependent registered on this machine.
+- **Extension:** a consuming project's own `.smaqit/framework/*.md`, tracked in that project's registry (`.smaqit/registry.json`). An extension edit cascades only within that project.
+
+**If something still isn't current:**
+1. From a raw shell (or right after `install.sh`), run `smaqit-adk sync` — reports drift between a registered entry's recorded compiled-content hash and its current file, i.e. something was hand-edited outside the chain, or the registry is stale. It only reports; it never silently overwrites a hand edit, because a plain binary has no way to perform the semantic L1/L2 recompile itself.
+2. From inside Claude Code or Codex CLI, run `/smaqit.sync` instead — the interactive counterpart that actually resolves what the CLI can only report. It re-checks the same drift, then presents each drifted entry as a conflict: recompile from its recorded source via `smaqit.L2`, or keep the hand edit and re-register it. Never picks one automatically.
+3. A resource compiled before Task 032 shipped was never registered — it won't appear in any cascade or `sync` report until it's recompiled once through `smaqit.create-agent`/`smaqit.create-skill`, which registers it going forward.
 
 ## Downstream Input Patterns
 

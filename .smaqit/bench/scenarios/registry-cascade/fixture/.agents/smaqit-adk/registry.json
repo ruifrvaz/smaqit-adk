@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "scope": "base",
+  "entries": [
+    {
+      "name": "smaqit.sync",
+      "target": {
+        "claude": "skills/smaqit.sync/SKILL.md"
+      },
+      "sourceDefinition": ".smaqit/definitions/skills/smaqit.sync.md",
+      "sourceTemplates": [
+        "templates/skills/base-skill.template.md",
+        "templates/skills/compiled/skill.rules.md"
+      ],
+      "compiledHash": "0bc73d84aebbcfe6e339383576f2003b6985b64cab4ae82f65ddccfbc880bba2",
+      "lastCompiled": "2026-08-19T00:00:00Z"
+    }
+  ]
+}

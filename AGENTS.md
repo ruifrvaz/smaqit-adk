@@ -11,7 +11,7 @@ When reasoning about or modifying the ADK, work exclusively with root-level arti
 | Path | Purpose |
 |------|---------|
 | `agents/` | Shipped agents: Level agents (L0, L1, L2) — shared body + per-platform metadata, compiled to Claude `.md` and Codex `.toml` |
-| `skills/` | ADK skills: create-agent, create-skill, new-principle, bench-run, bench-scaffold — single cross-platform `SKILL.md` format |
+| `skills/` | ADK skills: create-agent, create-skill, new-principle, new-template, new-rules, sync, bench-run, bench-scaffold — single cross-platform `SKILL.md` format |
 | `framework/` | L0 principle files |
 | `templates/` | L1 templates and compilation rules (agents and skills) |
 | `src/` | Go source for shipped engine capabilities (e.g. `src/bench`, `src/benchcli` — the Bench evaluation/benchmark engine and CLI) |
@@ -34,7 +34,7 @@ When reasoning about or modifying the ADK, work exclusively with root-level arti
 ```
 smaqit-adk (this repo, root)
 ├── agents/          ← ADK ships these (L0, L1, L2 — shared body + per-platform metadata)
-├── skills/          ← ADK ships these (create-agent, create-skill, new-principle, bench-run, bench-scaffold)
+├── skills/          ← ADK ships these (create-agent, create-skill, new-principle, new-template, new-rules, sync, bench-run, bench-scaffold)
 ├── framework/       ← ADK ships these (principle files)
 ├── templates/       ← ADK ships these (compilation templates)
 ├── src/             ← ADK ships these (bench engine + CLI Go source)
@@ -43,9 +43,9 @@ smaqit-adk (this repo, root)
 Global install targets (outside any project, one per machine):
 ~/.claude/agents/        ← L0, L1, L2 (Claude Code)
 ~/.codex/agents/         ← L0, L1, L2 (Codex CLI)
-~/.agents/skills/        ← all 5 skills (Copilot + Codex)
-~/.claude/skills/        ← all 5 skills (Claude Code)
-~/.agents/smaqit-adk/    ← templates + framework
+~/.agents/skills/        ← all 8 skills (Copilot + Codex)
+~/.claude/skills/        ← all 8 skills (Claude Code)
+~/.agents/smaqit-adk/    ← templates + framework + registry.json (tracks base-scope compiled agents/skills; see Registry below)
 ```
 
 `install.sh` triggers the global install automatically after downloading the binary. No project directory receives any smaqit-adk artifact. A consuming project's own `.smaqit/definitions/` only appears lazily, created by `create-agent`/`create-skill` the first time they're used in that project.
@@ -61,6 +61,14 @@ The ADK has three Level agents with distinct responsibilities:
 | `smaqit.L2` | Compile templates to agents and skills | Creating new agents or skills |
 
 Skills that route to a Level agent do so by naming it explicitly in their compilation step, with platform-conditional invocation: a native subagent/custom-agent call on Claude Code or Codex CLI, or a direct-read-and-follow-inline instruction (reading the Claude-format agent body) on GitHub Copilot, which has no dedicated compiled file of its own.
+
+## Registry-driven propagation
+
+`smaqit.L2` registers every agent/skill it compiles (name, compiled target path(s), source definition, source L1 template/rules dependencies, and a content hash) via the hidden `smaqit-adk registry put` subcommand. Two registry files exist: the ADK-global registry (`~/.agents/smaqit-adk/registry.json`, scope `base` — this repo's own L0/L1/L2 and 8 shipped skills) and a per-project registry (`.smaqit/registry.json`, scope `extension` — that project's own `create-agent`/`create-skill` output).
+
+`smaqit.new-principle`, `smaqit.new-template`, and `smaqit.new-rules` own the live cascade: after their Level agent lands a change, they query the registry (`smaqit-adk registry get --depends-on <path>`) for every dependent and recompile each one via a single-hop `smaqit.L2` invocation, in the same session — never by granting `smaqit.L0`/`smaqit.L1` a `Task` tool to chain into `smaqit.L2` directly.
+
+Reconciliation (drift — a registered target hand-edited outside the chain) is split across two layers: `smaqit-adk sync` is a non-interactive CLI diagnostic (usable from a raw shell or during `install.sh`) that can only report drift, never resolve it — recompilation is a semantic L1/L2 act no plain binary can perform headlessly. `smaqit.sync` is its interactive skill counterpart: it shells out to `smaqit-adk registry get` the same way any Level agent would, then — because it runs inside an agent session with `Task` access — presents each drifted entry as a conflict and resolves it via `smaqit.L2` or by re-registering, rather than ever overwriting silently.
 
 ## Agent Catalog
 
@@ -117,13 +125,16 @@ Each of L0/L1/L2's per-platform metadata declares its own explicit tool mapping 
 
 ### Location and Shipping
 
-Skills live in `skills/` at the ADK root, installed globally to `~/.agents/skills/` and `~/.claude/skills/` — no tiers, all 5 always installed:
+Skills live in `skills/` at the ADK root, installed globally to `~/.agents/skills/` and `~/.claude/skills/` — no tiers, all 8 always installed:
 
 | Skill | Purpose |
 |-------|---------|
 | `smaqit.create-agent` | Gather name+purpose, infer spec, write definition file, invoke L2 to compile agent (Claude `.md` + Codex `.toml`) |
 | `smaqit.create-skill` | Gather name+purpose, infer spec, write definition file, invoke L2 to compile skill (single cross-platform `SKILL.md`) |
-| `smaqit.new-principle` | Add or refine a principle in the ADK framework files |
+| `smaqit.new-principle` | Add or refine a principle in the ADK framework files; cascades the change through L1 and L2 to every registered dependent |
+| `smaqit.new-template` | Add or refine an L1 template structure file; cascades the change through L2 to every registered dependent |
+| `smaqit.new-rules` | Add or refine an L1 compiled-rules file; cascades the change through L2 to every registered dependent |
+| `smaqit.sync` | Detect registry drift and resolve each drifted entry — recompile via L2 from its recorded source, or keep the hand edit and re-register it |
 | `smaqit.bench-run` | Preflight, structurally validate, confirm, and run a project's `.smaqit/bench/` suite; report and diagnose failures |
 | `smaqit.bench-scaffold` | Author a new `.smaqit/bench/` manifest for a skill/agent lacking one; delegates any live trial to `smaqit.bench-run` |
 

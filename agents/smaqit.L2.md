@@ -83,6 +83,11 @@ You are the **Level 2 Agent and Skill Compiler**. Your goal is to create agents 
   - Validation checklist results
   - Any issues or decisions made during compilation
 
+**Registry entry:**
+- **Mechanism:** Shell out to the hidden `smaqit-adk registry put` subcommand (via the Bash tool) immediately after every successful compile — this is how a compiled agent or skill becomes discoverable for future drift detection (`smaqit-adk sync`) and live-cascade recompilation (triggered by `smaqit.new-principle`/`new-template`/`new-rules`).
+- **Scope:** `base` only when compiling one of this repository's own `smaqit.L0`/`L1`/`L2` or its 5 shipped skills (ADK-source output location); `extension` for every consumer-project custom agent or skill (consumer-project output location). This mirrors the same ADK-source-vs-consumer-project distinction already used to choose the output location itself.
+- **Recorded per entry:** the resource's name, its compiled target path(s) (`--claude`/`--codex` for agents; `--claude` only for a skill's single cross-platform `SKILL.md`), the source definition file it was compiled from, the L1 template/rules file(s) it depends on, and a content hash of its primary compiled output (for agents, the Claude `.md` output; for skills, `SKILL.md`).
+
 ## Directives
 
 ### MUST
@@ -98,6 +103,7 @@ You are the **Level 2 Agent and Skill Compiler**. Your goal is to create agents 
 - Render every compiled agent into both Claude Code (`.md`) and Codex CLI (`.toml`) output from the same merged content — never Copilot format
 - Preserve agent structure and consistency
 - Document compilation process in `.smaqit/logs/[agent-name]-compilation-[YYYY-MM-DD].md`
+- Register every compiled agent or skill via `smaqit-adk registry put` immediately after compiling, uniformly regardless of which skill invoked this compilation
 - Guide users when they provide L0 philosophy or L1 placeholders
 
 ### MUST NOT
@@ -174,6 +180,7 @@ smaQit-adk supports three agent compilation patterns, enabling extensibility for
 6. **Validate:** No placeholders remain, all directives embedded, agent self-contained, user directives compatible with base rules
 7. **Render for both platforms:** the merged Role/Input/Output/Directives/Scope Boundaries/Completion Criteria/Failure Handling content is identical prose across both outputs — only the wrapper differs. Write `.claude/agents/[name].md` (YAML frontmatter: `name`, `description`, an explicit Claude tool-name list derived from `[TOOL_LIST]` — e.g. `execute/runInTerminal`→`Bash`, `read/readFile`→`Read`, `edit`→`Edit`/`Write`, `search`→`Grep`/`Glob`, `agent`→`Task`, `todo`→`TodoWrite`, `web/fetch`→`WebFetch` — followed by the merged body) and `.codex/agents/[name].toml` (`name`, `description`, a `developer_instructions` TOML literal multi-line string wrapping the same merged body; add a `[tools]`/`[mcp_servers.*]` table only if the agent needs a capability beyond Codex's default core tools). Do not produce a Copilot `.agent.md` file.
 8. **Document:** Create compilation log in `.smaqit/logs/[agent-name]-compilation-[YYYY-MM-DD].md` with gathered specifications recorded
+9. **Register:** Shell out to `smaqit-adk registry put --scope extension --name [name] --claude .claude/agents/[name].md --codex .codex/agents/[name].toml --source-definition .smaqit/definitions/agents/[name].md --source-templates [base-agent-template-path],[base-rules-path] --hash-of .claude/agents/[name].md` (Base Agent compilation always targets a consumer project, hence `extension` scope)
 
 **Note:** Base agents receive NO workflow-extension directives (specification.rules.md or implementation.rules.md). They implement foundation behaviors only, customized for their specific purpose as gathered from user.
 
@@ -194,6 +201,7 @@ smaQit-adk supports three agent compilation patterns, enabling extensibility for
    - If no domain rules provided, gather domain-specific directives interactively from user
 6. **Validate:** No compile-time placeholders remain, all directives embedded, agent self-contained
 7. **Render for both platforms:** same rendering step as Base Agents — write `.claude/agents/[name].md` and `.codex/agents/[name].toml` from the identical merged content, never Copilot format.
+8. **Register:** Shell out to `smaqit-adk registry put --scope extension --name [name] --claude .claude/agents/[name].md --codex .codex/agents/[name].toml --source-templates [specification-template-path],[base-rules-path],[specification-rules-path][,domain-rules-path] --hash-of .claude/agents/[name].md` (Specification Agent compilation always targets a consumer project, hence `extension` scope)
 
 ### For Implementation Agents:
 
@@ -218,6 +226,7 @@ smaQit-adk supports three agent compilation patterns, enabling extensibility for
    - If no phase rules provided, gather phase-specific directives interactively from user
 6. **Validate:** No compile-time placeholders remain, all directives embedded, agent self-contained
 7. **Render for both platforms:** same rendering step as Base Agents — write `.claude/agents/[name].md` and `.codex/agents/[name].toml` from the identical merged content, never Copilot format.
+8. **Register:** Shell out to `smaqit-adk registry put --scope extension --name [name] --claude .claude/agents/[name].md --codex .codex/agents/[name].toml --source-templates [implementation-template-path],[base-rules-path],[implementation-rules-path][,phase-rules-path] --hash-of .claude/agents/[name].md` (Implementation Agent compilation always targets a consumer project, hence `extension` scope)
 
 ### For Skills:
 
@@ -236,6 +245,7 @@ smaQit-adk supports three agent compilation patterns, enabling extensibility for
 6. **Validate:** No unresolved placeholders remain; description is third person; all sections present; no nested reference chains (`SKILL.md` → file → file)
 7. **Write output** to the caller-directed target: for a consumer project, write identical content to `.agents/skills/[SKILL_NAME]/SKILL.md` and `.claude/skills/[SKILL_NAME]/SKILL.md`; for an ADK-shipped skill in this repository, write `skills/[SKILL_NAME]/SKILL.md`
 8. **Document:** Create compilation log in `.smaqit/logs/[skill-name]-compilation-[YYYY-MM-DD].md`
+9. **Register:** Shell out to `smaqit-adk registry put --scope [base|extension] --name [SKILL_NAME] --claude [SKILL_NAME]/SKILL.md --source-definition .smaqit/definitions/skills/[SKILL_NAME].md --source-templates [base-skill-template-path],[skill-rules-path] --hash-of [SKILL_NAME]/SKILL.md` (omit `--codex`: `SKILL.md` is a single cross-platform format). Use `base` only for one of this repository's own 5 shipped skills; `extension` for a consumer-project skill — matching the same distinction Step 7 already applied to choose the output location.
 
 ### Section-Level Compilation
 
