@@ -3,10 +3,6 @@
     {
       "name": "main",
       "path": "."
-    },
-    {
-      "name": "task/034-migrate-smaqit-adk-to-daisy-tribe-org-private-repo",
-      "path": "../smaqit-adk-wt-task-034-migrate-smaqit-adk-to-daisy-tribe-org-private-repo"
     }
   ],
   "settings": {
