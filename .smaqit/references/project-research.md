@@ -4,8 +4,8 @@ version: "1.0.0"
 
 # Project Research Map
 **Project:** smaqit-adk
-**Refreshed:** 2026-08-19
-**Active task:** 032
+**Refreshed:** 2026-08-24
+**Active task:** 036
 
 | Tool | Section | URL |
 |------|---------|-----|
@@ -55,3 +55,12 @@ version: "1.0.0"
 | GitHub CLI | gh auth status | https://cli.github.com/manual/gh_auth_status |
 | GitHub REST API | Releases | https://docs.github.com/en/rest/releases/releases |
 | GitHub REST API | Release assets | https://docs.github.com/en/rest/releases/assets |
+
+## Task 036 — Installer Get-Started Message Omits Bench Usage
+
+**Context fingerprint:** sha256:5ab009747a2775f3ffffd2f435a81dc111b99d88154853a976c5695fea96dca0
+**Refreshed:** 2026-08-24
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Bash | Manual | https://www.gnu.org/software/bash/manual/bash.html |
