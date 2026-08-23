@@ -1,8 +1,9 @@
 ---
-status: In Progress
+status: PR Open
 created: "2026-08-24"
 mode: Assisted
 started: "2026-08-24"
+pr: 3
 ---
 
 # Installer Get-Started Message Omits Bench Usage
@@ -40,9 +41,9 @@ separately dig into `--help` output or the README's Quick Start section.
 
 ## Acceptance Criteria
 
-- [ ] `install.sh`'s "Get started" echo block mentions `smaqit-adk bench` and points at how to learn
+- [x] `install.sh`'s "Get started" echo block mentions `smaqit-adk bench` and points at how to learn
       more (e.g. `smaqit-adk bench --help` or `smaqit-adk --help`)
-- [ ] The addition is a single short line, consistent in style with the existing "Get started" block —
+- [x] The addition is a single short line, consistent in style with the existing "Get started" block —
       no restructuring of unrelated `install.sh` content
 
 ## Findings
@@ -50,16 +51,16 @@ separately dig into `--help` output or the README's Quick Start section.
 [Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
 
 **Implementation approach:**
-- TBD
+- Added one `echo` line to `install.sh`'s `main()` "Get started" block, between the existing create-agent/create-skill line and the `--help` line, pointing at `smaqit-adk bench validate|plan|run`
 
 **Decisions made:**
-- TBD
+- Scope stayed limited to `install.sh`'s own printed output, as planned — `installer/main.go`'s `cmdHelp()` and README's Quick Start section already cover bench and didn't need duplicated changes
 
 **Blockers encountered:**
-- TBD
+- None
 
 **Follow-up identified:**
-- TBD
+- None
 
 ## Files to Create / Modify
 
