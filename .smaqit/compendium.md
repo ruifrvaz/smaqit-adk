@@ -54,6 +54,28 @@ Keep the Case prompt, fixture, preparation, shared inputs, expectations, graders
 
 ---
 
+**Does a Bench harness need to clean up its own workspace, and what happens if it leaves behind a non-regular file (socket, FIFO)?**
+
+No manual cleanup belongs in a manifest — `src/bench/run.go`'s `runAttempt` unconditionally `defer`s a full removal of the entire ephemeral workspace (`removeWorkspace`, an `os.RemoveAll`-shaped call) after every run, regardless of pass, fail, or timeout. A manifest's own `process`/`prepare` commands should never add their own teardown logic; it's redundant at best.
+
+There is a real gap, though: if a harness process creates a non-regular file inside the workspace — for example `codex exec`'s own runtime IPC socket, created as a side effect of redirecting `HOME` into the workspace for sandboxing — the post-harness "freeze" step (`snapshotTree` in `src/bench/inventory.go`) crashes with a raw OS error (`ENXIO`, "no such device or address") trying to `open()` it, unlike `hash.go`'s plan-time hashing, which already guards against non-regular files with a clear error. Worse, when this freeze failure happens, the deferred cleanup's own failure is silently swallowed (a `&& result.Failure == nil` guard in `run.go`) with no visible warning, so the workspace can leak to disk uncleaned. Both are open, unfixed engine gaps — see `.smaqit/tasks/035_bench_freeze_and_cleanup_error_handling.md`.
+
+---
+
+## Registry Propagation
+
+**How does `smaqit.new-principle`'s live cascade actually propagate a principle change?**
+
+`smaqit.new-principle` owns the entire cascade itself — it is not agent-to-agent chaining. After invoking `smaqit.L0` to land the principle (base scope: `framework/*.md`; extension scope: a consuming project's `.smaqit/framework/*.md`), the skill invokes `smaqit.L1` as a single-hop `Task` call to judge whether any `templates/agents/*.template.md`, `templates/agents/compiled/*.rules.md`, or `templates/skills/` equivalent needs updating — "no update needed" is a valid, common outcome that ends the cascade there. Only if `smaqit.L1` actually touches a file does the skill query the registry (`smaqit-adk registry get --scope base|extension --depends-on <path>`) for dependents, then invoke `smaqit.L2` once per dependent — again a single-hop `Task` call from the skill's own turn — to recompile and re-register it. Neither `smaqit.L0` nor `smaqit.L1` holds a `Task` tool grant; no 2-hop agent-to-agent subagent chain exists anywhere in smaqit-adk or the sibling `smaqit` product, so every hop originates from the orchestrating skill, mirroring `smaqit.development`'s Business/Functional/Stack orchestration pattern. The registry only has edges from an L1 template/rules file to the L2 output compiled from it — never a direct edge from an L0 framework file — which is why L1's judgment step must run before the registry lookup, not be skipped in favor of it.
+
+---
+
+**What is the registry, and what are its two scopes?**
+
+A Terraform-statefile-style JSON file (structs defined in `installer/registry.go`) tracking every ADK-compiled agent/skill's target path(s), source definition file, source template/rules dependencies, and a compiled-content hash. Two scopes exist: `base` (`~/.agents/smaqit-adk/registry.json`) tracks smaqit-adk's own `smaqit.L0`/`L1`/`L2` and its shipped skills against the base framework; `extension` (`.smaqit/registry.json` in a consuming project) tracks that project's own `smaqit.create-agent`/`create-skill` output. `smaqit.L2` writes an entry uniformly on every compile via the hidden `smaqit-adk registry put` subcommand, regardless of which skill invoked it — this is the only registration path; no other skill duplicates it. `smaqit-adk sync` (the CLI) can only report drift — a plain binary has no way to invoke an LLM for the semantic recompile a drifted entry needs. `smaqit.sync` (the skill) is the interactive counterpart that actually resolves it: it shells out to the same registry CLI, then lets the user choose per drifted entry to recompile from the recorded source or keep a hand edit and re-register it.
+
+---
+
 ## Skill Authoring
 
 **How are new ADK-shipped skills (root `skills/`) actually authored, and does `smaqit.new-skill` exist?**
