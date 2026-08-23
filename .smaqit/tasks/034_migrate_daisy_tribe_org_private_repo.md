@@ -1,8 +1,9 @@
 ---
-status: In Progress
+status: PR Open
 created: "2026-08-23"
 mode: Assisted
 started: "2026-08-23"
+pr: 2
 ---
 
 # Migrate smaqit-adk to daisy-tribe Org (Private Repo)
@@ -102,33 +103,46 @@ of attaching `install.sh` as a release asset.
 
 ## Acceptance Criteria
 
-- [ ] Repo pushed to `github.com/daisy-tribe/smaqit-adk` with new remote and scoped PAT configured
-- [ ] All 3 `go.mod` module paths and both Go import statements updated to `daisy-tribe/smaqit-adk`;
+- [x] Repo pushed to `github.com/daisy-tribe/smaqit-adk` with new remote and scoped PAT configured
+- [x] All 3 `go.mod` module paths and both Go import statements updated to `daisy-tribe/smaqit-adk`;
       `make build` passes cleanly
-- [ ] `post-merge-release.yml` attaches `install.sh` as a release asset alongside platform binaries
-- [ ] `install.sh` fetches its release binary exclusively via `gh release download`, with no
+- [x] `post-merge-release.yml` attaches `install.sh` as a release asset alongside platform binaries
+- [x] `install.sh` fetches its release binary exclusively via `gh release download`, with no
       curl/raw.githubusercontent.com calls remaining; fails fast with a clear error when `gh` is
       missing or unauthenticated
-- [ ] `README.md` and `docs/wiki/extending-smaqit.md`'s install one-liner replaced with the new
+- [x] `README.md` and `docs/wiki/extending-smaqit.md`'s install one-liner replaced with the new
       `gh`-based, version-pinned, single-copy-paste command
 - [ ] The real new one-liner exercised end-to-end against the real private repo, both with interactive
-      `gh auth login` and with `GH_TOKEN` set, confirmed working
+      `gh auth login` and with `GH_TOKEN` set, confirmed working — **deferred**: no release with
+      `install.sh` attached can exist on `daisy-tribe/smaqit-adk` until this task's own PR merges and
+      cuts it, so this cannot be verified pre-merge (same structural deferral as Task 027's real
+      `curl\|bash` e2e). Follow-up: run the one-liner for real once this PR's release publishes.
 
 ## Findings
 
 [Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
 
 **Implementation approach:**
-- TBD
+- Rewrote all repo-identity references (3 `go.mod` module paths, 2 Go import statements, README/wiki doc URLs, `installer/main.go` help text) from `ruifrvaz/smaqit-adk` to `daisy-tribe/smaqit-adk`
+- Replaced `install.sh`'s curl-based release-list/binary-download flow with `gh release download` exclusively, added a `check_gh_auth()` preflight that fails fast if `gh` is missing/unauthenticated
+- Attached `install.sh` to `post-merge-release.yml`'s release `files:` list as a version-pinned asset
+- Replaced `README.md`/`docs/wiki/extending-smaqit.md`'s install one-liner with the new `gh`-based command
+- Performed the actual repo migration mid-session at the user's explicit request: `daisy-tribe/smaqit-adk` turned out to be a completely empty repo shell (zero refs) rather than already populated, so pushed `main` + active task branches (032, 034) and repointed `origin`
+- Rebased this task's branch onto `main` after Task 032 merged (which touched overlapping files: `README.md`, `installer/main.go`, `docs/wiki/extending-smaqit.md`); git auto-merged cleanly with no conflicts
 
 **Decisions made:**
-- TBD
+- `gh` CLI is the sole required install-time dependency; no curl fallback kept — per the user's explicit rejection of two earlier proposals (git-clone+build, and hand-rolled curl+API-asset-endpoint parsing) during planning
+- `install.sh` ships version-pinned as a release asset, not fetched live off `main`
+- Repo-migration push scope was explicitly limited to `main` + active task branches only (no tags, no stale `copilot/*`/`release/*` branches) — avoids re-triggering `post-merge-release.yml` for 5 historical `adk-v*` tags on the new repo
+- `CHANGELOG.md`'s historical compare-URLs left pointing at the old org, undisturbed
 
 **Blockers encountered:**
-- TBD
+- An initial push attempt 403'd; traced to the user having temporarily swapped their `gh`/git credential to a `daisy-tribe`-scoped PAT mid-session before the old-repo push had gone through — resolved once they swapped back
+- `daisy-tribe/smaqit-adk` was found completely empty (`gh api` showed it existed, but `git ls-remote` returned zero refs) when checked — required pausing to confirm push scope with the user before performing the actual content migration, rather than assuming it was already populated
 
 **Follow-up identified:**
-- TBD
+- Run the real new one-liner end-to-end (both `gh auth login` and `GH_TOKEN` paths) once this PR merges and its release publishes on `daisy-tribe/smaqit-adk` — the one remaining open acceptance criterion
+- Non-blocking items noted during planning remain open: confirm the scoped PAT/`gh auth login` session has at least `Contents:read` on the new repo; whether the migration should eventually be a GitHub "Transfer repository" vs. the fresh-push approach taken here is a separate decision that doesn't affect this task
 
 ## Files to Create / Modify
 
