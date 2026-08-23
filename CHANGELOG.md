@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Repository migration and `install.sh` rebuild for private hosting** (pending v3.0.0 · PR #2) — Breaking: smaqit-adk moves from `github.com/ruifrvaz/smaqit-adk` to the private `github.com/daisy-tribe/smaqit-adk`. `install.sh` is rebuilt to use the GitHub CLI (`gh`) exclusively — the previous public `curl`-based one-liner and its unauthenticated `api.github.com`/`raw.githubusercontent.com` calls are removed entirely, since GitHub 404s unauthenticated requests to a private repo. `install.sh` itself now ships as a version-pinned release asset, fetched via `gh release download` alongside the platform binary. New install command: `gh release download --repo daisy-tribe/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && bash /tmp/smaqit-adk-install/install.sh`.
+
 ## [2.1.0] - 2026-08-23
 
 ### Added
