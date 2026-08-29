@@ -1,6 +1,6 @@
-# smaQit Agent Development Kit
+# smaQit Agentic Development Kit
 
-smaQit-adk is an **Agent Development Kit**. It ships a compilation framework (principles → templates → agents) and the tools to create custom agents and skills — installed once, globally, and available in every project you work in.
+smaQit-adk is an **Agentic Development Kit**. It ships a compilation framework (principles → templates → agents) and the tools to create custom agents and skills — installed once, globally, and available in every project you work in.
 
 ## Compatibility
 
