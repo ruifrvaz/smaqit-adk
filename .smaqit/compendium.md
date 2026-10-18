@@ -64,7 +64,22 @@ No manual cleanup belongs in a manifest — `src/bench/run.go`'s `runAttempt` un
 
 **How does Bench run Claude Code, and why can't a plain `process` variant do it safely?**
 
-Through `adapter: claude-code` (Task 037). Claude Code discovers skills, agents, and commands only from a project's `.claude/` and its config directory, and personal skills override project skills of the same name — so on a machine with smaqit's skills installed globally, a non-isolated run silently tests the installed copy instead of the treatment. The adapter gives every attempt an isolated `HOME` and `CLAUDE_CONFIG_DIR` inside the harness home, installs declared treatments there (`install: [{treatment: <id>, as: skill|agent|command}]`), fails the attempt on a same-named definition in the fixture's or an ancestor's `.claude/` or a managed location, and asserts every installed treatment appears in the harness's `system/init` event. It runs `claude -p --output-format stream-json --verbose` with the Case brief on stdin, captures the transcript into `traces/transcript.jsonl`, parses token/cost/tool-call usage, records the harness version in the plan and report, and treats a final `is_error: true` as failure even on exit 0. Exactly one credential variable (`CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY`) passes through; every other `CLAUDE_*`/`ANTHROPIC_*` variable — including the invoking Claude Code session's own `CLAUDE_CODE_SESSION_ID`/messaging socket — is absent, and a post-attempt canary scan redacts and fails on any echoed credential. For live runs on Linux/WSL, the invoking user's own login token is loaded inline, never via Vault: `CLAUDE_CODE_OAUTH_TOKEN="$(jq -r .claudeAiOauth.accessToken ~/.claude/.credentials.json)" smaqit-adk bench run …` — live-verified working with an empty config dir (Claude Code 2.1.296). `--bare` can't be used because it disables the discovery treatments depend on. `.smaqit/bench/scenarios/claude-code-isolation/` is the live proof.
+Through `adapter: claude-code` (Task 037). Claude Code discovers skills, agents, and commands only from a project's `.claude/` and its config directory, and personal skills override project skills of the same name — so on a machine with smaqit's skills installed globally, a non-isolated run silently tests the installed copy instead of the treatment. The adapter gives every attempt an isolated `HOME` and `CLAUDE_CONFIG_DIR` inside the harness home, installs declared treatments there (`install: [{treatment: <id>, as: skill|agent|command}]`), fails the attempt on a same-named definition in the fixture's or an ancestor's `.claude/` or a managed location, and asserts every installed treatment appears in the harness's `system/init` event. It runs `claude -p --output-format stream-json --verbose` with the Case brief on stdin, captures the transcript into `traces/transcript.jsonl`, parses token/cost/tool-call usage, records the harness version in the plan and report, and treats a final `is_error: true` as failure even on exit 0. Exactly one credential variable (`CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY`) passes through; every other `CLAUDE_*`/`ANTHROPIC_*` variable — including the invoking Claude Code session's own `CLAUDE_CODE_SESSION_ID`/messaging socket — is absent, and a post-attempt canary scan redacts and fails on any echoed credential. For live runs on Linux/WSL, the invoking user's own login token is loaded inline, never via Vault. Live runs execute through the agent's own Bash tool, so storing a copy of a credential the machine already holds would add a secret store without adding any safety: `CLAUDE_CODE_OAUTH_TOKEN="$(jq -r .claudeAiOauth.accessToken ~/.claude/.credentials.json)" smaqit-adk bench run …` — live-verified working with an empty config dir (Claude Code 2.1.296). `--bare` can't be used because it disables the discovery treatments depend on. `.smaqit/bench/scenarios/claude-code-isolation/` is the live proof.
+
+---
+
+## Installation
+
+**Does smaqit-adk have an update command, and how do I upgrade an existing install?**
+
+No. The CLI has `bench`, `sync`, `help`, `uninstall`, `version`, plus the hidden `registry` and `--install-global`; there is no `update`. To upgrade, re-run the install one-liner: `gh release download --repo ruifrvaz/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && bash /tmp/smaqit-adk-install/install.sh`. It downloads the latest release's binary over `~/.local/bin/smaqit-adk`, then runs `--install-global`. That overwrites the ADK's own agents, skills, templates and framework files in place, and leaves every other skill or agent in those directories untouched; a v2.0.1 → v3.1.0 upgrade only added the newer skills.
+
+Validated gaps remain:
+- `--install-global` never creates the base registry (`~/.agents/smaqit-adk/registry.json`), so on a release-installed machine the `new-principle`/`new-template`/`new-rules` cascades find no registered dependents.
+- `smaqit-adk sync` prints nothing and exits 0 when no registry file exists, which is indistinguishable from "no drift".
+- The installer's summary still says "5 ADK skills" (there are 8).
+
+These were deferred as follow-up work after session 026.
 
 ---
 
@@ -97,6 +112,18 @@ It enforces the ADK's SKILL.md format rules: frontmatter (`name` pattern, `descr
 ---
 
 ## Git & Release Workflow
+
+**Where does smaqit-adk's canonical GitHub repo live?**
+
+`https://github.com/ruifrvaz/smaqit-adk`, which is public. Task 034 had migrated it to a private `daisy-tribe/smaqit-adk`. By 2026-10-18 that repo returned HTTP 404 and the org was no longer visible to the user, so the move was reversed:
+- `origin` was repointed, with the old URL kept as a remote named `daisy-tribe`.
+- Local `main`, holding all Task 032/034/036 history, was pushed once to ruifrvaz `main`, with no tags.
+- The code identity (Go module paths `github.com/ruifrvaz/smaqit-adk/...`, imports, CLI help, `install.sh`, docs) was reverted in Task 037's PR #25. `install.sh` keeps its `gh`-only flow.
+
+The v2.1.0 and v3.0.0 releases and PRs #1–#3 existed only on daisy-tribe and were deliberately not backfilled. ruifrvaz's release tags jump from `adk-v2.0.1` to `adk-v3.1.0`, while local tags still carry `adk-v2.1.0`/`adk-v3.0.0` as the version baseline.
+
+---
+
 
 **Why does `git push` get rejected for touching `.github/workflows/*.yml`, and how do I fix it?**
 
