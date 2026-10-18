@@ -27,6 +27,37 @@ func WriteReport(path string, experiment *Experiment) error {
 		}
 		fmt.Fprintf(&b, "| %s | %d | %.1f%% | %s | %s | %t |\n", s.VariantID, s.Count, s.RequiredPassRate*100, optional, duration, s.Eligible)
 	}
+	harnessSeen := map[string]bool{}
+	var harnessRows []string
+	for _, result := range experiment.Results {
+		if result.Harness.Name == "" || harnessSeen[result.VariantID] {
+			continue
+		}
+		harnessSeen[result.VariantID] = true
+		version := result.Harness.Version
+		if version == "" {
+			version = "unknown"
+		}
+		harnessRows = append(harnessRows, fmt.Sprintf("| %s | %s | %s | `%s` |\n", result.VariantID, result.Harness.Name, version, result.Harness.Executable))
+	}
+	if len(harnessRows) > 0 {
+		b.WriteString("\n## Harnesses\n\n| Variant | Harness | Version | Executable |\n|---|---|---|---|\n")
+		for _, row := range harnessRows {
+			b.WriteString(row)
+		}
+	}
+	var cleanupFailures []string
+	for _, result := range experiment.Results {
+		if result.Cleanup != nil {
+			cleanupFailures = append(cleanupFailures, fmt.Sprintf("- `%s`: %s\n", result.RunID, result.Cleanup.Message))
+		}
+	}
+	if len(cleanupFailures) > 0 {
+		b.WriteString("\n## Cleanup failures\n\nThese attempts left an ephemeral workspace or harness home on disk that Bench could not remove. Inspect and delete them manually.\n\n")
+		for _, line := range cleanupFailures {
+			b.WriteString(line)
+		}
+	}
 	if len(experiment.Warnings) > 0 {
 		b.WriteString("\n## Comparability warnings\n\n")
 		for _, warning := range experiment.Warnings {

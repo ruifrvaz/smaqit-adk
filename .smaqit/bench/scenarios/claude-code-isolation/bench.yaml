@@ -1,0 +1,68 @@
+schemaVersion: 2
+name: claude-code-isolation
+# Live check for the claude-code adapter (Task 037). The treatment skill is
+# deliberately named `smaqit.create-skill`, the same name as the personal skill
+# installed globally at ~/.claude/skills/. Personal skills override project
+# skills in Claude Code, so a non-isolated run would load the installed copy.
+# Passing proves the per-attempt isolated CLAUDE_CONFIG_DIR loaded the
+# treatment; the baseline proves the installed copy is invisible (it writes
+# NO-SKILL.txt and fails CANARY by design, so the comparison picks a winner).
+#
+# Credential: exports CLAUDE_CODE_OAUTH_TOKEN from the invoking user's own
+# Claude Code login in the same command, never printed (see README):
+#   CLAUDE_CODE_OAUTH_TOKEN="$(jq -r .claudeAiOauth.accessToken ~/.claude/.credentials.json)" \
+#     smaqit-adk bench run .smaqit/bench/scenarios/claude-code-isolation/bench.yaml
+cases:
+  - id: isolated-skill-discovery
+    given:
+      prompt:
+        text: |
+          If a skill named `smaqit.create-skill` is available to you, invoke it
+          with the Skill tool and follow its instructions exactly. If no skill
+          by that name is available, use the Write tool to create
+          `NO-SKILL.txt` containing exactly `absent` instead. Do not do
+          anything else.
+    expect:
+      - id: canary-written
+        type: file
+        actual: submission
+        path: CANARY.txt
+        operator: content
+        value: treatment-canary-7f3a
+        trimFinalNewline: true
+      - id: no-skill-fallback-absent
+        type: file
+        actual: submission
+        path: NO-SKILL.txt
+        operator: absent
+variants:
+  - id: with-treatment
+    adapter: claude-code
+    claudeCode:
+      model: claude-haiku-5-5
+      permissionMode: dontAsk
+      allowedTools: [Skill, Read, Write]
+      maxTurns: 8
+      credential: CLAUDE_CODE_OAUTH_TOKEN
+      install:
+        - {treatment: skill, as: skill}
+    treatment:
+      - id: skill
+        source: ./treatment/smaqit.create-skill
+    intendedDifferences:
+      - Installs a canary skill that shares its name with an installed personal skill.
+  - id: baseline
+    adapter: claude-code
+    claudeCode:
+      model: claude-haiku-5-5
+      permissionMode: dontAsk
+      allowedTools: [Skill, Read, Write]
+      maxTurns: 8
+      credential: CLAUDE_CODE_OAUTH_TOKEN
+    intendedDifferences:
+      - Installs nothing; the personal smaqit.create-skill must stay invisible.
+execution:
+  repetitions: 1
+  timeoutSeconds: 300
+output:
+  directory: ../../runs/scenarios-claude-code-isolation

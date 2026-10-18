@@ -81,7 +81,54 @@ Shared `given` inputs are also staged read-only in the sidecar, but unlike treat
 
 The output directory must be outside every fixture, shared input directory, and treatment source directory. This prevents prior plans, oracle artifacts, and experiment results from entering a later harness workspace and keeps directory hashes stable.
 
-Process arguments support `{brief}`, `{briefFile}`, `{inputRoot}`, `{input:<id>}`, `{treatment:<id>}`, `{workspace}`, `{caseId}`, and `{variantId}`. Placeholder IDs are validated against the Case and variant where they are used. Placeholders are expanded inside individual argument values; prompt text itself is not interpolated. `{brief}` and `inputMode: stdin` provide the rendered Case brief, while `{briefFile}` names its read-only file. The Case brief preserves the author prompt and renders separate shared-input and variant-treatment tables; an empty baseline treatment is explicit. No shell string is evaluated. Environment inheritance is opt-in by variable name; `environment.set` is intended only for non-secret values.
+Process arguments support `{brief}`, `{briefFile}`, `{inputRoot}`, `{input:<id>}`, `{treatment:<id>}`, `{workspace}`, `{harnessHome}`, `{caseId}`, and `{variantId}`. Placeholder IDs are validated against the Case and variant where they are used. Placeholders are expanded inside individual argument values; prompt text itself is not interpolated. `{brief}` and `inputMode: stdin` provide the rendered Case brief, while `{briefFile}` names its read-only file. The Case brief preserves the author prompt and renders separate shared-input and variant-treatment tables; an empty baseline treatment is explicit. No shell string is evaluated. Environment inheritance is opt-in by variable name; `environment.set` is intended only for non-secret values.
+
+`{harnessHome}` (variant process arguments only) names a private per-attempt directory outside the workspace for harness-owned state such as a home or config directory and copied credentials. It is never snapshotted or frozen into evidence, and Bench removes it together with the workspace on every exit path.
+
+## Claude Code harness
+
+`adapter: claude-code` makes Claude Code a first-class harness next to raw `process` variants, which keep working unchanged as the escape hatch. Instead of hand-writing an invocation, a variant declares a typed `claudeCode` block:
+
+```yaml
+variants:
+  - id: with-skill
+    adapter: claude-code
+    claudeCode:
+      executable: claude              # default; resolved and hashed at plan time
+      model: claude-haiku-5-5         # optional
+      permissionMode: dontAsk         # required: acceptEdits, auto, bypassPermissions, default, dontAsk, manual, or plan
+      allowedTools: [Skill, Read, Write]
+      disallowedTools: []
+      maxTurns: 8
+      arguments: []                   # extra flags; adapter-owned flags (-p, --session-id, --bare, ...) are rejected
+      credential: CLAUDE_CODE_OAUTH_TOKEN   # or ANTHROPIC_API_KEY
+      install:
+        - {treatment: skill, as: skill}   # skill | agent | command
+      environment: {set: {}}          # non-secret only; HOME, CLAUDE_*, ANTHROPIC_* are rejected
+    treatment:
+      - id: skill
+        source: ./skills/my-skill
+    intendedDifferences: [Installs my-skill]
+```
+
+For each attempt the adapter:
+
+- **Plans** by resolving the executable, hashing it, and recording `claude --version` per variant in the plan's `harnesses`.
+- **Isolates** Claude Code by pointing `HOME` and `CLAUDE_CONFIG_DIR` into the attempt's harness home, so the invoking user's personal skills, agents, commands, settings, and login are invisible. Claude Code gives personal skills precedence over project skills of the same name, so without this isolation an installed copy would silently shadow the treatment under test.
+- **Installs** each `install` entry from its verified treatment source into the isolated config directory: a `skill` is a directory containing `SKILL.md` (discovered under its frontmatter `name`), an `agent` is a `.md` file with a frontmatter `name`, and a `command` is a `.md` file. The attempt fails if a same-named skill, command, or agent is defined in the workspace's or an ancestor's `.claude/`, or in a platform-managed location.
+- **Runs** `claude -p --output-format stream-json --verbose --permission-mode <mode> --session-id <uuid> [--model] [--max-turns] [extra arguments] [--allowedTools …] [--disallowedTools …]` in the workspace root, with the Case brief on stdin. The environment is built from nothing: `PATH`, the isolated `HOME`/`CLAUDE_CONFIG_DIR`, `DISABLE_AUTOUPDATER=1`, the manifest's non-secret entries, and the single declared credential copied from the invoking environment.
+- **Verifies** that every installed treatment appears in the harness's `system/init` event, failing the attempt otherwise, and treats a final `is_error: true` result as a failed attempt even when the process exits 0.
+- **Records** stream-json output in `traces/harness.stdout.log`, the session transcript in `traces/transcript.jsonl`, token, cost, and tool-call usage in `result.json` (input tokens include cache creation and cache reads), and harness name, version, and session ID in `result.json`, `request.json`, and `report.md`.
+
+Credentials only ever travel through that one declared variable. They are never copied as files, never recorded by value (`request.json` lists environment names only), and after every attempt Bench scans that attempt's evidence for the literal credential value: any match is redacted in place and the attempt fails in phase `evidence`. Supply the variable when invoking Bench. For a Claude subscription on Linux or WSL, the invoking user's own login token can be loaded directly for the duration of one command:
+
+```bash
+CLAUDE_CODE_OAUTH_TOKEN="$(jq -r .claudeAiOauth.accessToken ~/.claude/.credentials.json)" smaqit-adk bench run bench.yaml
+```
+
+That access token is short-lived and refreshed by Claude Code in place, so load it fresh per run. On macOS, where the login is stored in the Keychain, use a `claude setup-token` token or `ANTHROPIC_API_KEY`.
+
+`--bare` cannot be used: it disables the skill, agent, and command discovery that treatments depend on. Bench does not set `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` or `DISABLE_TELEMETRY` by default because both also disable feature-flag fetching; add them through `environment.set` when a Case should run without it. Multi-turn scripted Cases (resuming a session with prepared answers) are not supported yet.
 
 ## Expectations and scoring
 
@@ -102,6 +149,8 @@ Optional graders use `type: command`; each returns score `1` for exit code zero 
 An experiment contains its plan, sanitized resolved manifest, ordered `events.jsonl` lifecycle journal, immutable per-run requests/results, bounded stdout/stderr traces, frozen submissions, revisioned grades, aggregate statistics, comparison JSON, and Markdown report. `bench grade`, `bench compare`, and `bench report` create new derived revisions without launching the harness again. Because sidecar contents are deliberately not persisted as harness evidence, grade re-derivation verifies the saved digests of referenced prompt files, shared inputs, and treatments before reconstructing a temporary read-only grading sidecar; missing or changed references fail explicitly as reference drift.
 
 Expected values, golden assets, grader assets, saved plans, and output directories are never staged into the harness workspace or Case brief. This protects against accidental disclosure; it is not a sandbox against a malicious same-user process. A local harness has the operating-system permissions of the invoking user. Run only trusted executables and use stronger OS/container isolation for hostile code.
+
+A harness may leave non-regular files in its workspace, such as a CLI's own IPC socket. Freeze records each socket, FIFO, or device as a `special` entry in `final-tree.json` and as `specialFiles` in repository metrics, never digests it, and excludes it from the frozen submission. Removing the workspace and harness home is guaranteed to be attempted on every exit path, and a failure is always reported: `result.json` records it under `cleanup`, `report.md` lists it under "Cleanup failures", the `attempt.completed` event carries it, and the attempt is marked as not passing, even when an earlier phase had already failed.
 
 For credible comparisons, keep the Case prompt, fixture, preparation, shared inputs, budgets, and environment constant; vary only declared treatment artifacts; use multiple repetitions; randomize with a recorded seed; and treat ties, missing metrics, or incomplete matrices as inconclusive rather than manufacturing certainty. The entire sidecar is excluded from snapshots, repository metrics, and frozen submissions, so evaluator-provided resources never count as harness output.
 

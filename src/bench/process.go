@@ -33,29 +33,56 @@ func (a processAdapter) Execute(ctx context.Context, request RunRequest) (Harnes
 			return HarnessResult{}, err
 		}
 	}
-	if err := os.MkdirAll(request.TraceDir, 0755); err != nil {
-		return HarnessResult{}, err
-	}
 	prefix := a.tracePrefix
 	if prefix == "" {
 		prefix = "harness"
 	}
-	stdoutFile, err := os.OpenFile(filepath.Join(request.TraceDir, prefix+".stdout.log"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	spec := processSpec{Executable: config.Executable, Arguments: arguments, Directory: workingDirectory, Environment: explicitEnvironment(config.Environment), TraceDir: request.TraceDir, TracePrefix: prefix}
+	if config.InputMode == "stdin" {
+		spec.Stdin = request.CaseBrief
+		spec.UseStdin = true
+	}
+	result, err := runProcess(ctx, spec)
+	result.Adapter = "process"
+	return result, err
+}
+
+// processSpec is one fully resolved local process launch shared by every
+// adapter that runs a real executable.
+type processSpec struct {
+	Executable  string
+	Arguments   []string
+	Directory   string
+	Environment []string
+	Stdin       string
+	UseStdin    bool
+	TraceDir    string
+	TracePrefix string
+}
+
+// runProcess launches spec in its own process group, tees bounded output into
+// exclusive trace files, and terminates the whole tree on timeout or
+// cancellation.
+func runProcess(ctx context.Context, spec processSpec) (HarnessResult, error) {
+	if err := os.MkdirAll(spec.TraceDir, 0755); err != nil {
+		return HarnessResult{}, err
+	}
+	stdoutFile, err := os.OpenFile(filepath.Join(spec.TraceDir, spec.TracePrefix+".stdout.log"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
 		return HarnessResult{}, err
 	}
 	defer stdoutFile.Close()
-	stderrFile, err := os.OpenFile(filepath.Join(request.TraceDir, prefix+".stderr.log"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	stderrFile, err := os.OpenFile(filepath.Join(spec.TraceDir, spec.TracePrefix+".stderr.log"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
 		return HarnessResult{}, err
 	}
 	defer stderrFile.Close()
 	var stdout, stderr bytes.Buffer
-	cmd := exec.Command(config.Executable, arguments...)
-	cmd.Dir = workingDirectory
-	cmd.Env = explicitEnvironment(config.Environment)
-	if config.InputMode == "stdin" {
-		cmd.Stdin = bytes.NewBufferString(request.CaseBrief)
+	cmd := exec.Command(spec.Executable, spec.Arguments...)
+	cmd.Dir = spec.Directory
+	cmd.Env = spec.Environment
+	if spec.UseStdin {
+		cmd.Stdin = bytes.NewBufferString(spec.Stdin)
 	}
 	cmd.Stdout = &limitedWriter{Writer: io.MultiWriter(stdoutFile, &stdout), Remaining: maxCapturedOutput}
 	cmd.Stderr = &limitedWriter{Writer: io.MultiWriter(stderrFile, &stderr), Remaining: maxCapturedOutput}
@@ -65,7 +92,7 @@ func (a processAdapter) Execute(ctx context.Context, request RunRequest) (Harnes
 	}
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
-	result := HarnessResult{Adapter: "process", Executable: config.Executable}
+	result := HarnessResult{Executable: spec.Executable}
 	select {
 	case waitErr := <-done:
 		result.ExitCode = exitCode(waitErr)

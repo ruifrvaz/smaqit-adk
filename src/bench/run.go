@@ -2,8 +2,10 @@
 package bench
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,24 +21,27 @@ type NullableMetrics struct {
 	EstimatedCost *float64 `json:"estimatedCost"`
 }
 type RunResult struct {
-	SchemaVersion     int               `json:"schemaVersion"`
-	ExperimentID      string            `json:"experimentId"`
-	RunID             string            `json:"runId"`
-	CaseID            string            `json:"caseId"`
-	VariantID         string            `json:"variantId"`
-	Repetition        int               `json:"repetition"`
-	Status            string            `json:"status"`
-	StartedAt         time.Time         `json:"startedAt"`
-	CompletedAt       time.Time         `json:"completedAt"`
-	DurationMS        int64             `json:"durationMs"`
-	Harness           HarnessResult     `json:"harness"`
-	Usage             NullableMetrics   `json:"usage"`
-	Repository        RepositoryMetrics `json:"repository"`
-	RequiredPassed    bool              `json:"requiredPassed"`
-	OptionalScore     *float64          `json:"optionalScore"`
-	Grades            []GradeResult     `json:"grades"`
-	Failure           *Failure          `json:"failure"`
-	ArtifactDirectory string            `json:"artifactDirectory"`
+	SchemaVersion  int               `json:"schemaVersion"`
+	ExperimentID   string            `json:"experimentId"`
+	RunID          string            `json:"runId"`
+	CaseID         string            `json:"caseId"`
+	VariantID      string            `json:"variantId"`
+	Repetition     int               `json:"repetition"`
+	Status         string            `json:"status"`
+	StartedAt      time.Time         `json:"startedAt"`
+	CompletedAt    time.Time         `json:"completedAt"`
+	DurationMS     int64             `json:"durationMs"`
+	Harness        HarnessResult     `json:"harness"`
+	Usage          NullableMetrics   `json:"usage"`
+	Repository     RepositoryMetrics `json:"repository"`
+	RequiredPassed bool              `json:"requiredPassed"`
+	OptionalScore  *float64          `json:"optionalScore"`
+	Grades         []GradeResult     `json:"grades"`
+	Failure        *Failure          `json:"failure"`
+	// Cleanup records a workspace or harness-home removal failure. It is
+	// always reported, independently of any earlier Failure.
+	Cleanup           *Failure `json:"cleanup,omitempty"`
+	ArtifactDirectory string   `json:"artifactDirectory"`
 }
 type Failure struct {
 	Phase   string `json:"phase"`
@@ -126,7 +131,7 @@ func runPlanRuns(ctx context.Context, p *Plan, runs []PlannedRun, completeMatrix
 		result := runAttempt(ctx, experiment.ID, directory, p, planned)
 		experiment.Results = append(experiment.Results, result)
 		passed := result.RequiredPassed
-		if err := journal.emit(RunEvent{Type: "attempt.completed", ExperimentID: id, PlanID: p.PlanID, RunID: planned.RunID, CaseID: planned.CaseID, VariantID: planned.VariantID, Repetition: planned.Repetition, Status: result.Status, RequiredPassed: &passed, DurationMS: result.DurationMS, CompletedAttempts: index + 1, TotalAttempts: len(runs), Failure: result.Failure}); err != nil {
+		if err := journal.emit(RunEvent{Type: "attempt.completed", ExperimentID: id, PlanID: p.PlanID, RunID: planned.RunID, CaseID: planned.CaseID, VariantID: planned.VariantID, Repetition: planned.Repetition, Status: result.Status, RequiredPassed: &passed, DurationMS: result.DurationMS, CompletedAttempts: index + 1, TotalAttempts: len(runs), Failure: result.Failure, Cleanup: result.Cleanup}); err != nil {
 			return nil, err
 		}
 		if err := journal.emit(RunEvent{Type: "run.progress", ExperimentID: id, PlanID: p.PlanID, CompletedAttempts: index + 1, TotalAttempts: len(runs)}); err != nil {
@@ -176,10 +181,22 @@ func runAttempt(parent context.Context, experimentID, experimentDirectory string
 		return finishFailure(result, "workspace", err)
 	}
 	defer func() {
-		if cleanupErr := removeWorkspace(workspace.Root); cleanupErr != nil && result.Failure == nil {
-			result = finishFailure(result, "cleanup", cleanupErr)
+		if cleanupErr := cleanupAttempt(workspace); cleanupErr != nil {
+			result.Cleanup = &Failure{Phase: "cleanup", Message: cleanupErr.Error()}
+			result.RequiredPassed = false
+			if result.Failure == nil {
+				result.Failure = result.Cleanup
+			}
+			_ = writeJSONAtomic(filepath.Join(runDirectory, "result.json"), result)
 		}
 	}()
+	if variant.ClaudeCode != nil {
+		// Runs before workspace cleanup (deferred calls run last-in, first-out),
+		// after every evidence file for this attempt has been written.
+		defer func() {
+			result = scrubCredential(result, runDirectory, os.Getenv(variant.ClaudeCode.Credential))
+		}()
+	}
 	if err := os.MkdirAll(runDirectory, 0755); err != nil {
 		return finishFailure(result, "artifacts", err)
 	}
@@ -210,7 +227,13 @@ func runAttempt(parent context.Context, experimentID, experimentDirectory string
 		return finishFailure(result, "workspace", err)
 	}
 	caseBrief := string(briefBytes)
-	request := RunRequest{Run: planned, Variant: variant, Workspace: workspace, CaseBrief: caseBrief, TraceDir: traceDirectory}
+	request := RunRequest{Run: planned, Variant: variant, Workspace: workspace, CaseBrief: caseBrief, TraceDir: traceDirectory, HarnessVersion: p.harnessVersion(variant.ID)}
+	if variant.ClaudeCode != nil {
+		request.SessionID, err = newSessionID()
+		if err != nil {
+			return finishFailure(result, "request", err)
+		}
+	}
 	requestArtifact := map[string]any{"schemaVersion": 2, "runId": planned.RunID, "caseId": planned.CaseID, "variantId": planned.VariantID, "workspace": "<ephemeral>", "caseBrief": caseBrief, "inputIds": inputIDs(workspace.Inputs), "treatmentIds": inputIDs(workspace.Treatments), "environmentNames": environmentNames(variant)}
 	if variant.Process != nil {
 		resolvedArguments, renderErr := renderArguments(variant.Process.Arguments, request)
@@ -221,6 +244,16 @@ func runAttempt(parent context.Context, experimentID, experimentDirectory string
 		requestArtifact["arguments"] = resolvedArguments
 		requestArtifact["inputMode"] = variant.Process.InputMode
 	}
+	if variant.ClaudeCode != nil {
+		extra, renderErr := renderArguments(variant.ClaudeCode.Arguments, request)
+		if renderErr != nil {
+			return finishFailure(result, "request", renderErr)
+		}
+		requestArtifact["executable"] = variant.ClaudeCode.Executable
+		requestArtifact["arguments"] = claudeArguments(*variant.ClaudeCode, request.SessionID, extra)
+		requestArtifact["inputMode"] = "stdin"
+		requestArtifact["harness"] = map[string]string{"name": "claude-code", "version": request.HarnessVersion, "sessionId": request.SessionID, "credential": variant.ClaudeCode.Credential}
+	}
 	if err := writeJSONAtomic(filepath.Join(runDirectory, "request.json"), requestArtifact); err != nil {
 		return finishFailure(result, "artifacts", err)
 	}
@@ -230,6 +263,9 @@ func runAttempt(parent context.Context, experimentID, experimentDirectory string
 	}
 	harness, err := selectedAdapter.Execute(ctx, request)
 	result.Harness = harness
+	if harness.Usage != nil {
+		result.Usage = *harness.Usage
+	}
 	if err != nil {
 		return finishFailure(result, "adapter", err)
 	}
@@ -257,8 +293,9 @@ func runAttempt(parent context.Context, experimentID, experimentDirectory string
 		return finishFailure(result, "freeze", err)
 	}
 	defer os.RemoveAll(stagedSubmission)
+	special := specialPaths(finalTree)
 	if err := copyDirectory(workspace.Root, stagedSubmission, func(rel string) bool {
-		return rel == inputDirectoryName || strings.HasPrefix(rel, inputDirectoryName+"/")
+		return rel == inputDirectoryName || strings.HasPrefix(rel, inputDirectoryName+"/") || special[rel]
 	}); err != nil {
 		return finishFailure(result, "freeze", err)
 	}
@@ -275,7 +312,7 @@ func runAttempt(parent context.Context, experimentID, experimentDirectory string
 		return finishFailure(result, "grade", err)
 	}
 	result.Grades = grades
-	result.RequiredPassed = !harness.TimedOut && !harness.Cancelled
+	result.RequiredPassed = !harness.TimedOut && !harness.Cancelled && !harness.ReportedError
 	for _, grade := range grades {
 		if !grade.Passed {
 			result.RequiredPassed = false
@@ -353,6 +390,21 @@ func inputIDs(inputs map[string]string) []string {
 	return ids
 }
 func environmentNames(v Variant) []string {
+	if v.ClaudeCode != nil {
+		names := []string{"CLAUDE_CONFIG_DIR", "DISABLE_AUTOUPDATER", "HOME", "PATH", v.ClaudeCode.Credential}
+		names = append(names, v.ClaudeCode.Environment.Inherit...)
+		for name := range v.ClaudeCode.Environment.Set {
+			names = append(names, name)
+		}
+		sortStrings(names)
+		unique := names[:0]
+		for i, name := range names {
+			if i == 0 || name != names[i-1] {
+				unique = append(unique, name)
+			}
+		}
+		return unique
+	}
 	if v.Process == nil {
 		return nil
 	}
@@ -380,8 +432,81 @@ func sanitizedManifest(m Manifest) Manifest {
 				clone.Variants[i].Process.Environment.Set[name] = "<redacted>"
 			}
 		}
+		if clone.Variants[i].ClaudeCode != nil {
+			for name := range clone.Variants[i].ClaudeCode.Environment.Set {
+				clone.Variants[i].ClaudeCode.Environment.Set[name] = "<redacted>"
+			}
+		}
 	}
 	return clone
+}
+
+// minimumCanaryLength keeps very short credential values from producing
+// false-positive evidence matches.
+const minimumCanaryLength = 8
+
+// scrubCredential searches every evidence file of one attempt for the literal
+// credential value. Any match is redacted in place and fails the attempt with
+// phase "evidence": a harness echoed its secret into its own output.
+func scrubCredential(result RunResult, runDirectory, secret string) RunResult {
+	if len(secret) < minimumCanaryLength {
+		return result
+	}
+	needle := []byte(secret)
+	var leaked []string
+	walkErr := filepath.WalkDir(runDirectory, func(path string, entry os.DirEntry, err error) error {
+		if err != nil || entry.IsDir() || !entry.Type().IsRegular() {
+			return err
+		}
+		data, err := os.ReadFile(path)
+		if err != nil || !bytes.Contains(data, needle) {
+			return err
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(runDirectory, path)
+		leaked = append(leaked, filepath.ToSlash(rel))
+		parent := filepath.Dir(path)
+		parentInfo, err := os.Stat(parent)
+		if err != nil {
+			return err
+		}
+		if err := os.Chmod(parent, parentInfo.Mode().Perm()|0700); err != nil {
+			return err
+		}
+		if err := os.Chmod(path, 0600); err != nil {
+			return err
+		}
+		if err := os.WriteFile(path, bytes.ReplaceAll(data, needle, []byte("<redacted>")), 0600); err != nil {
+			return err
+		}
+		if err := os.Chmod(path, info.Mode().Perm()); err != nil {
+			return err
+		}
+		return os.Chmod(parent, parentInfo.Mode().Perm())
+	})
+	for _, failure := range []*Failure{result.Failure, result.Cleanup} {
+		if failure != nil && strings.Contains(failure.Message, secret) {
+			failure.Message = strings.ReplaceAll(failure.Message, secret, "<redacted>")
+		}
+	}
+	if len(leaked) == 0 && walkErr == nil {
+		return result
+	}
+	message := fmt.Sprintf("credential value found and redacted in %d evidence file(s): %s", len(leaked), strings.Join(leaked, ", "))
+	if walkErr != nil {
+		message = errors.Join(errors.New(message), fmt.Errorf("evidence scan incomplete: %w", walkErr)).Error()
+	}
+	result.RequiredPassed = false
+	if result.Failure == nil {
+		result.Failure = &Failure{Phase: "evidence", Message: message}
+	} else {
+		result.Failure.Message += "; evidence: " + message
+	}
+	_ = writeJSONAtomic(filepath.Join(runDirectory, "result.json"), result)
+	return result
 }
 
 type DriftError struct{ error }

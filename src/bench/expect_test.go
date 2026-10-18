@@ -97,7 +97,7 @@ func TestWorkspaceDoesNotExposeOracle(t *testing.T) {
 	if err := stageWorkspaceInputs(caseConfig, Variant{}, workspace); err != nil {
 		t.Fatal(err)
 	}
-	defer removeWorkspace(workspace.Root)
+	defer removeAttemptWorkspace(workspace)
 	err = filepath.Walk(workspace.Root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err

@@ -2,6 +2,7 @@
 package bench
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -13,8 +14,14 @@ import (
 
 const inputDirectoryName = ".smaqit-bench-input"
 
+// Workspace is one attempt's isolated execution state. Root is the writable
+// harness workspace that is snapshotted and frozen. HarnessHome is a separate
+// private directory outside Root for harness-owned state (home and config
+// directories, copied credentials) that must never be frozen into evidence;
+// it is removed together with Root on every exit path.
 type Workspace struct {
 	Root           string
+	HarnessHome    string
 	InputRoot      string
 	TreatmentRoot  string
 	BriefFile      string
@@ -35,7 +42,11 @@ func prepareWorkspace(c Case) (*Workspace, error) {
 		Treatments: map[string]string{}, TreatmentKinds: map[string]string{},
 	}
 	w.TreatmentRoot = filepath.Join(w.InputRoot, "treatment")
-	fail := func(err error) (*Workspace, error) { _ = removeWorkspace(root); return nil, err }
+	fail := func(err error) (*Workspace, error) { _ = removeAttemptWorkspace(w); return nil, err }
+	w.HarnessHome, err = os.MkdirTemp("", "smaqit-bench-home-")
+	if err != nil {
+		return fail(fmt.Errorf("create harness home: %w", err))
+	}
 	if c.Fixture != nil {
 		destination := root
 		if c.Fixture.Destination != "" && c.Fixture.Destination != "." {
@@ -349,6 +360,25 @@ func makeFixtureWritable(root string) error {
 		}
 		return os.Chmod(path, mode)
 	})
+}
+
+// cleanupAttempt is the attempt-cleanup step runAttempt defers; tests replace
+// it to force a cleanup failure.
+var cleanupAttempt = removeAttemptWorkspace
+
+// removeAttemptWorkspace removes both the attempt workspace and its harness
+// home, attempting each even when the other fails, and reports every failure.
+func removeAttemptWorkspace(w *Workspace) error {
+	var failures []error
+	if err := removeWorkspace(w.Root); err != nil {
+		failures = append(failures, err)
+	}
+	if w.HarnessHome != "" {
+		if err := removeWorkspace(w.HarnessHome); err != nil {
+			failures = append(failures, fmt.Errorf("harness home: %w", err))
+		}
+	}
+	return errors.Join(failures...)
 }
 
 // removeWorkspace restores the permissions deliberately removed from staged

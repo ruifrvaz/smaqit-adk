@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **First-class Claude Code harness for Bench (`adapter: claude-code`)** (Task 037). A variant declares a typed `claudeCode` block (model, permission mode, tools, turn limit, one credential variable, and treatments to install as skills, agents, or commands) instead of a hand-written invocation. Each attempt runs `claude -p --output-format stream-json` against an isolated `HOME`/`CLAUDE_CONFIG_DIR`, so globally installed personal skills can no longer shadow the treatment under test. Bench fails the attempt when a same-named definition would compete or an installed treatment isn't discovered, captures the session transcript, records token/cost/tool-call usage, and records the harness version in the plan and report. Credentials pass through exactly one declared environment variable and are scanned for, redacted, and failed on if they appear in any evidence. Raw `process` variants are unchanged.
+- **Per-attempt harness home (`{harnessHome}`)**: a private directory outside the workspace for harness-owned state such as home/config directories and copied credentials, never frozen into evidence and removed with the workspace.
+
+### Fixed
+
+- **Bench freeze no longer crashes or hangs on non-regular files** (folds in Task 035). A socket, FIFO, or device left in the workspace by a harness (for example Codex CLI's IPC socket) is recorded as a `special` tree entry and excluded from the frozen submission instead of aborting the attempt with a raw OS error.
+- **Workspace cleanup failures are always reported** (folds in Task 035). A failure to remove an attempt's workspace or harness home is recorded under `cleanup` in `result.json`, listed in `report.md`, carried on the `attempt.completed` event, and printed as a CLI warning, even when an earlier phase already failed. Previously it was silently dropped, which once left a workspace holding copied Codex credentials on disk unnoticed.
+- **The registry-cascade dogfood scenario no longer copies Codex credentials into the frozen workspace**; it stages them in `{harnessHome}` via `CODEX_HOME`.
+
 ### Fixed
 
 - **`install.sh`'s post-install "Get started" message now mentions `smaqit-adk bench`** (pending v3.0.1 · PR #3) — previously omitted a core shipped capability from the printed summary a new user sees right after installing.

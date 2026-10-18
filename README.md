@@ -62,7 +62,7 @@ smaqit-adk bench plan examples/bench/single-eval/bench.yaml
 smaqit-adk bench run examples/bench/single-eval/bench.yaml
 ```
 
-One variant produces an evaluation; multiple variants produce a controlled comparison. `bench run` displays lifecycle progress by default; agents and applications can use `-events jsonl` for ordered machine-readable state updates. See [Benchmarking and evaluation](docs/wiki/benchmarking.md) for the manifest, process adapter, scoring, artifacts, security model, and application-facing interfaces.
+One variant produces an evaluation; multiple variants produce a controlled comparison. `bench run` displays lifecycle progress by default; agents and applications can use `-events jsonl` for ordered machine-readable state updates. Any local CLI can be a harness through the generic `process` adapter; Claude Code is also first-class via `adapter: claude-code`, which runs it against a per-attempt isolated config directory (so globally installed skills never shadow the treatment under test), installs skill/agent/command treatments where Claude Code discovers them, and passes exactly one opt-in credential variable. See [Benchmarking and evaluation](docs/wiki/benchmarking.md) for the manifest, both adapters, scoring, artifacts, security model, and application-facing interfaces.
 
 ## Creating Agents and Skills
 
