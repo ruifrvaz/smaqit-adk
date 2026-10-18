@@ -4,8 +4,8 @@ version: "1.0.0"
 
 # Project Research Map
 **Project:** smaqit-adk
-**Refreshed:** 2026-08-24
-**Active task:** 036
+**Refreshed:** 2026-10-18
+**Active task:** 037
 
 | Tool | Section | URL |
 |------|---------|-----|
@@ -15,6 +15,7 @@ version: "1.0.0"
 | GitHub CLI | Manual | https://cli.github.com/manual/ |
 | GitHub Actions | Documentation | https://docs.github.com/en/actions |
 | Codex CLI | Documentation | https://learn.chatgpt.com/docs/codex/cli |
+| Claude Code | Overview | https://code.claude.com/docs/en/overview |
 
 ## Task 030 — Declarative Bench Treatment Model
 
@@ -59,8 +60,30 @@ version: "1.0.0"
 ## Task 036 — Installer Get-Started Message Omits Bench Usage
 
 **Context fingerprint:** sha256:5ab009747a2775f3ffffd2f435a81dc111b99d88154853a976c5695fea96dca0
-**Refreshed:** 2026-08-24
+**Refreshed:** 2026-10-18
 
 | Tool | Section | URL |
 |------|---------|-----|
 | Bash | Manual | https://www.gnu.org/software/bash/manual/bash.html |
+
+## Task 037 — Bench Harness Selector: First-Class Claude Code Harness Alongside Codex
+
+**Context fingerprint:** sha256:c5eb4463ad9230db5b205bc1be871ace2e36c4c0cd40516769ae5baa11968a59
+**Refreshed:** 2026-10-18
+
+| Tool | Section | URL |
+|------|---------|-----|
+| Claude Code | Headless mode | https://code.claude.com/docs/en/headless |
+| Claude Code | CLI reference | https://code.claude.com/docs/en/cli-reference |
+| Claude Code | Authentication | https://code.claude.com/docs/en/authentication |
+| Claude Code | Environment variables | https://code.claude.com/docs/en/env-vars |
+| Claude Code | Subagents | https://code.claude.com/docs/en/sub-agents |
+| Claude Code | Skills | https://code.claude.com/docs/en/skills |
+| Claude Code | Claude directory | https://code.claude.com/docs/en/claude-directory |
+| Claude Code | Sessions | https://code.claude.com/docs/en/sessions |
+| Claude Code | Repository (issues) | https://github.com/anthropics/claude-code |
+| Codex CLI | Documentation | https://learn.chatgpt.com/docs/codex/cli |
+| Codex CLI | Repository (issues) | https://github.com/openai/codex |
+| Go | Process execution package | https://pkg.go.dev/os/exec |
+| Go | File mode / non-regular files | https://pkg.go.dev/io/fs#FileMode |
+| Go | Temporary directories | https://pkg.go.dev/os#MkdirTemp |

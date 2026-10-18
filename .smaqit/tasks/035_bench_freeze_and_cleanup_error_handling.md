@@ -1,6 +1,7 @@
 ---
-status: Not Started
+status: Abandoned
 created: "2026-08-23"
+superseded_by: "037"
 ---
 
 # Bench Freeze Step Crashes on Non-Regular Files, and Cleanup Failures Are Silently Swallowed
