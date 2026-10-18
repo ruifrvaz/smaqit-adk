@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **First-class Claude Code harness for Bench (`adapter: claude-code`)** (Task 037). A variant declares a typed `claudeCode` block (model, permission mode, tools, turn limit, one credential variable, and treatments to install as skills, agents, or commands) instead of a hand-written invocation. Each attempt runs `claude -p --output-format stream-json` against an isolated `HOME`/`CLAUDE_CONFIG_DIR`, so globally installed personal skills can no longer shadow the treatment under test. Bench fails the attempt when a same-named definition would compete or an installed treatment isn't discovered, captures the session transcript, records token/cost/tool-call usage, and records the harness version in the plan and report. Credentials pass through exactly one declared environment variable and are scanned for, redacted, and failed on if they appear in any evidence. Raw `process` variants are unchanged.
 - **Per-attempt harness home (`{harnessHome}`)**: a private directory outside the workspace for harness-owned state such as home/config directories and copied credentials, never frozen into evidence and removed with the workspace.
 
+### Changed
+
+- **Repository moves back to the public `github.com/ruifrvaz/smaqit-adk`** (Task 037). Go module paths, imports, `install.sh`, the CLI's help text, and the README/wiki install instructions now reference `ruifrvaz/smaqit-adk` instead of `daisy-tribe/smaqit-adk`. `install.sh` keeps its `gh`-only flow: `gh release download --repo ruifrvaz/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && bash /tmp/smaqit-adk-install/install.sh`.
+
 ### Fixed
 
 - **Bench freeze no longer crashes or hangs on non-regular files** (folds in Task 035). A socket, FIFO, or device left in the workspace by a harness (for example Codex CLI's IPC socket) is recorded as a `special` tree entry and excluded from the frozen submission instead of aborting the attempt with a raw OS error.

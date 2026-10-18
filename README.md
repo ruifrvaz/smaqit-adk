@@ -32,10 +32,10 @@ No per-project install step, no tiers. Say "create a new agent" (or skill) in Cl
 
 ## Installation
 
-`daisy-tribe/smaqit-adk` is a private repository — install via the GitHub CLI (`gh`), authenticated with access to it (`gh auth login`, or a `GH_TOKEN`/`GITHUB_TOKEN` environment variable for headless use):
+Install via the GitHub CLI (`gh`), authenticated (`gh auth login`, or a `GH_TOKEN`/`GITHUB_TOKEN` environment variable for headless use):
 
 ```bash
-gh release download --repo daisy-tribe/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && bash /tmp/smaqit-adk-install/install.sh
+gh release download --repo ruifrvaz/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && bash /tmp/smaqit-adk-install/install.sh
 ```
 
 This downloads the `smaqit-adk` binary to `~/.local/bin/` and immediately installs agents, skills, templates, and framework files to their global locations. Nothing is written into your project directory.
@@ -43,7 +43,7 @@ This downloads the `smaqit-adk` binary to `~/.local/bin/` and immediately instal
 Or build from source:
 
 ```bash
-git clone https://github.com/daisy-tribe/smaqit-adk
+git clone https://github.com/ruifrvaz/smaqit-adk
 cd smaqit-adk/installer
 make build
 ```

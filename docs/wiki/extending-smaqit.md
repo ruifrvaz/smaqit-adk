@@ -25,10 +25,10 @@ Use **smaQit** (product) when building applications with existing pre-compiled a
 
 ## Installation
 
-`daisy-tribe/smaqit-adk` is a private repository — install via the GitHub CLI (`gh`), authenticated with access to it (`gh auth login`, or a `GH_TOKEN`/`GITHUB_TOKEN` environment variable for headless use):
+Install via the GitHub CLI (`gh`), authenticated (`gh auth login`, or a `GH_TOKEN`/`GITHUB_TOKEN` environment variable for headless use):
 
 ```bash
-gh release download --repo daisy-tribe/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && bash /tmp/smaqit-adk-install/install.sh
+gh release download --repo ruifrvaz/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && bash /tmp/smaqit-adk-install/install.sh
 ```
 
 This installs everything globally in one step — no separate project-initialization command.

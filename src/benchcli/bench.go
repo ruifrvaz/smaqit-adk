@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/daisy-tribe/smaqit-adk/src/bench"
+	"github.com/ruifrvaz/smaqit-adk/src/bench"
 )
 
 const (
