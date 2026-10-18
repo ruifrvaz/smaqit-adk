@@ -14,6 +14,9 @@ See [`MIGRATION.md`](MIGRATION.md) for how the legacy Copilot-SDK eval suite's s
 ├── agents/
 │   └── <agent-id>/
 │       └── bench.yaml
+├── scenarios/
+│   └── <scenario-id>/       # cross-cutting mechanisms (registry-cascade, claude-code-isolation)
+│       └── bench.yaml
 ├── runs/                    # generated experiment output — gitignored, see .gitignore
 ├── MIGRATION.md
 └── README.md
@@ -72,21 +75,6 @@ There's no templating in Bench for this — every manifest that drives `codex ex
 - **Set an explicit `timeoutSeconds`** on `execution` rather than trusting the 300s default — `codex exec` has a known stall report (`openai/codex#28476`). A bounded timeout turns a stall into a clean `timedOut` status instead of an indefinite hang.
 - **Point the harness at the staged artifact explicitly.** The Case brief's `# Variant treatment artifacts` table gives each available treatment ID and resolved path. Prompts should say, for example, "if the treatment table lists `skill`, read its SKILL.md first and follow it exactly." The baseline brief explicitly says `None`, so the same prompt remains honest without filesystem mutation.
 
-## Case data planes
-
-Use each plane for one purpose:
-
-- `fixture` is a writable starting project tree shared by every variant; `destination` places it at a safe workspace-relative path.
-- Case-level `prepare` performs common deterministic preparation before the baseline snapshot. It can use only `{workspace}` and `{caseId}`.
-- `given` inputs are shared, read-only resources available to every variant.
-- Variant `treatment` artifacts are read-only resources available only to that variant. They require `intendedDifferences` and are the correct way to model with/without comparisons.
-
-The complete `.smaqit-bench-input/` sidecar is excluded from repository metrics and frozen submissions. Never use preparation to encode a treatment.
-
-## Command graders and Snap-packaged toolchains
-
-A `command`-type expectation, grader, or Case preparation command runs with **no environment at all** unless the manifest sets `command.environment.inherit`/`.set` — not even `PATH` or `HOME`. Most Unix tools (`sh`, `grep`, `test`) don't need one. `go run` does, and on a Snap-packaged Go toolchain (`/snap/bin/go -> /usr/bin/snap`, common on Ubuntu) it fails even with a correct environment: Bench's process-group isolation (needed for reliable timeout/kill handling) collides with Snap's own confinement locking (`error: race condition detected, snap-run can only retry once`), confirmed live. Where a grader needs a Go tool, prefer pre-compiling it once at build time (see `installer/Makefile`'s `build` target building `dist/validate-skill`) and pointing the command grader at the compiled binary — it needs no environment and never touches Snap.
-
 ```yaml
 process:
   executable: codex
@@ -100,6 +88,64 @@ process:
     - "{briefFile}"
   inputMode: argument
 ```
+
+## Reusable Claude Code variant block
+
+Claude Code runs through the first-class `claude-code` adapter, not a hand-written `process` block. Bench builds the headless invocation itself (`claude -p --output-format stream-json --verbose --permission-mode … --session-id <uuid>`, Case brief on stdin) and, per attempt:
+
+- **Isolates Claude Code's state.** `HOME` and `CLAUDE_CONFIG_DIR` point into a fresh *harness home* outside the workspace. This matters on this machine in particular: about 60 `smaqit.*` skills are installed globally under `~/.claude/skills/`, and Claude Code's personal skills override project skills of the same name, so a non-isolated run silently tests the installed copy instead of the treatment.
+- **Installs treatments where Claude Code discovers them.** Each `install` entry copies one of the variant's treatments into the isolated config directory as a `skill` (directory with `SKILL.md`), `agent` (`.md` with a frontmatter `name`), or `command` (`.md`). The run fails if a same-named definition exists in the fixture's `.claude/`, an ancestor's `.claude/`, or a managed location, and fails if the harness's `system/init` event doesn't list an installed treatment.
+- **Passes exactly one credential.** `credential` names `CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY`. Only that variable is copied from the invoking environment; every other `CLAUDE_*`/`ANTHROPIC_*` variable (including the invoking session's own) is absent. Bench then scans the attempt's evidence for the literal value, redacts any match, and fails the attempt in phase `evidence`.
+- **Captures evidence.** stream-json stdout goes to `traces/harness.stdout.log`, the session transcript to `traces/transcript.jsonl`, token/cost/tool-call usage into `result.json`, and the harness version into the plan and `report.md`. A final `is_error: true` fails required expectations even when the process exits 0.
+
+```yaml
+variants:
+  - id: with-treatment
+    adapter: claude-code
+    claudeCode:
+      model: claude-haiku-5-5          # optional; pin it for comparable runs
+      permissionMode: dontAsk          # required; dontAsk + allowedTools is the narrowest headless mode
+      allowedTools: [Skill, Read, Write]
+      maxTurns: 8
+      credential: CLAUDE_CODE_OAUTH_TOKEN
+      install:
+        - {treatment: skill, as: skill}
+    treatment:
+      - id: skill
+        source: ../../../../skills/smaqit.create-skill
+    intendedDifferences:
+      - Installs the target skill into the isolated config directory.
+```
+
+**Loading the credential.** For a live run, load the invoking user's own Claude Code login token into the same command that runs Bench; it is never printed or written anywhere else:
+
+```bash
+CLAUDE_CODE_OAUTH_TOKEN="$(jq -r .claudeAiOauth.accessToken ~/.claude/.credentials.json)" \
+  smaqit-adk bench run .smaqit/bench/scenarios/claude-code-isolation/bench.yaml
+```
+
+Extract only that one field — the same file also holds MCP OAuth tokens. The access token is short-lived (Claude Code refreshes it in place), so load it fresh per run and check `.claudeAiOauth.expiresAt` (epoch milliseconds) covers the run's timeout budget. This works on Linux and WSL; on macOS the login lives in the Keychain, so use a `claude setup-token` token or `ANTHROPIC_API_KEY` instead. Keep live runs sequential: concurrent headless calls on one login token have been reported to invalidate the session (`anthropics/claude-code#98693`).
+
+**Gotchas.** `--bare` is rejected: it disables the skill/agent/command discovery treatments depend on. Bench sets `DISABLE_AUTOUPDATER=1` but never `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` or `DISABLE_TELEMETRY` by default, because both also disable feature-flag fetching, which can change behavior; set them in `claudeCode.environment.set` if a Case wants them. `.smaqit/bench/scenarios/claude-code-isolation/` is the live proof of the isolation guarantee.
+
+## Case data planes
+
+Use each plane for one purpose:
+
+- `fixture` is a writable starting project tree shared by every variant; `destination` places it at a safe workspace-relative path.
+- Case-level `prepare` performs common deterministic preparation before the baseline snapshot. It can use only `{workspace}` and `{caseId}`.
+- `given` inputs are shared, read-only resources available to every variant.
+- Variant `treatment` artifacts are read-only resources available only to that variant. They require `intendedDifferences` and are the correct way to model with/without comparisons.
+
+The complete `.smaqit-bench-input/` sidecar is excluded from repository metrics and frozen submissions. Never use preparation to encode a treatment.
+
+Harness-owned state never belongs in the workspace. Each attempt also gets a private *harness home* outside the workspace — exposed to `process` arguments as `{harnessHome}` and used internally by the `claude-code` adapter — for home/config directories and copied credentials. It is never snapshotted or frozen, and Bench removes it with the workspace. `scenarios/registry-cascade/` uses it to copy Codex credentials into `CODEX_HOME={harnessHome}/.codex` rather than into `{workspace}`.
+
+A harness may leave non-regular files behind (Codex creates an IPC socket under its home). The freeze step records a socket, FIFO, or device as a `special` entry in `final-tree.json` (counted in `metrics.json` as `specialFiles`), never digests it, and leaves it out of the frozen submission. If removing the workspace or harness home fails, the attempt's `result.json` records it under `cleanup` and `report.md` lists it under "Cleanup failures" — always, even when an earlier phase had already failed — and the CLI prints a warning, so a leaked directory is never silent.
+
+## Command graders and Snap-packaged toolchains
+
+A `command`-type expectation, grader, or Case preparation command runs with **no environment at all** unless the manifest sets `command.environment.inherit`/`.set` — not even `PATH` or `HOME`. Most Unix tools (`sh`, `grep`, `test`) don't need one. `go run` does, and on a Snap-packaged Go toolchain (`/snap/bin/go -> /usr/bin/snap`, common on Ubuntu) it fails even with a correct environment: Bench's process-group isolation (needed for reliable timeout/kill handling) collides with Snap's own confinement locking (`error: race condition detected, snap-run can only retry once`), confirmed live. Where a grader needs a Go tool, prefer pre-compiling it once at build time (see `installer/Makefile`'s `build` target building `dist/validate-skill`) and pointing the command grader at the compiled binary — it needs no environment and never touches Snap.
 
 ## Hidden oracles and graders
 

@@ -15,16 +15,28 @@ type RunRequest struct {
 	Workspace *Workspace
 	CaseBrief string
 	TraceDir  string
+	// HarnessVersion is the plan-time version string of a first-class
+	// harness; SessionID is the preassigned harness session, when any.
+	HarnessVersion string
+	SessionID      string
 }
 
 type HarnessResult struct {
 	Adapter    string `json:"adapter"`
 	Executable string `json:"executable,omitempty"`
-	ExitCode   int    `json:"exitCode"`
-	TimedOut   bool   `json:"timedOut"`
-	Cancelled  bool   `json:"cancelled"`
-	Stdout     string `json:"-"`
-	Stderr     string `json:"-"`
+	// Name, Version, and SessionID identify a first-class harness run.
+	Name      string `json:"name,omitempty"`
+	Version   string `json:"version,omitempty"`
+	SessionID string `json:"sessionId,omitempty"`
+	ExitCode  int    `json:"exitCode"`
+	TimedOut  bool   `json:"timedOut"`
+	Cancelled bool   `json:"cancelled"`
+	// ReportedError is set when the harness's own final result reports an
+	// error, which can happen even when its process exits zero.
+	ReportedError bool             `json:"reportedError,omitempty"`
+	Usage         *NullableMetrics `json:"-"`
+	Stdout        string           `json:"-"`
+	Stderr        string           `json:"-"`
 }
 
 type adapter interface {
@@ -37,6 +49,8 @@ func adapterFor(v Variant) (adapter, error) {
 		return mockAdapter{}, nil
 	case "process":
 		return processAdapter{}, nil
+	case "claude-code":
+		return claudeCodeAdapter{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported adapter %q", v.Adapter)
 	}
@@ -47,6 +61,9 @@ func renderArguments(arguments []string, request RunRequest) ([]string, error) {
 		"{brief}": request.CaseBrief, "{briefFile}": request.Workspace.BriefFile,
 		"{inputRoot}": request.Workspace.InputRoot, "{workspace}": request.Workspace.Root,
 		"{caseId}": request.Run.CaseID, "{variantId}": request.Variant.ID,
+	}
+	if request.Workspace.HarnessHome != "" {
+		values["{harnessHome}"] = request.Workspace.HarnessHome
 	}
 	for id, path := range request.Workspace.Inputs {
 		values["{input:"+id+"}"] = path

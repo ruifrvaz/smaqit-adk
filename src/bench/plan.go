@@ -3,6 +3,7 @@ package bench
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
@@ -14,21 +15,32 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 )
 
 const PlanSchemaVersion = 2
 
 type Plan struct {
-	SchemaVersion int           `json:"schemaVersion"`
-	PlanID        string        `json:"planId"`
-	ManifestPath  string        `json:"manifestPath"`
-	ManifestHash  string        `json:"manifestHash"`
-	Name          string        `json:"name"`
-	Seed          int64         `json:"seed"`
-	Manifest      Manifest      `json:"manifest"`
-	Assets        []AssetDigest `json:"assets"`
-	Runs          []PlannedRun  `json:"runs"`
-	Warnings      []string      `json:"warnings,omitempty"`
+	SchemaVersion int               `json:"schemaVersion"`
+	PlanID        string            `json:"planId"`
+	ManifestPath  string            `json:"manifestPath"`
+	ManifestHash  string            `json:"manifestHash"`
+	Name          string            `json:"name"`
+	Seed          int64             `json:"seed"`
+	Manifest      Manifest          `json:"manifest"`
+	Assets        []AssetDigest     `json:"assets"`
+	Runs          []PlannedRun      `json:"runs"`
+	Harnesses     []HarnessIdentity `json:"harnesses,omitempty"`
+	Warnings      []string          `json:"warnings,omitempty"`
+}
+
+// HarnessIdentity records a first-class harness's resolved executable and
+// its self-reported version at plan time, per variant.
+type HarnessIdentity struct {
+	VariantID  string `json:"variantId"`
+	Name       string `json:"name"`
+	Executable string `json:"executable"`
+	Version    string `json:"version"`
 }
 type PlannedRun struct {
 	RunID      string `json:"runId"`
@@ -143,6 +155,16 @@ func BuildPlan(manifestPath string, m *Manifest) (*Plan, error) {
 				return nil, err
 			}
 		}
+		if v.Adapter == "claude-code" && v.ClaudeCode != nil {
+			if err := resolveExecutable("variant "+v.ID, &v.ClaudeCode.Executable); err != nil {
+				return nil, err
+			}
+			version, err := harnessVersion(v.ClaudeCode.Executable)
+			if err != nil {
+				return nil, fmt.Errorf("variant %s: %w", v.ID, err)
+			}
+			p.Harnesses = append(p.Harnesses, HarnessIdentity{VariantID: v.ID, Name: "claude-code", Executable: v.ClaudeCode.Executable, Version: version})
+		}
 	}
 	for i := range p.Manifest.Cases {
 		for j := range p.Manifest.Cases[i].Prepare {
@@ -186,6 +208,9 @@ func BuildPlan(manifestPath string, m *Manifest) (*Plan, error) {
 			if v.Adapter != base.Adapter {
 				p.Warnings = append(p.Warnings, "variants use different adapters")
 			}
+			if base.ClaudeCode != nil && v.ClaudeCode != nil && base.ClaudeCode.Credential != v.ClaudeCode.Credential {
+				p.Warnings = append(p.Warnings, "variant "+v.ID+" uses credential "+v.ClaudeCode.Credential+" but "+base.ID+" uses "+base.ClaudeCode.Credential)
+			}
 			if len(v.IntendedDifferences) == 0 {
 				p.Warnings = append(p.Warnings, "variant "+v.ID+" has no declared intendedDifferences relative to "+base.ID)
 			}
@@ -196,6 +221,33 @@ func BuildPlan(manifestPath string, m *Manifest) (*Plan, error) {
 		return nil, err
 	}
 	return p, nil
+}
+
+// harnessVersion runs `<executable> --version` with an empty environment and
+// returns its first output line.
+func harnessVersion(executable string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	command := exec.CommandContext(ctx, executable, "--version")
+	command.Env = []string{}
+	output, err := command.Output()
+	if err != nil {
+		return "", fmt.Errorf("read harness version from %s --version: %w", executable, err)
+	}
+	line, _, _ := strings.Cut(strings.TrimSpace(string(output)), "\n")
+	if line == "" {
+		return "", fmt.Errorf("%s --version printed nothing", executable)
+	}
+	return line, nil
+}
+
+func (p *Plan) harnessVersion(variantID string) string {
+	for _, h := range p.Harnesses {
+		if h.VariantID == variantID {
+			return h.Version
+		}
+	}
+	return ""
 }
 
 func VerifyPlan(p *Plan) error {

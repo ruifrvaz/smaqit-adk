@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/daisy-tribe/smaqit-adk/src/bench"
+	"github.com/ruifrvaz/smaqit-adk/src/bench"
 )
 
 const (
@@ -237,6 +237,9 @@ func (r *runEventRenderer) observe(event bench.RunEvent) {
 			fmt.Fprintf(r.writer, "bench: attempt %d/%d started (%s, %s, repetition %d)\n", event.CompletedAttempts+1, event.TotalAttempts, event.CaseID, event.VariantID, event.Repetition)
 		case "attempt.completed":
 			fmt.Fprintf(r.writer, "bench: attempt %d/%d %s in %dms (required passed: %t)\n", event.CompletedAttempts, event.TotalAttempts, event.Status, event.DurationMS, event.RequiredPassed != nil && *event.RequiredPassed)
+			if event.Cleanup != nil {
+				fmt.Fprintf(r.writer, "bench: WARNING attempt cleanup failed, files may remain on disk: %s\n", event.Cleanup.Message)
+			}
 		case "run.progress":
 			fmt.Fprintf(r.writer, "bench: progress %d/%d attempt(s) complete\n", event.CompletedAttempts, event.TotalAttempts)
 		case "run.completed":
@@ -424,6 +427,9 @@ func (r *suiteEventRenderer) observe(manifestPath string, event bench.RunEvent) 
 			fmt.Fprintf(r.writer, "bench[%s]: run started (%d attempt(s))\n", label, event.TotalAttempts)
 		case "attempt.completed":
 			fmt.Fprintf(r.writer, "bench[%s]: attempt %d/%d %s (required passed: %t)\n", label, event.CompletedAttempts, event.TotalAttempts, event.Status, event.RequiredPassed != nil && *event.RequiredPassed)
+			if event.Cleanup != nil {
+				fmt.Fprintf(r.writer, "bench[%s]: WARNING attempt cleanup failed, files may remain on disk: %s\n", label, event.Cleanup.Message)
+			}
 		case "run.completed":
 			fmt.Fprintf(r.writer, "bench[%s]: run completed (%s)\n", label, event.Outcome)
 		case "run.failed":

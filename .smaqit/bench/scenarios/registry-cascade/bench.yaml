@@ -73,8 +73,9 @@ variants:
           mkdir -p "{workspace}/bin"
           cp "{treatment:binary}" "{workspace}/bin/smaqit-adk"
           chmod +x "{workspace}/bin/smaqit-adk"
-          mkdir -p "{workspace}/.codex"
-          cp -r "$REAL_HOME/.codex/." "{workspace}/.codex/" 2>/dev/null || true
+          mkdir -p "{harnessHome}/.codex"
+          cp -r "$REAL_HOME/.codex/." "{harnessHome}/.codex/" 2>/dev/null || true
+          export CODEX_HOME="{harnessHome}/.codex"
           export HOME="{workspace}"
           export PATH="{workspace}/bin:$PATH"
           exec codex exec --sandbox danger-full-access --skip-git-repo-check --cd "{workspace}" "{briefFile}"
@@ -84,14 +85,13 @@ variants:
       # HOME is sandboxed to {workspace} for the actual codex exec call, so
       # `~/.agents/smaqit-adk/registry.json` and `~/.agents/smaqit-adk/`
       # resolve into the fixture, never the real machine-wide install. The
-      # real $HOME/.codex/ (auth + config) is copied in first — copied
-      # locally into this gitignored Bench workspace only, sent nowhere —
-      # so the sandboxed codex process can still authenticate. No manual
-      # cleanup here: run.go unconditionally `defer`s a full RemoveAll of
-      # the entire workspace.Root after every run (pass/fail/timeout) —
-      # see removeWorkspace in src/bench/workspace.go — so this copy is
-      # already covered by Bench's own teardown; a second deletion here
-      # would just be redundant destructive code for no added safety.
+      # real $HOME/.codex/ (auth + config) is copied into {harnessHome} — a
+      # Bench-owned private directory outside the workspace — and exposed via
+      # CODEX_HOME, so the sandboxed codex process can authenticate while the
+      # credential copy (and Codex's own IPC socket) never enters the frozen
+      # submission. Bench removes the harness home together with the
+      # workspace after every attempt and always reports a cleanup failure,
+      # so no teardown belongs here.
     intendedDifferences:
       - Exposes the full L0->L1->registry->L2 cascade chain, plus the dev
         binary and a sandboxed HOME, as the variant treatment.
