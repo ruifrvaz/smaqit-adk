@@ -205,7 +205,7 @@ func TestRemoveWorkspaceDeletesReadOnlyStagedInputs(t *testing.T) {
 	if err := stageWorkspaceInputs(Case{ID: "case", Given: Given{Prompt: Prompt{Text: "hello"}, Files: []InputAsset{{ID: "input", Source: input}}}}, Variant{}, workspace); err != nil {
 		t.Fatal(err)
 	}
-	if err := removeWorkspace(workspace.Root); err != nil {
+	if err := removeAttemptWorkspace(workspace); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(workspace.Root); !os.IsNotExist(err) {
@@ -222,7 +222,7 @@ func TestPrepareWorkspaceWritesCaseBrief(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer removeWorkspace(workspace.Root)
+	defer removeAttemptWorkspace(workspace)
 	if err := stageWorkspaceInputs(caseConfig, Variant{}, workspace); err != nil {
 		t.Fatal(err)
 	}
@@ -267,7 +267,7 @@ func TestWorkspaceSeparatesWritableFixtureSharedInputsAndTreatment(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer removeWorkspace(workspace.Root)
+	defer removeAttemptWorkspace(workspace)
 	fixtureTarget := filepath.Join(workspace.Root, "framework", "principle.md")
 	if err := os.WriteFile(fixtureTarget, []byte("edited"), 0644); err != nil {
 		t.Fatalf("fixture was not writable: %v", err)
@@ -359,7 +359,7 @@ func TestSidecarMustNotExistBeforeBenchStagesIt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer removeWorkspace(workspace.Root)
+	defer removeAttemptWorkspace(workspace)
 	if err := os.MkdirAll(workspace.InputRoot, 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -385,7 +385,7 @@ func TestProcessAdapterStdinAndNamedInput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer removeWorkspace(workspace.Root)
+	defer removeAttemptWorkspace(workspace)
 	if err := stageWorkspaceInputs(caseConfig, Variant{}, workspace); err != nil {
 		t.Fatal(err)
 	}

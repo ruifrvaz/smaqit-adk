@@ -72,12 +72,13 @@ type TreatmentAsset struct {
 }
 
 type Variant struct {
-	ID                  string           `yaml:"id" json:"id"`
-	Adapter             string           `yaml:"adapter" json:"adapter"`
-	Process             *ProcessConfig   `yaml:"process,omitempty" json:"process,omitempty"`
-	Mock                *MockConfig      `yaml:"mock,omitempty" json:"mock,omitempty"`
-	Treatment           []TreatmentAsset `yaml:"treatment,omitempty" json:"treatment,omitempty"`
-	IntendedDifferences []string         `yaml:"intendedDifferences,omitempty" json:"intendedDifferences,omitempty"`
+	ID                  string            `yaml:"id" json:"id"`
+	Adapter             string            `yaml:"adapter" json:"adapter"`
+	Process             *ProcessConfig    `yaml:"process,omitempty" json:"process,omitempty"`
+	Mock                *MockConfig       `yaml:"mock,omitempty" json:"mock,omitempty"`
+	ClaudeCode          *ClaudeCodeConfig `yaml:"claudeCode,omitempty" json:"claudeCode,omitempty"`
+	Treatment           []TreatmentAsset  `yaml:"treatment,omitempty" json:"treatment,omitempty"`
+	IntendedDifferences []string          `yaml:"intendedDifferences,omitempty" json:"intendedDifferences,omitempty"`
 }
 
 type ProcessConfig struct {
@@ -86,6 +87,31 @@ type ProcessConfig struct {
 	InputMode        string      `yaml:"inputMode,omitempty" json:"inputMode,omitempty"`
 	WorkingDirectory string      `yaml:"workingDirectory,omitempty" json:"workingDirectory,omitempty"`
 	Environment      Environment `yaml:"environment,omitempty" json:"environment,omitempty"`
+}
+
+// ClaudeCodeConfig selects the first-class Claude Code harness. Bench builds
+// the headless invocation itself, runs it against a per-attempt isolated
+// HOME/CLAUDE_CONFIG_DIR inside the workspace's harness home, installs the
+// listed treatments where Claude Code discovers them, and passes exactly one
+// opt-in credential variable through from the invoking environment.
+type ClaudeCodeConfig struct {
+	Executable      string              `yaml:"executable,omitempty" json:"executable,omitempty"`
+	Model           string              `yaml:"model,omitempty" json:"model,omitempty"`
+	PermissionMode  string              `yaml:"permissionMode" json:"permissionMode"`
+	MaxTurns        int                 `yaml:"maxTurns,omitempty" json:"maxTurns,omitempty"`
+	AllowedTools    []string            `yaml:"allowedTools,omitempty" json:"allowedTools,omitempty"`
+	DisallowedTools []string            `yaml:"disallowedTools,omitempty" json:"disallowedTools,omitempty"`
+	Arguments       []string            `yaml:"arguments,omitempty" json:"arguments,omitempty"`
+	Credential      string              `yaml:"credential" json:"credential"`
+	Install         []ClaudeCodeInstall `yaml:"install,omitempty" json:"install,omitempty"`
+	Environment     Environment         `yaml:"environment,omitempty" json:"environment,omitempty"`
+}
+
+// ClaudeCodeInstall installs one of the variant's treatments into the isolated
+// config directory as a skill, agent, or command.
+type ClaudeCodeInstall struct {
+	Treatment string `yaml:"treatment" json:"treatment"`
+	As        string `yaml:"as" json:"as"`
 }
 
 type Environment struct {
@@ -273,6 +299,9 @@ func (m *Manifest) applyDefaults() {
 		if m.Variants[i].Process != nil && m.Variants[i].Process.InputMode == "" {
 			m.Variants[i].Process.InputMode = "stdin"
 		}
+		if m.Variants[i].ClaudeCode != nil && m.Variants[i].ClaudeCode.Executable == "" {
+			m.Variants[i].ClaudeCode.Executable = "claude"
+		}
 	}
 }
 
@@ -319,6 +348,9 @@ func (m *Manifest) resolvePaths(base string) {
 	for i := range m.Variants {
 		if m.Variants[i].Process != nil {
 			m.Variants[i].Process.Executable = resolveExecutable(m.Variants[i].Process.Executable)
+		}
+		if m.Variants[i].ClaudeCode != nil {
+			m.Variants[i].ClaudeCode.Executable = resolveExecutable(m.Variants[i].ClaudeCode.Executable)
 		}
 		for j := range m.Variants[i].Treatment {
 			m.Variants[i].Treatment[j].Source = resolve(m.Variants[i].Treatment[j].Source)
@@ -471,6 +503,9 @@ func (m *Manifest) Validate() []Diagnostic {
 			if v.Mock != nil {
 				add(p+".mock", "must not be set for process adapter")
 			}
+			if v.ClaudeCode != nil {
+				add(p+".claudeCode", "must not be set for process adapter")
+			}
 			if v.Process == nil {
 				add(p+".process", "is required for process adapter")
 			} else {
@@ -480,7 +515,7 @@ func (m *Manifest) Validate() []Diagnostic {
 				if v.Process.InputMode != "stdin" && v.Process.InputMode != "argument" {
 					add(p+".process.inputMode", "must be stdin or argument")
 				}
-				validateArguments(v.Process.Arguments, p+".process.arguments", add)
+				validateArguments(v.Process.Arguments, p+".process.arguments", add, "{harnessHome}")
 				for caseIndex, c := range m.Cases {
 					validateArgumentReferences(v.Process.Arguments, p+".process.arguments", caseInputs[caseIndex], treatmentIDs, func(path, message string) {
 						add(path, message+" for case "+c.ID)
@@ -507,6 +542,9 @@ func (m *Manifest) Validate() []Diagnostic {
 			if v.Process != nil {
 				add(p+".process", "must not be set for mock adapter")
 			}
+			if v.ClaudeCode != nil {
+				add(p+".claudeCode", "must not be set for mock adapter")
+			}
 			if v.Mock == nil {
 				add(p+".mock", "is required for mock adapter")
 			}
@@ -517,8 +555,20 @@ func (m *Manifest) Validate() []Diagnostic {
 					}
 				}
 			}
+		case "claude-code":
+			if v.Process != nil {
+				add(p+".process", "must not be set for claude-code adapter")
+			}
+			if v.Mock != nil {
+				add(p+".mock", "must not be set for claude-code adapter")
+			}
+			if v.ClaudeCode == nil {
+				add(p+".claudeCode", "is required for claude-code adapter")
+			} else {
+				validateClaudeCode(*v.ClaudeCode, v, p+".claudeCode", m.Cases, caseInputs, treatmentIDs, add)
+			}
 		default:
-			add(p+".adapter", "must be process or mock")
+			add(p+".adapter", "must be process, mock, or claude-code")
 		}
 	}
 	if m.Execution.Repetitions < 1 {
@@ -773,7 +823,11 @@ func validateCommand(c Command, path string, add func(string, string)) {
 	}
 }
 
-func validateArguments(arguments []string, path string, add func(string, string)) {
+func validateArguments(arguments []string, path string, add func(string, string), extra ...string) {
+	extraAllowed := map[string]bool{}
+	for _, placeholder := range extra {
+		extraAllowed[placeholder] = true
+	}
 	for i, argument := range arguments {
 		for _, placeholder := range placeholderPattern.FindAllString(argument, -1) {
 			if placeholder == "{task}" {
@@ -784,7 +838,7 @@ func validateArguments(arguments []string, path string, add func(string, string)
 				add(fmt.Sprintf("%s[%d]", path, i), "legacy placeholder {taskFile}; schema v2 uses {briefFile}")
 				continue
 			}
-			if allowedPlaceholders[placeholder] || validDynamicPlaceholder(placeholder, "input") || validDynamicPlaceholder(placeholder, "treatment") {
+			if allowedPlaceholders[placeholder] || extraAllowed[placeholder] || validDynamicPlaceholder(placeholder, "input") || validDynamicPlaceholder(placeholder, "treatment") {
 				continue
 			}
 			add(fmt.Sprintf("%s[%d]", path, i), "unsupported placeholder "+placeholder)

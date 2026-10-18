@@ -35,6 +35,7 @@ type RunEvent struct {
 	Outcome           string       `json:"outcome,omitempty"`
 	Winner            string       `json:"winner,omitempty"`
 	Failure           *Failure     `json:"failure,omitempty"`
+	Cleanup           *Failure     `json:"cleanup,omitempty"`
 	Diagnostics       []Diagnostic `json:"diagnostics,omitempty"`
 }
 

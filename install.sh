@@ -1,12 +1,11 @@
 #!/bin/bash
 # smaqit-adk installer script
 # Usage:
-#   gh release download --repo daisy-tribe/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && bash /tmp/smaqit-adk-install/install.sh
+#   gh release download --repo ruifrvaz/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && bash /tmp/smaqit-adk-install/install.sh
 #
-# Requires the GitHub CLI (gh), authenticated with access to daisy-tribe/smaqit-adk —
-# interactive `gh auth login`, or a GH_TOKEN/GITHUB_TOKEN environment variable for
-# headless use. This repo is private, so unauthenticated curl/raw-content access does
-# not work; gh is the sole install-time dependency, with no curl-based fallback.
+# Requires the GitHub CLI (gh), authenticated — interactive `gh auth login`, or a
+# GH_TOKEN/GITHUB_TOKEN environment variable for headless use. gh is the sole
+# install-time dependency, with no curl-based fallback.
 #
 # Options (set as environment variables):
 #   SMAQIT_ADK_VERSION=latest      Install latest stable ADK release (default)
@@ -14,9 +13,9 @@
 #   SMAQIT_ADK_VERSION=adk-v1.0.0  Install specific ADK version
 #
 # Examples:
-#   gh release download --repo daisy-tribe/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && bash /tmp/smaqit-adk-install/install.sh
-#   gh release download --repo daisy-tribe/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && SMAQIT_ADK_VERSION=prerelease bash /tmp/smaqit-adk-install/install.sh
-#   gh release download --repo daisy-tribe/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && SMAQIT_ADK_VERSION=adk-v1.0.0 bash /tmp/smaqit-adk-install/install.sh
+#   gh release download --repo ruifrvaz/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && bash /tmp/smaqit-adk-install/install.sh
+#   gh release download --repo ruifrvaz/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && SMAQIT_ADK_VERSION=prerelease bash /tmp/smaqit-adk-install/install.sh
+#   gh release download --repo ruifrvaz/smaqit-adk --pattern install.sh -D /tmp/smaqit-adk-install --clobber && SMAQIT_ADK_VERSION=adk-v1.0.0 bash /tmp/smaqit-adk-install/install.sh
 
 set -e
 
@@ -27,7 +26,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO="daisy-tribe/smaqit-adk"
+REPO="ruifrvaz/smaqit-adk"
 INSTALL_DIR="${HOME}/.local/bin"
 SMAQIT_ADK_VERSION="${SMAQIT_ADK_VERSION:-latest}"  # Default to latest stable ADK
 
@@ -45,9 +44,8 @@ error() {
     exit 1
 }
 
-# Verify gh CLI is installed and authenticated. Required — REPO is private, so
-# unauthenticated curl/raw-content access returns 404 for both the release listing
-# and the binary download; there is no curl-based fallback.
+# Verify gh CLI is installed and authenticated. Required — both the release listing
+# and the binary download go through gh; there is no curl-based fallback.
 check_gh_auth() {
     if ! command -v gh &>/dev/null; then
         error "GitHub CLI (gh) is required but not installed. Install it from https://cli.github.com/, run 'gh auth login' (or set GH_TOKEN/GITHUB_TOKEN), then retry."
@@ -95,7 +93,7 @@ detect_platform() {
     info "Detected platform: ${OS}/${ARCH}"
 }
 
-# Get latest ADK release version via the gh CLI (authenticated — REPO is private)
+# Get latest ADK release version via the gh CLI (authenticated)
 get_latest_version() {
     info "Fetching ADK release version..."
 
@@ -130,7 +128,7 @@ get_latest_version() {
     info "Installing ADK version: ${VERSION}"
 }
 
-# Download binary via gh release download (authenticated — REPO is private)
+# Download binary via gh release download (authenticated)
 download_binary() {
     local binary_name="smaqit-adk_${OS}_${ARCH}"
 
