@@ -1,9 +1,9 @@
 ---
-status: PR Open
-pr: 25
+status: Completed
 created: "2026-10-11"
 mode: Assisted
 started: "2026-10-18"
+completed: "2026-10-18"
 ---
 
 # Bench Harness Selector: First-Class Claude Code Harness Alongside Codex
