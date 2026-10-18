@@ -1,5 +1,6 @@
 ---
-status: In Progress
+status: PR Open
+pr: 25
 created: "2026-10-11"
 mode: Assisted
 started: "2026-10-18"
@@ -182,6 +183,7 @@ Queries: claude-code `Linux` + `CLAUDE_CONFIG_DIR`, and `headless` + `CLAUDE_COD
 - Folded in Task 035: `snapshotTree` records sockets, FIFOs and devices as `special` entries excluded from submissions; cleanup failures go to a dedicated `RunResult.Cleanup`, the `attempt.completed` event, `report.md` and a CLI warning; a post-attempt credential canary scan redacts and fails on leaks.
 - Moved the registry-cascade manifest's Codex credential copy from `{workspace}` into `{harnessHome}` via `CODEX_HOME`.
 - Brought the stale `bench-run`/`bench-scaffold` definitions (unchanged since Task 028, while the compiled skills had been hand-edited by Tasks 029 and 030) back in line with the compiled skills, added harness selection, and recompiled both via `smaqit.L2` to v0.3.0.
+- Repo identity moved back to the public `github.com/ruifrvaz/smaqit-adk`, at the user's request during completion, after `daisy-tribe/smaqit-adk` became unreachable: Go module paths, imports, CLI help, `install.sh` (gh-only flow kept) and README/wiki install docs. Local `main` (all Task 032/034/036 history) was merged with the user's README web edit and pushed once to `ruifrvaz` main. No tags were pushed and no release was triggered. v2.1.0 and v3.0.0 are deliberately not backfilled.
 - Testing: 26 new unit tests against a fake `claude` script plus real sockets and FIFOs, and a live scenario (`.smaqit/bench/scenarios/claude-code-isolation`) whose treatment shares its name with an installed personal skill.
 
 **Decisions made:**
@@ -193,7 +195,7 @@ Queries: claude-code `Linux` + `CLAUDE_CONFIG_DIR`, and `headless` + `CLAUDE_COD
 - A cleanup failure marks the attempt not passing, and the first recorded failure is preserved.
 
 **Blockers encountered:**
-- `git fetch`, `git ls-remote` and `gh` all return "Repository not found" for `daisy-tribe/smaqit-adk`, so the active token lacks org access. The branch was cut from the cached `origin/main` (a34d3cc), and the push, release analysis and PR are blocked until access is restored.
+- `daisy-tribe/smaqit-adk` became unreachable (HTTP 404, and the org no longer appears for the user). This was resolved by repointing `origin` to `ruifrvaz/smaqit-adk`; the old URL is kept as the `daisy-tribe` remote.
 - The installed `smaqit-adk` is v2.0.1, which predates the registry, so the L2 recompiles were not registered.
 - Discovered during implementation: opening a FIFO in the old freeze path would have hung forever rather than erroring.
 
@@ -201,6 +203,7 @@ Queries: claude-code `Linux` + `CLAUDE_CONFIG_DIR`, and `headless` + `CLAUDE_COD
 - Multi-turn scripted Claude Code Cases (`--resume` with prepared answers) need a follow-up task.
 - smaqit task 131's single-turn `NEEDS-INPUT` Case should run downstream against this adapter once it is released.
 - Task 031 (scenario matrix) should build on the harness selector. A Codex counterpart of the per-attempt isolation (`CODEX_HOME` in `{harnessHome}`) could become a first-class Codex adapter.
+- Task 036's PR #3 lived on the unreachable `daisy-tribe` repo. Its branch needs re-pushing to `ruifrvaz` and a new PR, or its one-line fix can ride along with a later release.
 - The real install should be upgraded from v2.0.1 so registry-driven propagation tracks the recompiled bench skills.
 
 ## Files to Create / Modify
