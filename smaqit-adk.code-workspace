@@ -7,10 +7,6 @@
     {
       "name": "task/036-installer-get-started-message-omits-bench-usage",
       "path": "../smaqit-adk-wt-task-036-installer-get-started-message-omits-bench-usage"
-    },
-    {
-      "name": "task/037-bench-harness-selector-first-class-claude-code-harness-alongside-codex",
-      "path": "../smaqit-adk-wt-task-037-bench-harness-selector-first-class-claude-code-harness-alongside-codex"
     }
   ],
   "settings": {
