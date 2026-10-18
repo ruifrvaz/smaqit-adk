@@ -58,7 +58,12 @@ Resolved in `task.plan` (2026-10-18).
 - Exit code: an unauthenticated run exits 1, yet stdout's JSON `result` shows `subtype: "success"` with `is_error: true`. Success has to be judged from `is_error`, not the exit code or subtype alone.
 - Subagents never get `AskUserQuestion`. `skills:` frontmatter on a subagent injects the full skill content at startup.
 - The workspace trust dialog is skipped in `-p`, but a project's `.claude/settings.json` hooks and `.mcp.json` servers still run.
-- Unverified, to probe in step 1: whether `CLAUDE_CODE_OAUTH_TOKEN` accepts a `/login` access token (the docs describe `setup-token` tokens), and whether `system/init` lists the loaded skills and agents.
+- **Step 1 probe, 2026-10-18.** Setup: Claude Code 2.1.296, `env -i` with only `PATH`, `HOME`, `CLAUDE_CONFIG_DIR` and `DISABLE_AUTOUPDATER`, an empty temp config dir, one Haiku turn costing $0.0014. Results:
+  - A `/login` access token passed as `CLAUDE_CODE_OAUTH_TOKEN` **authenticates**: exit 0, `is_error: false`, `apiKeySource: "none"`, and no onboarding gate.
+  - `system/init` **lists `skills`, `agents` and `slash_commands`**. A staged `probe-skill` and `probe-agent` both appeared. Only skills bundled with the CLI loaded alongside them, with no personal `smaqit.*` skills, which confirms the isolation. The discovery assertion is viable.
+  - With `CLAUDE_CONFIG_DIR` set, `.claude.json` was created inside the config dir. `HOME` is still isolated for issues #97680 and #80580.
+  - The transcript was written to `<config>/projects/<cwd with non-alphanumerics as ->/<session-id>.jsonl`, and `--session-id` was honored.
+  - The credential string appeared in no stdout/stderr output and no harness-home file.
 
 ## Implementation Steps
 
@@ -157,32 +162,46 @@ Queries: claude-code `Linux` + `CLAUDE_CONFIG_DIR`, and `headless` + `CLAUDE_COD
 
 ## Acceptance Criteria
 
-- [ ] A manifest can select the Claude Code harness declaratively, without hand-writing its invocation, and raw `process` variants keep working unchanged
-- [ ] Agent, skill and command treatments are discoverable by Claude Code in the run, and a run fails rather than silently testing an installed copy that shadows the treatment
-- [ ] Credentials reach the harness only through an explicit opt-in source, never appear in frozen evidence, and are cleaned up on success, failure and timeout
-- [ ] The session transcript is captured into the trace directory, and the report records the harness and its version
-- [ ] `smaqit.bench-run`, `smaqit.bench-scaffold` and the README document harness selection, with Claude Code preflight and gotchas
-- [ ] Unit tests cover selector validation and staging, and a live run against authenticated Claude Code passes for a single-turn Case
-- [ ] A harness-created non-regular file (socket, FIFO, device) in the workspace no longer crashes the freeze step; it is recorded as a `special` entry and excluded from the submission (from Task 035)
-- [ ] A workspace or harness-home cleanup failure is always surfaced in `result.json`, `report.md` and CLI output, never dropped because an earlier failure was already recorded (from Task 035)
-- [ ] No harness configuration or credential copy is placed inside the frozen workspace: the per-run harness home lives outside it, and registry-cascade no longer copies `~/.codex` into `{workspace}`
-- [ ] `.smaqit/bench/README.md` documents the special-file and cleanup guarantees (from Task 035)
+- [x] A manifest can select the Claude Code harness declaratively, without hand-writing its invocation, and raw `process` variants keep working unchanged
+- [x] Agent, skill and command treatments are discoverable by Claude Code in the run, and a run fails rather than silently testing an installed copy that shadows the treatment
+- [x] Credentials reach the harness only through an explicit opt-in source, never appear in frozen evidence, and are cleaned up on success, failure and timeout
+- [x] The session transcript is captured into the trace directory, and the report records the harness and its version
+- [x] `smaqit.bench-run`, `smaqit.bench-scaffold` and the README document harness selection, with Claude Code preflight and gotchas
+- [x] Unit tests cover selector validation and staging, and a live run against authenticated Claude Code passes for a single-turn Case
+- [x] A harness-created non-regular file (socket, FIFO, device) in the workspace no longer crashes the freeze step; it is recorded as a `special` entry and excluded from the submission (from Task 035)
+- [x] A workspace or harness-home cleanup failure is always surfaced in `result.json`, `report.md` and CLI output, never dropped because an earlier failure was already recorded (from Task 035)
+- [x] No harness configuration or credential copy is placed inside the frozen workspace: the per-run harness home lives outside it, and registry-cascade no longer copies `~/.codex` into `{workspace}`
+- [x] `.smaqit/bench/README.md` documents the special-file and cleanup guarantees (from Task 035)
 
 ## Findings
 
-[Populated by smaqit.task-complete. Do not fill in manually before task is complete.]
-
 **Implementation approach:**
-- TBD
+- Added a first-class `adapter: claude-code` (`src/bench/claudecode.go`) with a typed `claudeCode` block, validated in `manifest.go`, resolved, hashed and version-probed at plan time in `plan.go`, and dispatched from `adapterFor`. Raw `process` is unchanged.
+- Extracted the process-group spawn, timeout and trace plumbing from `process.go` into a shared `runProcess`, used by both adapters.
+- Added a per-attempt harness home (`Workspace.HarnessHome`, `{harnessHome}` for variant process arguments) outside the workspace and removed with it, holding the isolated `HOME`/`CLAUDE_CONFIG_DIR` and installed treatments.
+- Folded in Task 035: `snapshotTree` records sockets, FIFOs and devices as `special` entries excluded from submissions; cleanup failures go to a dedicated `RunResult.Cleanup`, the `attempt.completed` event, `report.md` and a CLI warning; a post-attempt credential canary scan redacts and fails on leaks.
+- Moved the registry-cascade manifest's Codex credential copy from `{workspace}` into `{harnessHome}` via `CODEX_HOME`.
+- Brought the stale `bench-run`/`bench-scaffold` definitions (unchanged since Task 028, while the compiled skills had been hand-edited by Tasks 029 and 030) back in line with the compiled skills, added harness selection, and recompiled both via `smaqit.L2` to v0.3.0.
+- Testing: 26 new unit tests against a fake `claude` script plus real sockets and FIFOs, and a live scenario (`.smaqit/bench/scenarios/claude-code-isolation`) whose treatment shares its name with an installed personal skill.
 
 **Decisions made:**
-- TBD
+- A new adapter, not a plan-time preset, because config-dir creation and treatment staging are runtime acts. Both schema versions stay at 2, since the change is additive.
+- Exactly one credential variable (`CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY`), never a credentials file. For live runs it is loaded directly from the invoking user's login inside the run command, not through Vault (user decision).
+- Any same-named skill, command or agent in the workspace's or an ancestor's `.claude/` or a managed location fails the attempt. Discovery is asserted against the `system/init` skill and agent lists.
+- `DISABLE_AUTOUPDATER=1` is the only default. `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` and `DISABLE_TELEMETRY` are deliberately not set, because both also disable feature-flag fetching. This departs from the original plan.
+- Symlinks keep their existing handling. Only sockets, FIFOs and devices became `special`.
+- A cleanup failure marks the attempt not passing, and the first recorded failure is preserved.
 
 **Blockers encountered:**
-- TBD
+- `git fetch`, `git ls-remote` and `gh` all return "Repository not found" for `daisy-tribe/smaqit-adk`, so the active token lacks org access. The branch was cut from the cached `origin/main` (a34d3cc), and the push, release analysis and PR are blocked until access is restored.
+- The installed `smaqit-adk` is v2.0.1, which predates the registry, so the L2 recompiles were not registered.
+- Discovered during implementation: opening a FIFO in the old freeze path would have hung forever rather than erroring.
 
 **Follow-up identified:**
-- TBD
+- Multi-turn scripted Claude Code Cases (`--resume` with prepared answers) need a follow-up task.
+- smaqit task 131's single-turn `NEEDS-INPUT` Case should run downstream against this adapter once it is released.
+- Task 031 (scenario matrix) should build on the harness selector. A Codex counterpart of the per-attempt isolation (`CODEX_HOME` in `{harnessHome}`) could become a first-class Codex adapter.
+- The real install should be upgraded from v2.0.1 so registry-driven propagation tracks the recompiled bench skills.
 
 ## Files to Create / Modify
 
